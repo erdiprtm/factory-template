@@ -30,4 +30,19 @@ describe("ResendProvider", () => {
       new ResendProvider("k", "f", fetchMock).send({ to: "secret@x.id", subject: "s", text: "t" }),
     ).rejects.toThrow(/^Resend rejected the email \(HTTP 422\)$/);
   });
+
+  it("calls the global fetch unbound by default (Workers reject fetch with a foreign `this`)", async () => {
+    // Emulates workerd: fetch throws when its `this` isn't the global scope.
+    const strictFetch = vi.fn(function (this: unknown) {
+      if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
+      return Promise.resolve(new Response(JSON.stringify({ id: "1" }), { status: 200 }));
+    });
+    vi.stubGlobal("fetch", strictFetch);
+    try {
+      await new ResendProvider("re_key", "App <a@b.c>").send({ to: "u@x.id", subject: "Hi", text: "t" });
+      expect(strictFetch).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
