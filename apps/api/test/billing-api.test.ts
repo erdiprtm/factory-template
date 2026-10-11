@@ -39,6 +39,16 @@ describe("checkout → webhook → access", () => {
     expect((await post("/api/billing/checkout", cookie, { planId: "6m" })).status).toBe(403);
   });
 
+  it("answers 503 to an unconfirmed 'paid' webhook so the provider retries", async () => {
+    const cookie = await signInWithConsent(uniqueEmail("lag"));
+    const { paymentId } = (await (await post("/api/billing/checkout", cookie, { planId: "6m" })).json()) as {
+      paymentId: string;
+    };
+    const res = await app.request(fakeProvider().webhook(paymentId, "paid"), undefined, env);
+    expect(res.status).toBe(503);
+    expect((await get("/api/example", cookie)).status).toBe(402);
+  });
+
   it("rejects unknown plans", async () => {
     const cookie = await signInWithConsent(uniqueEmail("plan"));
     expect((await post("/api/billing/checkout", cookie, { planId: "lifetime" })).status).toBe(400);

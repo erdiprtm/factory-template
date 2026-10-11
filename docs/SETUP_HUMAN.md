@@ -209,6 +209,32 @@ Catatan untuk nanti (bukan sekarang): pindah ke produksi butuh verifikasi dokume
 
 Sumber: <https://docs.duitku.com/pop/en/>
 
+### 3b. DOKU sandbox (opsional, hanya kalau produk memakai DOKU)
+
+Template mendukung DOKU Checkout sebagai penyedia kedua. Langkah ini **hanya** perlu kalau di `product.config.ts` tertulis `payments: { provider: "doku", ... }`. Kalau masih Duitku, lewati.
+
+1. Daftar akun sandbox: <https://dashboard.doku.com/> → pilih **Sandbox** saat mendaftar/masuk.
+2. Di Back Office: **Integration → API Keys**. Salin dua nilai ini ke password manager:
+   - **Client ID** (contoh bentuknya `BRN-xxxx-xxxxxxxxxxxx`)
+   - **Secret Key** (bukan *Public Key*)
+3. **Notification URL** (wajib, beda dengan Duitku): DOKU tidak menerima alamat callback per transaksi, jadi harus diisi di dashboard **untuk setiap channel** yang dipakai. Buka **Settings → Payment Settings**, lalu untuk Virtual Account, e-Wallet, QRIS, dan lainnya klik **CONFIGURE** dan isi:
+   - Preview: `https://factory-template-preview.erdiprtm.workers.dev/api/webhooks/doku`
+   - Produksi (akun produksi, nanti): `https://factory-template.erdiprtm.workers.dev/api/webhooks/doku`
+
+   Catatan: satu akun sandbox hanya punya satu Notification URL per channel, jadi notifikasi sandbox masuk ke **preview** Worker yang tetap (bukan URL `pr-<n>`).
+4. **Metode pembayaran:** halaman DOKU Checkout menampilkan semua channel yang aktif di akun. Aktifkan yang dipakai produk (QRIS, e-wallet, Virtual Account).
+5. **Simpan ke Cloudflare** (di folder `~/ASF/apps/api`; tempel nilainya saat diminta):
+   ```bash
+   pnpm exec wrangler secret put DOKU_CLIENT_ID --env preview
+   ```
+   ```bash
+   pnpm exec wrangler secret put DOKU_SECRET_KEY --env preview
+   ```
+   Lalu ulangi **tanpa** `--env preview` untuk produksi. Mode tetap **sandbox** (`DOKU_MODE`) sampai kamu sendiri memutuskan pindah.
+6. **Simulasi bayar:** pilih Virtual Account di halaman DOKU, lalu ikuti petunjuk simulasi pembayaran sandbox di dokumentasi DOKU (agen belum memverifikasi letak menunya; kabari kalau tampilannya beda).
+
+Sumber: <https://developers.doku.com/accept-payments/doku-checkout/integration-guide/backend-integration> dan <https://developers.doku.com/get-started-with-doku-api/notification/setup-notification-url>
+
 ---
 
 ## 4. Google OAuth — "Login dengan Google" (dikerjakan di Phase 3)

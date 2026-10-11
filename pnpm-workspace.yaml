@@ -19,6 +19,8 @@ allowBuilds:
 overrides:
   "@react-native/metro-config": 0.86.3
   react-native-worklets: 0.10.1
+  # Security patch for satori's opentype.js (GHSA-px8p-9vwx-vf98), same minor (D-021).
+  fflate: 0.7.5
 
 # One version per dependency across the workspace; packages reference these as "catalog:".
 # Picked with `node scripts/pick-versions.mjs` (docs/DECISIONS.md D-012).

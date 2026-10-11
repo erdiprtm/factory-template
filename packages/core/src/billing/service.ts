@@ -61,6 +61,8 @@ export async function startCheckout(
 export type WebhookOutcome =
   | { kind: "unauthorized" }
   | { kind: "duplicate" }
+  /** The webhook said paid but the provider doesn't confirm yet: answer non-2xx so it retries. */
+  | { kind: "retry" }
   | { kind: "ignored"; reason: string }
   | { kind: "processed"; payment: Payment; entitlement: Entitlement | null };
 
@@ -109,6 +111,12 @@ export async function handleWebhook(
 
   // Never trust the callback body alone: ask the provider.
   const confirmed = await provider.getStatus(payment.id);
+  if (confirmed === "pending" && event.status === "paid") {
+    // Status APIs can lag the notification (DOKU: up to ~60 s). Release the event key so the
+    // provider's retry is processed again instead of being dropped as a duplicate.
+    await db.delete(webhookEvents).where(eq(webhookEvents.id, eventRow.id));
+    return { kind: "retry" };
+  }
   if (confirmed === "pending") {
     await finish("still_pending");
     return { kind: "ignored", reason: "still pending at provider" };

@@ -386,3 +386,59 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
 - **Playbooks** in `.claude/skills/`, all `disable-model-invocation: true` (human-triggered): `new-product`, `build-from-spec` (refuses incomplete specs), `add-feature`, `add-plan`, `launch-check` (13 items mapped to commands; template-N/A items marked), `sync-template`.
 - `docs/TEMPLATE_SYNC.md`: template remote, merge (never rebase), conflict table by ownership. Migrations keep both sides thanks to timestamp prefixes, and the lockfile and drizzle meta are regenerated.
 - **Phase 8 acceptance pending:** create the "Catatan Harian" dummy end to end, then **the human deletes** the dummy repo, Workers and D1 (agents are denied deletes, D-006).
+
+## D-021: Security hardening (Phase 9, 2026-10-11)
+
+**Headers.**
+- `/api/*`: Hono `secureHeaders` with `default-src 'none'; frame-ancestors 'none'`, `X-Frame-Options: DENY`, HSTS 1 year, nosniff, `Referrer-Policy: no-referrer`, COOP/CORP same-origin.
+- App HTML: `apps/app/public/_headers`. Workers static assets serve it, and `wrangler dev` honours it, which E2E `security.spec.ts` asserts. `script-src 'self'` (the export has no inline scripts). `style-src` keeps `'unsafe-inline'` because React Native Web injects styles at runtime. `connect-src 'self' https:` leaves room for OpenPanel and Sentry.
+- Site: Astro `security.csp` (hash-based `<meta>`) plus `public/_headers` for what a meta tag can't carry (`frame-ancestors`, nosniff, HSTS).
+- The site now has **no inline executable scripts**. Dark mode is `/theme.js` and analytics is a bundled module, with `vite.build.assetsInlineLimit: 0` so Astro never inlines them. The first attempt with Astro's hashes left the dark-mode script blocked in the browser. A build test now fails on any inline script.
+
+**Rate limits.**
+- Workers rate limiting binding (`ratelimits`, periods of 10 or 60 s only):
+  - Checkout: 10 per minute per user.
+  - Webhooks: 120 per minute per IP.
+  - Auth: Better Auth's own D1-backed limit (D-016).
+- Counters are per Cloudflare location and eventually consistent, so this is abuse protection, not accounting.
+- Namespaces are account-wide, so keys carry the product slug. Preview uses separate namespace ids (1003/1004).
+- Tests run against Miniflare's real binding.
+
+**Input validation.**
+- Every body and query that reaches logic goes through Zod: `planId` ≤ 64, `paymentId` must match `pay_<32 hex>`, deletion needs `confirm: "HAPUS"` exactly.
+- A 64 KB body limit applies to `/api/*` (413).
+
+**Client bundle secrets.**
+- `scripts/check-bundle-secrets.mjs` runs in `pnpm verify` after the build. It looks for credential-looking values and for server-style env access (`.BETTER_AUTH_SECRET` and similar).
+- A bare name is allowed, because Better Auth's client ships a harmless env getter. The first run flagged it, and inspection showed no value.
+
+**Dependency audit (`pnpm audit --prod`, 11 advisories).**
+- None is in the Worker runtime. All are build/dev tooling: Metro, Expo CLI, react-native dev tools, Astro build (sharp, http-cache-semantics), drizzle-kit's esbuild, satori.
+- Patched now: `fflate` 0.7.5 (override, same minor, older than 14 days).
+- Not yet eligible under the 14-day rule:
+
+  | Package | Version | Eligible from |
+  |---|---|---|
+  | sharp | 0.35.5 | 2026-10-12 |
+  | source-map-js | 1.2.2 | 2026-10-14 |
+  | shell-quote | 1.11+ | 2026-10-16 |
+  | http-cache-semantics | 4.3.0 | 2026-10-18 |
+
+  Add them as overrides then (follow-up).
+- No same-major fix exists for `uuid` (7 → 11), `postcss-selector-parser` (6 → 7, Tailwind 3), `decode-uri-component` (0.2 → 0.5), `node-forge`, or `braces`. These wait for upstream (Expo/NativeWind) updates.
+
+## D-022: DOKU Checkout adapter (Phase 9, 2026-10-11)
+
+- `DokuProvider` implements the same `PaymentProvider` interface. Select it with `product.config.ts` `payments.provider: "doku"` plus the `DOKU_CLIENT_ID` / `DOKU_SECRET_KEY` secrets. `DOKU_MODE` stays `"sandbox"`.
+- **Non-SNAP signatures**, from the official docs read 2026-10-11:
+  - Signature: `HMACSHA256=` + base64 HMAC-SHA256 over the `Client-Id`, `Request-Id`, `Request-Timestamp` (ISO UTC with no milliseconds), `Request-Target` (path) and `Digest` lines.
+  - Digest: base64 SHA-256 of the exact body bytes sent or received. GET requests have no Digest line.
+  - Tests check every signature against an independent Node `crypto` implementation, plus a tampered body, wrong secret, wrong path and wrong client id.
+- **FAILED is not final.** DOKU's Checkout guidance says to ignore `FAILED`, because the customer can retry with another channel. Both the webhook and the Check Status mapping treat it as pending.
+  - SUCCESS → paid. EXPIRED → expired. REFUNDED/VOIDED → failed. Not Found → pending.
+  - A later SUCCESS is a distinct event key, so it is never dropped as a duplicate.
+- **Invoice number** = the hex part of our payment id. It is alphanumeric, 32 characters, and maps back without a lookup. DOKU caps card-enabled invoices at 30 characters, so card payments would need a shorter id (not used: the template's methods are QRIS, e-wallets and VA).
+- **Status lag → retry.** DOKU says Check Status may lag a notification (~60 s). When a signed webhook says paid but the provider doesn't confirm yet, `handleWebhook` deletes the event row and returns `retry`, and the route answers 503 so the provider redelivers. DOKU retries at 30 minutes, 6 hours and 12 hours.
+  - This applies to every provider. Before this change, an unconfirmed "paid" callback was acknowledged and dropped.
+- **Notification URL** is set per channel in the DOKU Back Office, not per request (SETUP_HUMAN step 3b). Sandbox notifications go to the fixed preview Worker.
+- `payment_method_types` is omitted: the checkout shows the channels enabled in the dashboard, as with Duitku (D-017). DOKU's channel names weren't confirmed against our method ids.

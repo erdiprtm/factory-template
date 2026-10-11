@@ -23,3 +23,11 @@ MAIL_FROM=Factory Template <onboarding@resend.dev>
 DUITKU_MERCHANT_CODE=
 DUITKU_API_KEY=
 # DUITKU_MODE is a var in wrangler.jsonc ("sandbox"); only the human switches it to "production".
+
+# DOKU Checkout sandbox, only when product.config.ts payments.provider is "doku" (SETUP_HUMAN.md
+# step 3b). Back Office > Integration > API Keys: Client ID and the Secret Key (not the Public Key).
+# The Notification URL is set per payment channel in the DOKU Back Office:
+#   https://<app-host>/api/webhooks/doku
+DOKU_CLIENT_ID=
+DOKU_SECRET_KEY=
+# DOKU_MODE is a var in wrangler.jsonc ("sandbox"); only the human switches it to "production".

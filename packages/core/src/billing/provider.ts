@@ -1,4 +1,4 @@
-// Provider-agnostic payments (FACTORY_BLUEPRINT.md Section 6). Duitku first, DOKU in Phase 9;
+// Provider-agnostic payments (FACTORY_BLUEPRINT.md Section 6). Duitku and DOKU;
 // Xendit/Midtrans later need only a new class implementing this and a config switch.
 
 export type CheckoutInput = {

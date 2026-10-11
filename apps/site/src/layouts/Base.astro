@@ -42,11 +42,9 @@ const year = new Date().getFullYear();
     <meta name="twitter:card" content="summary_large_image" />
     {jsonLd.length > 0 && <script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")} />}
     <!-- Apply dark mode before paint (follows the device; no flash). -->
-    <script is:inline>
-      if (matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.classList.add("dark");
-    </script>
+    <script is:inline src="/theme.js"></script>
   </head>
-  <body class="flex min-h-screen flex-col">
+  <body class="flex min-h-screen flex-col" data-page-event={event}>
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded-md focus:bg-background focus:p-2">Langsung ke konten</a>
     <header class="border-b border-border">
       <nav class="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4" aria-label="Utama">
@@ -71,12 +69,17 @@ const year = new Date().getFullYear();
         </nav>
       </div>
     </footer>
-    <script define:vars={{ event }}>
+    <script>
       // Standard events (Section 9). Phase 7 wires OpenPanel; until then window.factoryTrack is absent → no-op.
-      const track = (name, props) => window.factoryTrack?.(name, props);
-      track(event);
+      // Bundled by Astro into a file (no inline script, so the CSP needs no hashes for it).
+      const track = (name: string, props?: Record<string, string>) =>
+        (window as { factoryTrack?: (n: string, p?: Record<string, string>) => void }).factoryTrack?.(name, props);
+      track(document.body.dataset.pageEvent ?? "site_view");
       for (const el of document.querySelectorAll("[data-event]")) {
-        el.addEventListener("click", () => track(el.dataset.event, el.dataset.plan ? { plan: el.dataset.plan } : undefined));
+        if (!(el instanceof HTMLElement)) continue;
+        el.addEventListener("click", () =>
+          track(el.dataset.event ?? "", el.dataset.plan ? { plan: el.dataset.plan } : undefined),
+        );
       }
     </script>
   </body>

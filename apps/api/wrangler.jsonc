@@ -21,10 +21,16 @@
     "COMMIT_SHA": "dev",
     "AUTH_HOSTS": "factory-template.erdiprtm.workers.dev",
     // Sandbox until the human explicitly switches this product to production (Operating rule 7).
-    "DUITKU_MODE": "sandbox"
+    "DUITKU_MODE": "sandbox",
+    "DOKU_MODE": "sandbox"
   },
   // Expire stale pending payments + renewal reminders. Preview runs none (see env.preview).
   "triggers": { "crons": ["*/30 * * * *"] },
+  // Abuse protection (src/core/rate-limit.ts). namespace_id is per account; keys carry the slug.
+  "ratelimits": [
+    { "name": "CHECKOUT_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+    { "name": "WEBHOOK_LIMITER", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } }
+  ],
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
   "d1_databases": [
     {
@@ -40,9 +46,14 @@
         "APP_ENV": "preview",
         "COMMIT_SHA": "dev",
         "AUTH_HOSTS": "factory-template-preview.erdiprtm.workers.dev,*-factory-template-preview.erdiprtm.workers.dev",
-        "DUITKU_MODE": "sandbox"
+        "DUITKU_MODE": "sandbox",
+        "DOKU_MODE": "sandbox"
       },
       "triggers": { "crons": [] },
+      "ratelimits": [
+        { "name": "CHECKOUT_LIMITER", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } },
+        { "name": "WEBHOOK_LIMITER", "namespace_id": "1004", "simple": { "limit": 120, "period": 60 } }
+      ],
       "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "d1_databases": [
         {
