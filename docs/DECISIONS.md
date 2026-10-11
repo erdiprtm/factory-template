@@ -582,3 +582,26 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - API tests use a test-only route `PAID = "/api/__test/paid"` (`test/helpers.ts`) behind the real `sessionMiddleware` + `requireAccess`.
   - `/build-from-spec` now tells products to replace the home screen and delete the example once a real paid feature exists.
 - **Trade-off:** the Paywall UI is no longer driven by a template E2E. It is a small core component, and products' own E2E cover their paywalled screens (as the dummy's notes E2E did).
+
+## D-033: Sell engine, Module 1: standard funnel events and first-touch attribution (2026-10-11)
+
+- **Goal.** Every product can run a paid-ads funnel from day one: ad → lander → quiz → first result → paywall → checkout → purchase → renewal. Module 1 is the measurement layer the other modules build on.
+- **One event set** in `@factory/core/analytics` (`FUNNEL_EVENTS`): `lp_view`, `cta_tap`, `quiz_start`, `quiz_step`, `quiz_complete`, `first_result`, `paywall_view`, `checkout_start`, `purchase`, `renewal`, `refund`.
+  - They replace the older names that meant the same thing: `paywall_shown` → `paywall_view`, `checkout_started` → `checkout_start`, `payment_paid` → `purchase` (first paid payment of a user) or `renewal` (any later one). The site's pricing buttons now send `cta_tap`: a click on the site isn't a checkout yet.
+  - `purchase`, `renewal` and `refund` come from the server only. `POST /api/events` accepts only `CLIENT_FUNNEL_EVENTS`, so a browser can't fake revenue.
+- **Events go to two places.**
+  - OpenPanel, as before (production only).
+  - First-party D1 `funnel_events`, in every environment (each has its own D1). This is what `/admin`'s funnel and per-campaign numbers read (Module 6): no third-party API, and it works before any marketing consent, because rows hold only a random device id, the event, the campaign and an IDR value.
+- **First-touch attribution.**
+  - On a device's first visit, a "touch" is kept in `localStorage`: a random `anonId`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `fbclid`, landing path and time. Later visits never overwrite it.
+  - The site and the app are different origins, so the site adds the touch to every link into the app (`aid`, `fst` and the UTM tags; `withTouch`). The app adopts the site's `anonId` and first-visit time, which keeps the fbclid's click time for Meta's `fbc` (Module 2).
+  - The app captures the touch during its first render, before a child layout redirects to `/sign-in` and drops the query string.
+  - After sign-in the app posts it to `POST /api/attribution`, once per device. `attributions` keeps one row per user, and the first one wins.
+  - Checkout copies the user's attribution onto the payment (`payments.utm_*`, `fbclid`), so revenue joins to campaigns by `utm_campaign` without extra lookups.
+- **Server events.** The webhook records `purchase` or `renewal` (D1 plus OpenPanel, with `utm_campaign`) when it grants access. `payment_failed` is unchanged.
+- **Cost.** One small Worker request plus one D1 write per funnel step. At Rp100K/day of ads that is a few thousand rows a day, well inside the D1 and Workers free limits. The cron deletes funnel events after 400 days. `EVENTS_LIMITER` allows 300 batches per minute per IP, because mobile carriers put many users behind one IP.
+- **The site's beacon** is a `sendBeacon` with a `text/plain` body. That is a "simple" cross-origin request: no CORS preflight and no cookie. The response is never read.
+- **UU PDP.**
+  - The export includes the attribution and the funnel events.
+  - Erasure deletes both (by user and by the device's `anonId`), and clears `fbclid` from the de-identified payment rows. The campaign name stays, so ad reporting keeps its totals.
+- **Browser-safe split.** `@factory/core/attribution/touch` has no database imports, so the site and app bundles don't pull in Drizzle. `@factory/core/attribution` adds the D1 functions.

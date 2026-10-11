@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Pressable, View } from "react-native";
 import product from "../../../../../product.config";
 import { identify } from "../../core/analytics";
+import { sendTouch } from "../../core/attribution";
 import { useMe } from "../../core/auth/use-me";
 import { useI18n } from "../../core/i18n";
 import { setMonitoringUser } from "../../core/monitoring";
@@ -16,6 +17,7 @@ export default function ProtectedLayout() {
   useEffect(() => {
     if (userId) identify(userId);
     if (userId) setMonitoringUser(userId);
+    if (userId) void sendTouch();
   }, [userId]);
   if (me.isPending) return <Loading label={t("common.loading")} />;
   if (!me.data?.user) return <Redirect href="/sign-in" />;

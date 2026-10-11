@@ -37,7 +37,7 @@ export default function BillingReturn() {
   const state = status.data?.status;
   useEffect(() => {
     if (state === "paid") refreshMe();
-    // payment_paid / payment_failed are sent by the server when the webhook lands (D-030).
+    // purchase / renewal / payment_failed are sent by the server when the webhook lands (D-030).
   }, [state, refreshMe]);
 
   let text = t("billing.return.checking");

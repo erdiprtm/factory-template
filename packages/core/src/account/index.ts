@@ -1,5 +1,6 @@
 import { account, consents, entitlements, payments, remindersSent, session, user, verification } from "@factory/db";
 import { desc, eq, inArray } from "drizzle-orm";
+import { deleteAttribution, exportAttribution } from "../attribution";
 import type { Db } from "../entitlements";
 
 export type SubscriptionSummary = {
@@ -59,6 +60,8 @@ export async function exportUserData(db: Db, userId: string) {
       status: payments.status,
       createdAt: payments.createdAt,
       paidAt: payments.paidAt,
+      utmSource: payments.utmSource,
+      utmCampaign: payments.utmCampaign,
     })
     .from(payments)
     .where(eq(payments.userId, userId));
@@ -88,13 +91,15 @@ export async function exportUserData(db: Db, userId: string) {
     payments: paymentRows,
     entitlements: entitlementRows,
     consents: consentRows,
+    ...(await exportAttribution(db, userId)),
   };
 }
 
 /**
- * UU PDP right to erasure. Deletes the account, sessions, consents, entitlements and reminders.
- * Payment rows are kept for financial record-keeping obligations but de-identified: the user
- * link and raw provider payload are removed. Idempotent: safe to re-run if interrupted.
+ * UU PDP right to erasure. Deletes the account, sessions, consents, entitlements, reminders,
+ * attribution and funnel events. Payment rows are kept for financial record-keeping obligations
+ * but de-identified: the user link, raw provider payload and ad click id are removed (the
+ * campaign name stays, so ad reporting keeps its totals). Idempotent: safe to re-run if interrupted.
  */
 export async function deleteUserData(db: Db, userId: string): Promise<void> {
   const email = (await db.select({ email: user.email }).from(user).where(eq(user.id, userId)).get())?.email;
@@ -109,8 +114,9 @@ export async function deleteUserData(db: Db, userId: string): Promise<void> {
   await db.delete(entitlements).where(eq(entitlements.userId, userId));
   await db
     .update(payments)
-    .set({ userId: `deleted:${crypto.randomUUID()}`, rawPayload: null })
+    .set({ userId: `deleted:${crypto.randomUUID()}`, rawPayload: null, fbclid: null })
     .where(eq(payments.userId, userId));
+  await deleteAttribution(db, userId);
   await db.delete(consents).where(eq(consents.userId, userId));
   await db.delete(session).where(eq(session.userId, userId));
   await db.delete(account).where(eq(account.userId, userId));

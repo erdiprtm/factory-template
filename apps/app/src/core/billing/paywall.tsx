@@ -9,7 +9,7 @@ import { useI18n } from "../i18n";
 export function Paywall() {
   const { t } = useI18n();
   const router = useRouter();
-  useEffect(() => track("paywall_shown"), []);
+  useEffect(() => track("paywall_view"), []);
   return (
     <Screen className="justify-center">
       <Card>

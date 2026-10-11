@@ -20,6 +20,8 @@ export async function startCheckout(
     plan: Plan;
     methods: string[];
     origin: string;
+    /** The buyer's first-touch ad attribution (@factory/core/attribution paymentAttribution). */
+    attribution?: Partial<Pick<Payment, "utmSource" | "utmMedium" | "utmCampaign" | "utmContent" | "fbclid">>;
     now?: Date;
   },
 ): Promise<{ paymentId: string; redirectUrl: string }> {
@@ -37,6 +39,7 @@ export async function startCheckout(
     expiresAt: new Date(now.getTime() + PENDING_MINUTES * 60_000),
     paidAt: null,
     rawPayload: null,
+    ...input.attribution,
   });
   try {
     const { redirectUrl, providerRef } = await provider.createCheckout({

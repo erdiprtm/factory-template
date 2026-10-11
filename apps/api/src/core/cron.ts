@@ -1,4 +1,5 @@
 import { config } from "@factory/config/product";
+import { purgeFunnelEvents } from "@factory/core/attribution";
 import { dueReminders, expirePendingPayments, markReminderSent } from "@factory/core/billing";
 import { emailProvider } from "@factory/core/email";
 import { reminderEmail } from "@factory/core/email/templates";
@@ -9,12 +10,13 @@ import { serverAnalytics } from "./analytics";
 
 /**
  * Cron Trigger (wrangler.jsonc triggers.crons): expires stale pending payments and sends
- * renewal reminders (7 days, 1 day, on expiry). Never calls the payment provider: Duitku's
+ * renewal reminders (7 days, 1 day, on expiry), and drops funnel events past their retention. Never calls the payment provider: Duitku's
  * status API blocks merchants that poll it.
  */
 export async function runScheduled(env: Bindings, now = new Date()) {
   const db = drizzle(env.DB, { schema });
   const expired = await expirePendingPayments(db, now);
+  const purged = await purgeFunnelEvents(db, now);
 
   const host = env.AUTH_HOSTS.split(",")[0]?.trim() ?? "";
   const scheme = env.APP_ENV === "development" || env.APP_ENV === "test" ? "http" : "https";
@@ -32,5 +34,5 @@ export async function runScheduled(env: Bindings, now = new Date()) {
     await analytics.track("renewal_reminder_sent", { kind: r.kind }, r.userId);
     if (r.kind === "expired") await analytics.track("entitlement_expired", {}, r.userId);
   }
-  return { expired, remindersSent: sent };
+  return { expired, remindersSent: sent, funnelEventsPurged: purged };
 }

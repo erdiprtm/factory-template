@@ -1,15 +1,61 @@
 // Standard analytics events, identical names in every product (FACTORY_BLUEPRINT.md Section 9).
 // Product features add their own, prefixed with `feature_`. Never send PII in properties.
 
+/**
+ * The paid-ads funnel (sell engine, D-033), the same names in every product:
+ * ad → lander → quiz → first result → paywall → checkout → purchase → renewal.
+ * purchase, renewal and refund come from the server only (webhook / admin), never the browser.
+ */
+export const FUNNEL_EVENTS = [
+  "lp_view",
+  "cta_tap",
+  "quiz_start",
+  "quiz_step",
+  "quiz_complete",
+  "first_result",
+  "paywall_view",
+  "checkout_start",
+  "purchase",
+  "renewal",
+  "refund",
+] as const;
+export type FunnelEvent = (typeof FUNNEL_EVENTS)[number];
+
+/** Funnel events a browser may report (first-party POST /api/events). */
+export const CLIENT_FUNNEL_EVENTS = [
+  "lp_view",
+  "cta_tap",
+  "quiz_start",
+  "quiz_step",
+  "quiz_complete",
+  "first_result",
+  "paywall_view",
+  "checkout_start",
+] as const satisfies readonly FunnelEvent[];
+export type ClientFunnelEvent = (typeof CLIENT_FUNNEL_EVENTS)[number];
+
+/** The ordered steps /admin's funnel view converts between (quiz_step repeats, so it's left out). */
+export const FUNNEL_STEPS = [
+  "lp_view",
+  "cta_tap",
+  "quiz_start",
+  "quiz_complete",
+  "first_result",
+  "paywall_view",
+  "checkout_start",
+  "purchase",
+] as const satisfies readonly FunnelEvent[];
+
+export const isClientFunnelEvent = (event: string): event is ClientFunnelEvent =>
+  (CLIENT_FUNNEL_EVENTS as readonly string[]).includes(event);
+
 export const STANDARD_EVENTS = [
+  ...FUNNEL_EVENTS,
   "site_view",
   "pricing_view",
   "signup_started",
   "signup_completed",
   "trial_started",
-  "paywall_shown",
-  "checkout_started",
-  "payment_paid",
   "payment_failed",
   "renewal_reminder_sent",
   "renewal_clicked",

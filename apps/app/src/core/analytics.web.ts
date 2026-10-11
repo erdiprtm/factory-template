@@ -11,6 +11,7 @@ import {
 } from "@factory/core/analytics";
 import { OpenPanel } from "@openpanel/web";
 import product from "../../../../product.config";
+import { trackFunnel } from "./attribution";
 import { deployInfo } from "./deploy-env";
 
 let analytics = createAnalytics(noopAnalytics);
@@ -36,6 +37,8 @@ export function initAnalytics(): Promise<void> {
 }
 
 export function track(event: AnalyticsEvent, props?: EventProps): void {
+  // Funnel steps are also stored first-party, in every environment (each has its own D1).
+  trackFunnel(event, typeof props?.step === "number" ? props.step : undefined);
   if (!flushed) {
     queue.push([event, props]);
     return;

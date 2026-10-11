@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 import product from "../../../../product.config";
 import { initAnalytics } from "../core/analytics";
+import { currentTouch } from "../core/attribution";
 import { I18nProvider } from "../core/i18n";
 import { captureError, initMonitoring } from "../core/monitoring";
 import { useRestoreTheme, useThemePreference } from "../core/theme";
@@ -20,6 +21,9 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
 
 export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient());
+  // First-touch attribution from this visit's URL. During the first render, before child
+  // layouts (whose effects run first) can redirect and drop the query string.
+  useState(currentTouch);
   useRestoreTheme();
   useEffect(() => {
     void initMonitoring();
