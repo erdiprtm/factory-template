@@ -12,7 +12,9 @@ export class ResendProvider implements EmailProvider {
   constructor(
     private readonly apiKey: string,
     private readonly from: string,
-    private readonly fetchImpl: typeof fetch = fetch,
+    // Wrapped, never the bare global: Workers throw "Illegal invocation" when fetch is called
+    // as a method of another object (this.fetchImpl(...)). Caught in production, not by mocks.
+    private readonly fetchImpl: typeof fetch = (...args) => fetch(...args),
   ) {}
 
   async send(email: Email): Promise<void> {
