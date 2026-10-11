@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Sell engine, Module 5: result before paywall (branch `feat/result-paywall`)
+
+- A free quota of the core action is enforced by the API (`requireAccessOrFreeUse`).
+- Paywall placement is configurable: after the quiz, after the first result (the default), or after the quota.
+- The paywall frames plans per week, highlights the 12-month plan with its saving, and lists the payment methods (D-037).
+
+---
+
 ## 2026-10-11: Sell engine, Module 4: quiz onboarding (branch `feat/quiz`)
 
 - The quiz is defined per product in `features/quiz.ts`: 5–8 single, multi or number steps, with a progress bar and back navigation.

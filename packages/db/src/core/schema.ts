@@ -203,3 +203,19 @@ export const quizResponses = sqliteTable(
   },
   (t) => [uniqueIndex("quiz_responses_user_quiz_unique").on(t.userId, t.quizId)],
 );
+
+/**
+ * Free uses of the product's core action before the paywall (sell engine Module 5, D-037).
+ * Server-enforced: one row per user and action, incremented atomically up to the product's limit.
+ */
+export const freeUsage = sqliteTable(
+  "free_usage",
+  {
+    id: id(),
+    userId: text("user_id").notNull(),
+    action: text("action").notNull(),
+    used: integer("used").notNull().default(0),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (t) => [uniqueIndex("free_usage_user_action_unique").on(t.userId, t.action)],
+);

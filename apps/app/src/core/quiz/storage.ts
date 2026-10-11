@@ -11,3 +11,13 @@ export function loadQuizProgress(quizId: string): QuizProgress | null {
 export function saveQuizProgress(quizId: string, progress: QuizProgress): void {
   memory.set(quizId, progress);
 }
+
+let afterSignIn: string | null = null;
+export function setAfterSignIn(path: "/pricing" | "/"): void {
+  afterSignIn = path;
+}
+export function takeAfterSignIn(): "/pricing" | null {
+  const v = afterSignIn;
+  afterSignIn = null;
+  return v === "/pricing" ? v : null;
+}

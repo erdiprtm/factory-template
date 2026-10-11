@@ -20,3 +20,20 @@ export function saveQuizProgress(quizId: string, progress: QuizProgress): void {
     // storage blocked: progress lasts for this page load only
   }
 }
+
+// Where to go once the quiz's sign-in completes (paywall placement "after_quiz", D-037).
+const NEXT = "factory.afterSignIn";
+export function setAfterSignIn(path: "/pricing" | "/"): void {
+  try {
+    window.localStorage.setItem(NEXT, path);
+  } catch {}
+}
+export function takeAfterSignIn(): "/pricing" | null {
+  try {
+    const v = window.localStorage.getItem(NEXT);
+    window.localStorage.removeItem(NEXT);
+    return v === "/pricing" ? v : null;
+  } catch {
+    return null;
+  }
+}

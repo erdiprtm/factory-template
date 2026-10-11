@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { config } from "@factory/config/product";
 import { capturedEmails } from "@factory/core/email";
 import { describe, expect, it } from "vitest";
 import { app } from "../src/index";
@@ -100,6 +101,7 @@ describe("consents endpoint", () => {
       providers: { google: false },
       isAdmin: false,
       marketingConsent: false,
+      freeUses: { limit: config.funnel.freeUses, used: 0 },
     });
   });
 });

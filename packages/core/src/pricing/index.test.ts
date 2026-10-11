@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cheapestPerWeekIdr, perWeekIdr, savingVs } from "./index";
+import { cheapestPerWeekIdr, comparedPlan, highlightedPlan, methodLabel, perWeekIdr, savingVs } from "./index";
 
 const six = { id: "6m", months: 6, priceIdr: 149_000 };
 const twelve = { id: "12m", months: 12, priceIdr: 249_000 };
@@ -15,5 +15,13 @@ describe("pricing framing", () => {
     expect(savingVs(twelve, six)).toEqual({ idr: 49_000, percent: 16 });
     expect(savingVs(six, twelve)).toBeNull();
     expect(savingVs({ id: "x", months: 12, priceIdr: 400_000 }, six)).toBeNull();
+  });
+
+  it("highlights the configured plan, else the longest, and compares it with the next shorter", () => {
+    expect(highlightedPlan([six, twelve])?.id).toBe("12m");
+    expect(highlightedPlan([{ ...six, highlight: true }, twelve])?.id).toBe("6m");
+    expect(comparedPlan([six, twelve], twelve)?.id).toBe("6m");
+    expect(comparedPlan([six, twelve], six)).toBeUndefined();
+    expect([methodLabel("SHOPEEPAY"), methodLabel("NEWPAY")]).toEqual(["ShopeePay", "NEWPAY"]);
   });
 });

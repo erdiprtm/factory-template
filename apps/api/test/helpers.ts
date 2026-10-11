@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { config } from "@factory/config/product";
 import { capturedEmails } from "@factory/core/email";
-import { requireAccess } from "../src/core/access";
+import { requireAccess, requireAccessOrFreeUse } from "../src/core/access";
 import { sessionMiddleware } from "../src/core/session";
 import { app } from "../src/index";
 
@@ -52,3 +52,7 @@ export const lastPlan = (config.plans[config.plans.length - 1] ?? firstPlan) as 
 // Template tests use it instead of the example feature, which products delete (D-032).
 export const PAID = "/api/__test/paid";
 app.get(PAID, sessionMiddleware, requireAccess, (c) => c.json({ ok: true as const }));
+
+// The product's core action behind the free quota (D-037), test-only like PAID.
+export const CORE = "/api/__test/core";
+app.post(CORE, sessionMiddleware, requireAccessOrFreeUse, (c) => c.json({ ok: true as const }));

@@ -17,6 +17,7 @@ import { receiptEmail } from "@factory/core/email/templates";
 import { grantTrial, hasAccess } from "@factory/core/entitlements";
 import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
 import { quizResponsesFor, saveQuizResponse } from "@factory/core/quiz/store";
+import { freeUsesUsed } from "@factory/core/quota";
 import { payments, schema } from "@factory/db";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -262,6 +263,7 @@ const routes = app
         providers,
         isAdmin: false,
         marketingConsent: false,
+        freeUses: { limit: config.funnel.freeUses, used: 0 },
       });
     const required = requiredConsents(config.legal);
     return c.json({
@@ -271,6 +273,11 @@ const routes = app
       providers,
       isAdmin: isAdminEmail(user.email, config.admin.emails, c.env.ADMIN_EMAILS),
       marketingConsent: await hasMarketingConsent(db(c.env), user.id),
+      // Free uses of the core action (D-037), so the app can say how many are left.
+      freeUses: {
+        limit: config.funnel.freeUses,
+        used: await freeUsesUsed(db(c.env), user.id, config.funnel.coreAction),
+      },
     });
   })
   .use("/consents", sessionMiddleware, requireSession)
