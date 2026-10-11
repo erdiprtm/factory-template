@@ -59,4 +59,16 @@ export const styles = StyleSheet.create({
   primaryText: { color: "#ffffff", fontSize: 16, fontWeight: "600" },
   ghostText: { fontSize: 16, fontWeight: "600" },
   row: { flexDirection: "row", alignItems: "center", gap: 12, width: "100%", maxWidth: 420 },
+  card: {
+    width: "100%",
+    maxWidth: 420,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+  },
+  cardTitle: { fontSize: 18, fontWeight: "700" },
+  price: { fontSize: 24, fontWeight: "800" },
+  badge: { alignSelf: "flex-start", fontSize: 12, fontWeight: "700", color: "#2563eb" },
 });

@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import app from "../src/index";
+import { app } from "../src/index";
 
 // Auth rate limiting is on for deployed environments (production/preview), stored in D1.
 // Simulates a preview Worker; Resend is stubbed so no real email is sent.

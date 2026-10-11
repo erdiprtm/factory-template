@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { capturedEmails } from "@factory/core/email";
 import { describe, expect, it } from "vitest";
-import app from "../src/index";
+import { app } from "../src/index";
 
 // Magic-link sign-in end to end, against real local D1. Emails are captured (APP_ENV=test).
 const BASE = "http://localhost";
