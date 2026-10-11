@@ -5,6 +5,7 @@ import { reminderEmail } from "@factory/core/email/templates";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
 import type { Bindings } from "../index";
+import { serverAnalytics } from "./analytics";
 
 /**
  * Cron Trigger (wrangler.jsonc triggers.crons): expires stale pending payments and sends
@@ -19,6 +20,7 @@ export async function runScheduled(env: Bindings, now = new Date()) {
   const scheme = env.APP_ENV === "development" || env.APP_ENV === "test" ? "http" : "https";
   const renewUrl = `${scheme}://${host}/pricing`;
 
+  const analytics = serverAnalytics(env);
   let sent = 0;
   for (const r of await dueReminders(db, now)) {
     // Mark first: if two cron runs overlap, only one wins the unique key and sends.
@@ -27,6 +29,8 @@ export async function runScheduled(env: Bindings, now = new Date()) {
       reminderEmail(r.email, { appName: config.name, kind: r.kind, expiresAt: r.expiresAt, renewUrl }),
     );
     sent++;
+    await analytics.track("renewal_reminder_sent", { kind: r.kind }, r.userId);
+    if (r.kind === "expired") await analytics.track("entitlement_expired", {}, r.userId);
   }
   return { expired, remindersSent: sent };
 }

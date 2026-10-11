@@ -76,3 +76,41 @@ export function openPanelProvider(op: OpenPanelLike): AnalyticsProvider {
     },
   };
 }
+
+/**
+ * Server-side events (webhook, cron) to OpenPanel's HTTP API: things the browser can't see
+ * reliably, like a payment confirmed after the user closed the tab. Same name check and PII
+ * scrubbing as the browser; the user is identified by the opaque profileId only. Never throws:
+ * analytics must not break a webhook or the cron.
+ */
+export function openPanelServer(opts: {
+  clientId: string;
+  clientSecret: string;
+  apiUrl?: string;
+  fetchImpl?: typeof fetch;
+}) {
+  const send = opts.fetchImpl ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
+  return {
+    async track(event: AnalyticsEvent, props?: EventProps, profileId?: string): Promise<void> {
+      if (!isValidEvent(event)) return;
+      try {
+        await send(`${opts.apiUrl ?? "https://api.openpanel.dev"}/track`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "openpanel-client-id": opts.clientId,
+            "openpanel-client-secret": opts.clientSecret,
+          },
+          body: JSON.stringify({ type: "track", payload: { name: event, profileId, properties: scrubProps(props) } }),
+        });
+      } catch {
+        // Dropped on purpose: analytics is best effort.
+      }
+    },
+  };
+}
+
+export type ServerAnalytics = ReturnType<typeof openPanelServer>;
+
+/** Used when no OpenPanel secret is configured (local dev, tests, previews). */
+export const noopServerAnalytics: ServerAnalytics = { track: async () => {} };

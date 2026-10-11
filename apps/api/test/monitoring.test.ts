@@ -48,3 +48,13 @@ describe("unhandled route errors", () => {
     expect(await res.json()).toEqual({ error: "internal_error" });
   });
 });
+
+describe("server analytics", () => {
+  it("is a no-op without a secret or outside production", async () => {
+    const { serverAnalytics } = await import("../src/core/analytics");
+    const { noopServerAnalytics } = await import("@factory/core/analytics");
+    expect(serverAnalytics({ APP_ENV: "production" })).toBe(noopServerAnalytics);
+    expect(serverAnalytics({ APP_ENV: "preview", OPENPANEL_CLIENT_SECRET: "s" })).toBe(noopServerAnalytics);
+    expect(serverAnalytics({ APP_ENV: "production", OPENPANEL_CLIENT_SECRET: "s" })).not.toBe(noopServerAnalytics);
+  });
+});

@@ -31,3 +31,7 @@ DUITKU_API_KEY=
 DOKU_CLIENT_ID=
 DOKU_SECRET_KEY=
 # DOKU_MODE is a var in wrangler.jsonc ("sandbox"); only the human switches it to "production".
+
+# OpenPanel client secret (SETUP_HUMAN step 5). Production only: server-side events (payment
+# results from the webhook, renewal reminders from the cron). Not needed locally.
+OPENPANEL_CLIENT_SECRET=
