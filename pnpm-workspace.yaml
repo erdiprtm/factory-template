@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - e2e
 
 # Operating rule 4: only versions published at least 14 days ago (unit: minutes).
 # Applies to transitive dependencies too. Strict: fail instead of silently picking a newer one.
@@ -24,7 +25,10 @@ overrides:
 catalog:
   "@biomejs/biome": 2.5.14
   "@cloudflare/vitest-plugin": 1.2.8
+  "@playwright/test": 1.63.0
   "@types/node": 26.6.3
+  auth: 1.7.6
+  better-auth: 1.7.6
   drizzle-kit: 0.31.11
   drizzle-orm: 0.45.3
   hono: 4.13.9

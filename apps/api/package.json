@@ -7,22 +7,27 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "dev": "wrangler dev --port 8787",
+    "dev": "wrangler dev --port 8787 --var APP_ENV:development --var AUTH_HOSTS:localhost:8787",
     "build": "wrangler deploy --dry-run --outdir dist",
     "types": "wrangler types",
     "typecheck": "wrangler types --check && tsc --noEmit -p .",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "db:seed:local": "wrangler d1 execute DB --local --file ../../packages/db/seed/dev.sql"
+    "db:seed:local": "wrangler d1 execute DB --local --file ../../packages/db/seed/dev.sql",
+    "auth:schema": "auth generate --config src/core/auth.cli.ts --output ../../packages/db/src/core/auth-schema.ts -y"
   },
   "dependencies": {
-    "hono": "catalog:"
+    "@factory/config": "workspace:*",
+    "@factory/core": "workspace:*",
+    "@factory/db": "workspace:*",
+    "better-auth": "catalog:",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "catalog:",
-    "@factory/core": "workspace:*",
-    "@factory/db": "workspace:*",
-    "drizzle-orm": "catalog:",
+    "auth": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wrangler": "catalog:"
