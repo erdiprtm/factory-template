@@ -16,6 +16,7 @@ import { capturedDevEmails, emailProvider } from "@factory/core/email";
 import { receiptEmail } from "@factory/core/email/templates";
 import { grantTrial, hasAccess } from "@factory/core/entitlements";
 import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
+import { quizResponsesFor, saveQuizResponse } from "@factory/core/quiz/store";
 import { payments, schema } from "@factory/db";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -217,6 +218,17 @@ const touchBody = z.object({
   utm_content: z.string().max(200).optional(),
   fbclid: z.string().max(500).optional(),
 });
+// Quiz answers (D-036): small and well-formed; the product's app validates their meaning.
+const quizValue = z.union([z.string().max(100), z.array(z.string().max(100)).min(1).max(8), z.number().finite()]);
+const quizBody = z.object({
+  quizId: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/),
+  answers: z
+    .record(z.string().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/), quizValue)
+    .refine((a) => Object.keys(a).length <= 8, {
+      message: "at most 8 answers",
+    }),
+  completedAt: z.int().positive(),
+});
 const consentBody = z.object({ accept: z.array(z.enum(["terms", "privacy", "sensitive_data", "marketing"])) });
 // fbp/fbc: the Pixel's cookies, sent by the web app so the server event matches the browser's.
 const checkoutBody = z.object({
@@ -289,6 +301,17 @@ const routes = app
     const saved = await saveAttribution(db(c.env), c.get("user").id, parsed.data);
     return c.json({ ok: true as const, saved });
   })
+  // Quiz answers from before signup, attached once signed in (a retake replaces them).
+  .use("/quiz", sessionMiddleware, requireSession)
+  .post("/quiz", async (c) => {
+    const parsed = quizBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
+    const { quizId, answers, completedAt } = parsed.data;
+    const at = new Date(Math.min(completedAt, Date.now()));
+    await saveQuizResponse(db(c.env), { userId: c.get("user").id, quizId, answers, completedAt: at });
+    return c.json({ ok: true as const });
+  })
+  .get("/quiz", async (c) => c.json({ responses: await quizResponsesFor(db(c.env), c.get("user").id) }))
   .use("/billing/*", sessionMiddleware, requireSession)
   .use(
     "/billing/checkout",

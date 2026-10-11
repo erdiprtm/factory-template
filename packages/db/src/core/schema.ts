@@ -185,3 +185,21 @@ export const paymentTracking = sqliteTable(
   },
   (t) => [index("payment_tracking_created_idx").on(t.createdAt)],
 );
+
+/**
+ * Quiz onboarding answers (sell engine Module 4, D-036), one row per user and quiz. Answered on
+ * the device before signup, attached after sign-in and consent; a retake replaces the answers.
+ * Products read them to personalize (apps/api/src/features). JSON, validated on write.
+ */
+export const quizResponses = sqliteTable(
+  "quiz_responses",
+  {
+    id: id(),
+    userId: text("user_id").notNull(),
+    quizId: text("quiz_id").notNull(),
+    answers: text("answers").notNull(),
+    completedAt: timestamp("completed_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (t) => [uniqueIndex("quiz_responses_user_quiz_unique").on(t.userId, t.quizId)],
+);

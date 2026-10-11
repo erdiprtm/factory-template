@@ -9,6 +9,7 @@ import { useMe } from "../../core/auth/use-me";
 import { useI18n } from "../../core/i18n";
 import { syncMarketingConsent } from "../../core/marketing";
 import { setMonitoringUser } from "../../core/monitoring";
+import { sendQuiz } from "../../core/quiz/send";
 
 /** Protected area: signed-in users with all required consents. Paid features add requireAccess. */
 export default function ProtectedLayout() {
@@ -23,6 +24,7 @@ export default function ProtectedLayout() {
     if (userId) identify(userId);
     if (userId) setMonitoringUser(userId);
     if (userId) void sendTouch();
+    if (userId) void sendQuiz(); // the protected area renders only after consent
   }, [userId]);
   if (me.isPending) return <Loading label={t("common.loading")} />;
   if (!me.data?.user) return <Redirect href="/sign-in" />;
