@@ -21,10 +21,11 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test && vitest run --dir scripts",
     "check:migrations": "node scripts/check-migrations.mjs",
-    "verify": "pnpm lint && pnpm check:migrations && pnpm typecheck && pnpm test && pnpm build",
+    "verify": "pnpm lint && pnpm check:migrations && pnpm typecheck && pnpm test && pnpm build && pnpm e2e",
     "db:generate": "pnpm --filter @factory/db generate",
     "db:migrate:local": "pnpm --filter @factory/api db:migrate:local",
-    "db:seed:local": "pnpm --filter @factory/api db:seed:local"
+    "db:seed:local": "pnpm --filter @factory/api db:seed:local",
+    "e2e": "pnpm --filter @factory/e2e e2e"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

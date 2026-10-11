@@ -1,5 +1,6 @@
 import { config } from "@factory/config/product";
 import { missingConsents, recordConsents, requiredConsents } from "@factory/core/consents";
+import { capturedDevEmails } from "@factory/core/email";
 import { hasAccess } from "@factory/core/entitlements";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
@@ -33,6 +34,14 @@ app.use(
 
 // Better Auth: magic link, Google, sessions. Rate-limited inside (D1-backed).
 app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth(c.env).handler(c.req.raw));
+
+// Local dev only (E2E reads the magic link from here). Never reachable when deployed:
+// requires APP_ENV=development AND a localhost host.
+app.get("/api/dev/last-email", (c) => {
+  if (c.env.APP_ENV !== "development" || new URL(c.req.url).hostname !== "localhost") return c.notFound();
+  const mail = capturedDevEmails().last(c.req.query("to"));
+  return mail ? c.json(mail) : c.notFound();
+});
 
 const consentBody = z.object({ accept: z.array(z.enum(["terms", "privacy", "sensitive_data", "marketing"])) });
 

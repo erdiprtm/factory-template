@@ -67,3 +67,8 @@ export function emailProvider(env: EmailEnv): EmailProvider {
 export function capturedEmails(): CaptureProvider {
   return capture;
 }
+
+/** Emails captured by `wrangler dev` (APP_ENV=development). */
+export function capturedDevEmails(): CaptureProvider {
+  return devCapture;
+}

@@ -20,11 +20,15 @@ The full design is in `FACTORY_BLUEPRINT.md`. Progress is in `docs/STATUS.md`, d
 
 ```sh
 pnpm install          # once, and after pulling dependency changes
-pnpm dev              # app (Expo web) + API (wrangler dev) locally
-pnpm verify           # lint + typecheck + test + build + migration safety: must be green
+pnpm dev              # app (Expo web :8081) + API (wrangler dev :8787) locally
+pnpm verify           # lint + migration safety + typecheck + test + build + e2e: must be green
+pnpm db:generate      # new migration from schema changes (packages/db)
+pnpm db:migrate:local # apply migrations to the local D1;  pnpm db:seed:local loads dev data
 ```
 
-- Migrations: see `packages/db/README.md` (Phase 2). Local only: `--local`. Remote databases are migrated **only by CI**.
+- Migrations: see `packages/db/README.md`. Local only: `--local`. Remote databases are migrated **only by CI**.
+- Local sign-in: magic links are printed in the `wrangler dev` log (no email is sent without `RESEND_API_KEY`).
+- E2E needs Chromium once: `pnpm --filter @factory/e2e e2e:install`.
 - Preview URL: open a PR. CI comments `https://pr-<n>-<slug>-preview.<subdomain>.workers.dev` on it after the smoke test.
 - Native: `pnpm --filter @factory/app start` and scan the QR with Expo Go.
 

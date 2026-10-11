@@ -31,6 +31,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Migration safety (expand/contract)
         run: node scripts/check-migrations.mjs --base "origin/${{ github.base_ref }}"
+      - name: Install Playwright browser (E2E is part of verify)
+        run: pnpm --filter @factory/e2e exec playwright install --with-deps chromium
       - run: pnpm verify
 
   preview:

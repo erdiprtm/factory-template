@@ -48,6 +48,8 @@ jobs:
             echo "::error::Repository variable PRODUCTION_URL is not set (run scripts/setup-github.sh)"
             exit 1
           fi
+      - name: Install Playwright browser (E2E is part of verify)
+        run: pnpm --filter @factory/e2e exec playwright install --with-deps chromium
       - name: Verify
         id: verify
         run: pnpm verify

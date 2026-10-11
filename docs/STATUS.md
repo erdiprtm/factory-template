@@ -4,6 +4,29 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Phase 3 (auth) built on branch `feat/phase-3-auth` (stacked on Phase 2); not merged
+
+- Better Auth with magic link (plus Google when configured), auth tables in D1, D1-backed rate limits, versioned UU PDP consent gate, sign-in, consent and protected screens, sign-out (D-016).
+- Email adapter `@factory/core/email`: Resend, plus capture for dev/test (D-004).
+- `pnpm verify` green including E2E: 107 unit/integration tests (api 20, core 11, config 5, scripts 71) plus 2 Playwright tests.
+- Live browser check on `wrangler dev`: sign-in → magic link → consent → home → sign-out.
+- Smoke checks extended (`/sign-in`, signed-out `/api/me`), so a deploy without `BETTER_AUTH_SECRET` fails and rolls back.
+- Also on branches: `docs/OPERATIONS.md` (on `feat/phase-2-db`); `docs/SPEC_TEMPLATE.md` + `factory.json` (on `docs/spec-template-and-registry`).
+
+**Order of merging.**
+1. Phase 1 Expo Go test (human).
+2. `feat/phase-2-db` PR.
+3. `feat/phase-3-auth` PR, rebased by merging main.
+4. The spec-template docs (Phase 8 material) any time after that.
+
+**Before Phase 3 can merge (🧑 HUMAN plus agent):**
+- [ ] `BETTER_AUTH_SECRET` set on production and preview. The agent can generate and set it with `wrangler secret put`, which needs the human's approval prompt.
+- [ ] Resend API key, set as the `RESEND_API_KEY` secret by the human (SETUP_HUMAN step 7).
+- [ ] Google OAuth client with the two redirect URIs in SETUP_HUMAN step 4 (optional for merge; enables Google sign-in).
+- [ ] Acceptance on the real preview: the human signs in with a magic link (and Google on production).
+
+---
+
 ## 2026-10-11: Phase 2 (database) built on branch `feat/phase-2-db`; not merged yet
 
 Phase 1 acceptance is complete except the human's Expo Go phone test. Per Operating rule 1, Phase 2 is prepared on a branch and its PR opens after that test.

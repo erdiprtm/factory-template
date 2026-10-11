@@ -44,9 +44,10 @@ function buildAuth(env: AuthEnv) {
     advanced: { ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] } },
     session: { cookieCache: { enabled: true, maxAge: 300 } },
     // Must be explicit: the default follows NODE_ENV, which Workers don't set. Stored in D1
-    // because isolates don't share memory. Disabled in tests so suites don't trip it.
+    // because isolates don't share memory. On for deployed environments only, so local dev,
+    // tests and E2E don't trip it (test/rate-limit.test.ts proves it works when deployed).
     rateLimit: {
-      enabled: env.APP_ENV !== "test",
+      enabled: !local,
       storage: "database",
       customRules: {
         "/sign-in/magic-link": { window: 60, max: 3 },
