@@ -1,23 +1,31 @@
 import { config } from "@factory/config/product";
+import { handleWebhook, paymentStatus, startCheckout } from "@factory/core/billing";
 import { missingConsents, recordConsents, requiredConsents } from "@factory/core/consents";
-import { capturedDevEmails } from "@factory/core/email";
-import { hasAccess } from "@factory/core/entitlements";
-import { schema } from "@factory/db";
+import { capturedDevEmails, emailProvider } from "@factory/core/email";
+import { receiptEmail } from "@factory/core/email/templates";
+import { grantTrial, hasAccess } from "@factory/core/entitlements";
+import { payments, schema } from "@factory/db";
+import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 import { type AuthEnv, getAuth } from "./core/auth";
+import { runScheduled } from "./core/cron";
+import { fakeProvider, getProvider, type PaymentEnv } from "./core/payments";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
+import { exampleFeature } from "./features/example";
 
 // Bindings are typed explicitly (not via worker-configuration.d.ts globals) so the app package
 // can type-check the RPC client against this source without pulling in Worker ambient types.
-export type Bindings = AuthEnv & {
-  COMMIT_SHA: string;
-  CF_VERSION_METADATA: { id: string; tag: string; timestamp: string };
-};
+export type Bindings = AuthEnv &
+  PaymentEnv & {
+    COMMIT_SHA: string;
+    CF_VERSION_METADATA: { id: string; tag: string; timestamp: string };
+  };
 
-const app = new Hono<{ Bindings: Bindings; Variables: SessionVariables }>();
+export const app = new Hono<{ Bindings: Bindings; Variables: SessionVariables }>();
+const db = (env: Bindings) => drizzle(env.DB, { schema });
 
 // Only local dev needs CORS: Expo's dev server (:8081) calls wrangler dev (:8787).
 // Deployed, the app and API share one origin.
@@ -35,6 +43,36 @@ app.use(
 // Better Auth: magic link, Google, sessions. Rate-limited inside (D1-backed).
 app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth(c.env).handler(c.req.raw));
 
+// Payment provider callbacks (no session). Signature checked by the provider; idempotent.
+app.post("/api/webhooks/:provider", async (c) => {
+  const provider = getProvider(c.env);
+  if (c.req.param("provider") !== provider.name) return c.notFound();
+  const outcome = await handleWebhook(db(c.env), provider, c.req.raw, config.plans);
+  if (outcome.kind === "unauthorized") return c.json({ error: "invalid_signature" as const }, 401);
+  if (outcome.kind === "processed" && outcome.entitlement) {
+    const plan = config.plans.find((p) => p.id === outcome.payment.planId);
+    const owner = await db(c.env)
+      .select({ email: schema.user.email })
+      .from(schema.user)
+      .where(eq(schema.user.id, outcome.payment.userId))
+      .get();
+    if (owner && plan) {
+      const receipt = receiptEmail(owner.email, {
+        appName: config.name,
+        planLabel: plan.label,
+        amountIdr: outcome.payment.amountIdr,
+        paymentId: outcome.payment.id,
+        expiresAt: outcome.entitlement.expiresAt,
+      });
+      // A receipt failure must not make the provider retry an already-granted payment.
+      await emailProvider(c.env)
+        .send(receipt)
+        .catch((err: unknown) => console.error("receipt email failed", err instanceof Error ? err.message : err));
+    }
+  }
+  return provider.webhookAck();
+});
+
 // Local dev only (E2E reads the magic link from here). Never reachable when deployed:
 // requires APP_ENV=development AND a localhost host.
 app.get("/api/dev/last-email", (c) => {
@@ -43,7 +81,18 @@ app.get("/api/dev/last-email", (c) => {
   return mail ? c.json(mail) : c.notFound();
 });
 
+// Local dev only: pretend to be the provider's payment page. Marks the payment paid at the
+// fake provider, delivers its signed webhook through the real handler, then returns like Duitku.
+app.get("/api/dev/fake-pay", async (c) => {
+  if (c.env.APP_ENV !== "development" || new URL(c.req.url).hostname !== "localhost") return c.notFound();
+  const paymentId = c.req.query("paymentId") ?? "";
+  const hook = fakeProvider().pay(paymentId);
+  await app.request(new URL("/api/webhooks/fake", c.req.url), hook, c.env, c.executionCtx);
+  return c.redirect(`/billing/return?paymentId=${encodeURIComponent(paymentId)}`);
+});
+
 const consentBody = z.object({ accept: z.array(z.enum(["terms", "privacy", "sensitive_data", "marketing"])) });
+const checkoutBody = z.object({ planId: z.string() });
 
 const routes = app
   .basePath("/api")
@@ -60,12 +109,11 @@ const routes = app
     const user = c.get("user");
     const providers = { google: Boolean(c.env.GOOGLE_CLIENT_ID && c.env.GOOGLE_CLIENT_SECRET) };
     if (!user) return c.json({ user: null, access: false, missingConsents: [] as string[], providers });
-    const db = drizzle(c.env.DB, { schema });
     const required = requiredConsents(config.legal);
     return c.json({
       user: { id: user.id, email: user.email, name: user.name },
-      access: await hasAccess(db, user.id),
-      missingConsents: (await missingConsents(db, user.id, required)) as string[],
+      access: await hasAccess(db(c.env), user.id),
+      missingConsents: (await missingConsents(db(c.env), user.id, required)) as string[],
       providers,
     });
   })
@@ -76,10 +124,67 @@ const routes = app
     const required = requiredConsents(config.legal);
     const missingRequired = required.filter((t) => !parsed.data.accept.includes(t));
     if (missingRequired.length > 0) return c.json({ error: "consent_required" as const, missingRequired }, 400);
-    const db = drizzle(c.env.DB, { schema });
-    await recordConsents(db, c.get("user").id, parsed.data.accept);
+    await recordConsents(db(c.env), c.get("user").id, parsed.data.accept);
     return c.json({ ok: true as const });
-  });
+  })
+  .use("/billing/*", sessionMiddleware, requireSession)
+  .post("/billing/trial", async (c) => {
+    if (!config.trial.enabled) return c.json({ error: "trial_disabled" as const }, 400);
+    const trial = await grantTrial(db(c.env), c.get("user").id, config.trial.days);
+    if (!trial) return c.json({ error: "trial_used" as const }, 409);
+    return c.json({ ok: true as const, expiresAt: trial.expiresAt.toISOString() });
+  })
+  .post("/billing/checkout", async (c) => {
+    const parsed = checkoutBody.safeParse(await c.req.json().catch(() => null));
+    const plan = parsed.success ? config.plans.find((p) => p.id === parsed.data.planId) : undefined;
+    if (!plan) return c.json({ error: "unknown_plan" as const }, 400);
+    const user = c.get("user");
+    const pending = await missingConsents(db(c.env), user.id, requiredConsents(config.legal));
+    if (pending.length > 0) return c.json({ error: "consent_required" as const }, 403);
+    const { paymentId, redirectUrl } = await startCheckout(db(c.env), getProvider(c.env), {
+      user: { id: user.id, name: user.name, email: user.email },
+      plan,
+      methods: config.payments.methods,
+      origin: new URL(c.req.url).origin,
+    });
+    return c.json({ paymentId, redirectUrl });
+  })
+  .get("/billing/status", async (c) => {
+    const paymentId = c.req.query("paymentId") ?? "";
+    const row = await paymentStatus(db(c.env), c.get("user").id, paymentId);
+    if (!row) return c.json({ error: "not_found" as const }, 404);
+    return c.json({ status: row.status, planId: row.planId, amountIdr: row.amountIdr });
+  })
+  .get("/billing/history", async (c) => {
+    const rows = await db(c.env)
+      .select({
+        id: payments.id,
+        planId: payments.planId,
+        amountIdr: payments.amountIdr,
+        status: payments.status,
+        createdAt: payments.createdAt,
+        paidAt: payments.paidAt,
+      })
+      .from(payments)
+      .where(eq(payments.userId, c.get("user").id))
+      .orderBy(desc(payments.createdAt))
+      .limit(50);
+    return c.json({
+      payments: rows.map((r) => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+        paidAt: r.paidAt?.toISOString() ?? null,
+      })),
+    });
+  })
+  // PRODUCT-OWNED features mount below. The example shows the requireAccess pattern.
+  .route("/example", exampleFeature);
 
 export type AppType = typeof routes;
-export default app;
+
+export default {
+  fetch: app.fetch,
+  async scheduled(_controller: unknown, env: Bindings, ctx: { waitUntil(p: Promise<unknown>): void }) {
+    ctx.waitUntil(runScheduled(env));
+  },
+};

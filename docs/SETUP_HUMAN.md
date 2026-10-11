@@ -193,7 +193,17 @@ Sumber: <https://developers.cloudflare.com/workers/platform/limits/>, <https://d
 4. Di daftar proyek, salin dua nilai ini ke password manager:
    - **Kode Merchant** (Merchant Code)
    - **API Key** (Merchant Key)
-5. **Callback URL:** menurut dokumentasi Duitku POP, aplikasi mengirim callback URL di setiap transaksi, jadi biasanya **tidak** perlu diatur di dashboard. Agent akan memastikan ini di Phase 4 dan memberi tahu kalau ternyata perlu.
+5. **Callback URL:** sudah dipastikan di Phase 4. Aplikasi mengirim callback URL di setiap transaksi (`https://<alamat-aplikasi>/api/webhooks/duitku`), jadi **tidak perlu diatur di dashboard**.
+6. **Metode pembayaran:** halaman bayar Duitku menampilkan **semua channel yang aktif di proyek**. Aktifkan di dashboard proyek: QRIS, DANA, ShopeePay, OVO, dan Virtual Account.
+7. **Simpan ke Cloudflare** (jalankan di folder `~/ASF/apps/api`; tempel nilainya saat diminta, isinya tidak tampil di layar). Setiap perintah dijalankan dua kali, untuk preview dan produksi:
+   ```bash
+   pnpm exec wrangler secret put DUITKU_MERCHANT_CODE --env preview
+   ```
+   ```bash
+   pnpm exec wrangler secret put DUITKU_API_KEY --env preview
+   ```
+   Lalu ulangi kedua perintah **tanpa** `--env preview` untuk produksi. Mode tetap **sandbox** sampai kamu sendiri memutuskan pindah ke produksi.
+8. **Cara mensimulasikan bayar di sandbox:** pilih **Virtual Account** di halaman bayar, salin nomor VA-nya, lalu buka <https://sandbox.duitku.com/payment/demo/demosuccesstransaction.aspx> dan masukkan nomor VA tersebut. Untuk QRIS ShopeePay ada aplikasi Shopee *staging* (link di dokumentasi Duitku). DANA/OVO sandbox tidak punya simulator resmi.
 
 Catatan untuk nanti (bukan sekarang): pindah ke produksi butuh verifikasi dokumen. Untuk merchant perorangan: KTP, NPWP, dan rekening bank; untuk badan usaha: dokumen PT.
 

@@ -4,6 +4,28 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Phase 4 (billing) built on branch `feat/phase-4-billing` (stacked on Phase 3); not merged
+
+- `PaymentProvider` interface, `DuitkuProvider` (POP, HMAC-SHA256 per the Apr 2026 docs), and `FakeProvider` (D-017).
+- Checkout, webhook (idempotent, confirmed with the provider, receipt email), status polling, history, and trial endpoints. `requireAccess` middleware plus the example paid feature.
+- Cron (production only): pending-payment expiry plus 7-day, 1-day, and on-expiry reminders, each sent once.
+- App: pricing screen (no prices or links on native), paywall, billing return page that polls, example feature.
+- `pnpm verify` green: 130 unit/integration tests (api 35, core 19, config 5, scripts 71) plus 4 Playwright E2E tests (sign-in ×2, trial unlock, purchase via the fake payment page).
+
+**Before Phase 4 can merge (🧑 HUMAN):**
+- Duitku sandbox account, with the merchant code and API key set via `wrangler secret put` (SETUP_HUMAN step 3).
+- Enable the payment channels in the Duitku project.
+- After the preview deploy: one VA payment (sandbox simulator) and one e-wallet/QRIS payment, then confirm access was granted (Phase 4 acceptance).
+
+**Branch stack, in merge order:**
+1. `feat/phase-2-db`
+2. `feat/phase-3-auth`
+3. `feat/phase-4-billing`
+
+Plus the independent `docs/spec-template-and-registry`.
+
+---
+
 ## 2026-10-11: Phase 3 (auth) built on branch `feat/phase-3-auth` (stacked on Phase 2); not merged
 
 - Better Auth with magic link (plus Google when configured), auth tables in D1, D1-backed rate limits, versioned UU PDP consent gate, sign-in, consent and protected screens, sign-out (D-016).

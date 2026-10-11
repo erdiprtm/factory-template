@@ -244,4 +244,40 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
 
 **E2E.** Playwright 1.63.0 runs against `wrangler dev` (built app plus API plus local D1, `APP_ENV=development`). It reads the magic link from `/api/dev/last-email`, which only answers when `APP_ENV=development` *and* the host is localhost. E2E is part of `pnpm verify`, and CI installs Chromium.
 
-**Native (Phase 10).** Add `@better-auth/expo` (server plugin plus `expoClient` with SecureStore), add the app scheme to trusted origins, and use ID-token Google sign-in. Endpoints and session reads stay unchanged. Faster, but two compilers in a template meant to stay simple for agents, and Expo tooling flags the alias.
+**Native (Phase 10, auth).** See the end of this entry.
+
+## D-017: Billing with Duitku POP behind PaymentProvider (2026-10-11)
+
+**Interface.** `packages/core/billing/provider.ts` implements Section 6. It adds `getStatus` (confirm with the provider before granting) and `webhookAck`, and `verifyWebhook` returns our `paymentId`. Classes: `DuitkuProvider`, plus `FakeProvider` for tests and local dev. A new provider means a new class plus `product.config.ts` `payments.provider`. `getProvider(env)` picks Duitku when its secrets exist, Fake in development/test, and fails otherwise.
+
+**Duitku facts** (docs read 2026-10-11; see the research notes in STATUS):
+- **Signatures:** every signature is HMAC-SHA256 keyed with the apiKey, lowercase hex. MD5/SHA256 have been obsolete since Apr 2026. Invoice signs `merchantCode+timestamp(ms)`, callback `merchantCode+amount+merchantOrderId` (raw amount string), status `merchantCode+merchantOrderId`. Implemented with WebCrypto and cross-checked against Node's HMAC in tests.
+- **Callback:** form-urlencoded, parsed with `URLSearchParams`. Only `resultCode=00` counts as paid, because the docs disagree on 01 vs 02 for failure. eventKey is `merchantOrderId:resultCode:reference`, so retries dedupe. Duitku retries up to 5 times until it gets a 200.
+- **Status API** (different host: `sandbox.duitku.com` / `passport.duitku.com`): called **once per webhook**, never by the cron, because Duitku blocks merchants that poll it.
+- **Payment methods:** POP can't take a subset; `paymentMethod: ""` shows every channel enabled on the Duitku project. So `product.config.ts` `payments.methods` documents intent, and the human enables those channels in the Duitku dashboard.
+- **Amounts:** minimum 10,000 IDR, enforced before the API call. One `itemDetails` line equal to the total, because Duitku requires item prices to sum to `paymentAmount`.
+- **Mode:** `DUITKU_MODE` is a wrangler var set to `sandbox` on both environments. Only the human switches it to production (Operating rule 7).
+
+**Flow.**
+- `POST /api/billing/checkout` requires a session plus the required consents. It writes a `pending` payment row (expires in 60 minutes) before calling the provider, then returns `redirectUrl`. A provider failure marks the row `failed`.
+- `POST /api/webhooks/:provider`: verify (401 on a bad signature), insert `webhook_events` (a duplicate stops there), confirm with `getStatus`, update the payment, grant an extending entitlement, send the receipt email (a failure there is logged and never makes the provider retry), ack.
+- `GET /api/billing/status` is owner-only. `GET /api/billing/history` serves the Akun page. `POST /api/billing/trial` is for the "Mulai trial" click.
+- The return page polls our status endpoint and never trusts the redirect's `resultCode`.
+
+**Cron.** `*/30 * * * *` on production only (`env.preview.triggers.crons = []` saves cron quota and preview email noise).
+- Expires stale pending payments.
+- Sends renewal reminders: 7 days before, 1 day before, and on expiry (caught within 3 days), using only each user's latest entitlement, so users who already renewed get nothing.
+- Each reminder is marked in `reminders_sent` *before* sending, so overlapping runs can't double-send.
+
+**Access gate.** The `requireAccess` middleware returns 401 when signed out and 402 without an entitlement. The example paid feature (`apps/api/src/features/example.ts` + `apps/app/src/features/example`) shows the pattern and is deletable.
+
+**Native store rules.** The pricing screen and paywall render no prices or checkout links on native. `openCheckout` exists only in `*.web.ts`; the native version throws.
+
+**Local dev.** `/api/dev/fake-pay` (development + localhost only) plays the hosted payment page. It runs the *real* webhook handler with a signed fake event, so E2E covers checkout → webhook → access.
+
+**Tests.**
+- 8 provider-agnostic service tests and 8 endpoint tests (bad signature, replay, unconfirmed "paid", failure, unknown payment, expiry, owner-only status, requireAccess 401/402/200, trial once, receipt email, reminder once).
+- 8 Duitku unit tests.
+- 2 billing E2E tests.
+
+**Native (Phase 10, auth).** Add `@better-auth/expo` (server plugin plus `expoClient` with SecureStore), add the app scheme to trusted origins, and use ID-token Google sign-in. Endpoints and session reads stay unchanged. Faster, but two compilers in a template meant to stay simple for agents, and Expo tooling flags the alias.

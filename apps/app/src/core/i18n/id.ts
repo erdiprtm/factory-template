@@ -25,6 +25,28 @@ export const id = {
   "consent.continue": "Lanjut",
   "consent.error": "Gagal menyimpan persetujuan. Coba lagi.",
   "common.loading": "Memuat…",
+  "home.openExample": "Buka fitur contoh (berbayar)",
+  "home.pricing": "Langganan",
+  "pricing.title": "Pilih paket",
+  "pricing.subtitle": "Bayar sekali, tanpa perpanjangan otomatis. Beli lebih awal, sisa hari tidak hangus.",
+  "pricing.months": "bulan",
+  "pricing.best": "Paling hemat",
+  "pricing.buy": "Bayar",
+  "pricing.trial": "Mulai coba gratis",
+  "pricing.trialDays": "hari gratis",
+  "pricing.trialUsed": "Masa coba gratis sudah pernah dipakai.",
+  "pricing.error": "Gagal membuka pembayaran. Coba lagi.",
+  "pricing.native": "Langganan dikelola di akun kamu.",
+  "paywall.title": "Fitur ini untuk pelanggan",
+  "paywall.body": "Mulai coba gratis atau berlangganan untuk membuka fitur ini.",
+  "paywall.cta": "Lihat paket",
+  "billing.return.checking": "Memeriksa pembayaran…",
+  "billing.return.paid": "Pembayaran berhasil! Akses kamu sudah aktif.",
+  "billing.return.failed": "Pembayaran gagal atau dibatalkan.",
+  "billing.return.timeout":
+    "Pembayaran belum terkonfirmasi. Kalau sudah bayar, akses aktif otomatis dalam beberapa menit.",
+  "billing.return.home": "Ke beranda",
+  "example.title": "Fitur contoh",
 };
 
 export type Messages = typeof id;

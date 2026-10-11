@@ -17,3 +17,9 @@ GOOGLE_CLIENT_SECRET=
 RESEND_API_KEY=
 # Sender. Without a verified domain use onboarding@resend.dev (delivers only to the Resend account owner).
 MAIL_FROM=Factory Template <onboarding@resend.dev>
+
+# Duitku sandbox (SETUP_HUMAN.md step 3). Optional locally: without them a fake provider
+# simulates payments (/api/dev/fake-pay). Required on preview and production.
+DUITKU_MERCHANT_CODE=
+DUITKU_API_KEY=
+# DUITKU_MODE is a var in wrangler.jsonc ("sandbox"); only the human switches it to "production".
