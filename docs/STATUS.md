@@ -4,6 +4,32 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Phase 1 acceptance complete: Expo Go on a real iPhone ✅
+
+- The sign-in screen renders natively with the product tokens. Sending a magic link reached the local API over LAN (`EXPO_PUBLIC_API_URL`).
+- The test found that native styling was broken (duplicate css-interop instance), fixed by Metro singletons (D-023, on `feat/phase-9-hardening`).
+- Signing in on native needs `@better-auth/expo`, which is Phase 10 by design.
+- **Next:** open the Phase 2 PR and merge the stack in order.
+
+---
+
+## 2026-10-11: Phase 9 hardening plus the DOKU adapter (branch `feat/phase-9-hardening`, stacked on Phase 8); not merged
+
+- **Security headers** on the API (Hono `secureHeaders`), the app HTML (`_headers`) and the site (Astro hash CSP plus `_headers`). There are no inline scripts on the site. Checked in a real browser: zero CSP violations. E2E asserts the app's headers (D-021).
+- **Rate limits** (Workers rate limiting binding): checkout 10/min per user, webhooks 120/min per IP. **Body limit** 64 KB. Zod on every remaining input.
+- **`scripts/check-bundle-secrets.mjs`** runs in `pnpm verify`.
+- **`pnpm audit`** triaged: none of the 11 advisories is in the Worker runtime. `fflate` was patched; 4 more patches become eligible 2026-10-12 to 2026-10-18 (follow-up, listed in D-021).
+- **`DokuProvider`** (DOKU Checkout, non-SNAP HMAC). FAILED is not final. An unconfirmed "paid" webhook now gets a 503 so any provider retries (D-022). SETUP_HUMAN step 3b is for products that pick DOKU.
+- `pnpm verify` green: 188 unit/integration tests (api 52, core 41, config 5, site 5, scripts 85) plus 8 E2E.
+
+**Branch stack:** phases 2 → 3 → 4 → 5 → 6 → 7 → 8 → **9**. The same human blockers as below apply. The template's own `/launch-check` comes after the merges, since most items check `main` and production.
+
+**Follow-ups:**
+- Overrides for sharp, source-map-js, shell-quote and http-cache-semantics once they are 14 days old.
+- Re-measure the app with Lighthouse on the preview.
+
+---
+
 ## 2026-10-11: Phase 7 admin (branch `feat/phase-7-admin`) and Phase 8 factory tooling (branch `feat/phase-8-factory`) built; not merged
 
 - `/admin` (allowlist, metrics, revenue per Jakarta month, recent payments, manual grant, webhook log), with tests that check the numbers against the DB, plus E2E (D-020).

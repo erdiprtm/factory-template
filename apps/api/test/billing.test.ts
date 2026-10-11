@@ -80,11 +80,24 @@ describe("webhook", () => {
     expect((await db.select().from(payments).where(eq(payments.id, paymentId)).get())?.status).toBe("paid");
   });
 
-  it("doesn't trust a 'paid' callback the provider hasn't confirmed", async () => {
+  it("doesn't trust a 'paid' callback the provider hasn't confirmed, and asks for a retry", async () => {
     const { paymentId } = await checkout();
-    const outcome = await handleWebhook(db, provider, provider.webhook(paymentId, "paid"), plans, NOW);
-    expect(outcome).toMatchObject({ kind: "ignored", reason: "still pending at provider" });
+    const outcome = await handleWebhook(db, provider, provider.webhook(paymentId, "paid", "evt-lag"), plans, NOW);
+    expect(outcome).toEqual({ kind: "retry" });
     expect(await hasAccess(db, user.id, NOW)).toBe(false);
+
+    // The provider's retry (same event) is processed once the status API confirms.
+    provider.statuses.set(paymentId, "paid");
+    const retried = await handleWebhook(db, provider, provider.webhook(paymentId, "paid", "evt-lag"), plans, NOW);
+    expect(retried.kind).toBe("processed");
+    expect(await hasAccess(db, user.id, NOW)).toBe(true);
+  });
+
+  it("ignores non-paid callbacks while the provider still says pending", async () => {
+    const { paymentId } = await checkout();
+    const outcome = await handleWebhook(db, provider, provider.webhook(paymentId, "failed"), plans, NOW);
+    expect(outcome).toMatchObject({ kind: "ignored", reason: "still pending at provider" });
+    expect((await db.select().from(payments).where(eq(payments.id, paymentId)).get())?.status).toBe("pending");
   });
 
   it("marks failed payments without granting", async () => {

@@ -91,7 +91,17 @@ pnpm exec wrangler r2 bucket delete <bucket>
 gh repo delete <owner>/<repo>
 ```
 
+## Dependency security review (monthly, and when GitHub flags one)
+
+- `pnpm audit --prod` lists advisories. Patch within the same major via `overrides` in `pnpm-workspace.yaml`, only with versions ≥ 14 days old (`node scripts/pick-versions.mjs <pkg>@~x.y.z`). Record each override in `docs/DECISIONS.md`.
+- Triage by where the code runs. **Worker runtime** (`apps/api` bundle): fix now. **Browser bundle** (app, site): fix soon. **Build or dev tooling only** (Metro, Expo CLI, Astro build, drizzle-kit): fix when a patch is eligible.
+- `pnpm verify` also runs `scripts/check-bundle-secrets.mjs`, which fails if a credential-looking value or server-side env access shows up in the app or site output.
+
 ## Secrets
 
 - Cloudflare API token: GitHub secret `CLOUDFLARE_API_TOKEN`. If it might have leaked, open dash.cloudflare.com → My Profile → API Tokens → **Roll**, then run `gh secret set CLOUDFLARE_API_TOKEN` again.
-- Worker runtime secrets (Phase 3+): `wrangler secret put <NAME>` (top level) and `--env preview` for preview. These are documented in `apps/api/.dev.vars.example`.
+- Worker runtime secrets (Phase 3+): `wrangler versions secret put <NAME>` (top level) and `--env preview` for preview. These are documented in `apps/api/.dev.vars.example`.
+  - Use `versions secret put`, not `secret put`. It creates a new **undeployed** version carrying the secret, and the next CI upload or deploy inherits it.
+  - Plain `secret put` refuses on the preview Worker, because CI only uploads versions there and never deploys. On production it would deploy from a laptop, which is against the hard rules.
+  - Never follow its hint to run `wrangler versions deploy`: deploys go only through CI.
+  - The secret is live once the next PR preview or `main` deploy runs. The smoke test proves it, since `/sign-in` and `/api/me` fail without `BETTER_AUTH_SECRET`.

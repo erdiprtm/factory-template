@@ -49,4 +49,19 @@ describe("built site", () => {
     expect(page("robots.txt")).toMatch(/User-agent: \*/);
     expect(readFileSync(new URL("og/home.png", dist)).subarray(1, 4).toString()).toBe("PNG");
   });
+
+  it("CSP meta forbids inline scripts, none are needed, and _headers ships", () => {
+    for (const path of ["index.html", "harga/index.html", "privasi/index.html", "404.html"]) {
+      const html = page(path);
+      const csp = html.match(/<meta http-equiv="content-security-policy" content="([^"]+)"/)?.[1];
+      expect(csp, path).toContain("default-src 'self'");
+      expect(csp, path).not.toContain("unsafe-inline");
+      // No inline executable scripts at all (JSON-LD data blocks are fine): nothing to hash.
+      const inline = [...html.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*application\/ld\+json)[^>]*>/g)];
+      expect(inline, path).toEqual([]);
+    }
+    const headers = page("_headers");
+    expect(headers).toContain("frame-ancestors 'none'");
+    expect(headers).toContain("X-Content-Type-Options: nosniff");
+  });
 });

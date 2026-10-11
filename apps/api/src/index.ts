@@ -10,19 +10,23 @@ import { payments, schema } from "@factory/db";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
+import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
 import { adminRoutes } from "./core/admin";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
 import { fakeProvider, getProvider, type PaymentEnv } from "./core/payments";
+import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
 import { exampleFeature } from "./features/example";
 
 // Bindings are typed explicitly (not via worker-configuration.d.ts globals) so the app package
 // can type-check the RPC client against this source without pulling in Worker ambient types.
 export type Bindings = AuthEnv &
-  PaymentEnv & {
+  PaymentEnv &
+  RateLimitEnv & {
     COMMIT_SHA: string;
     /** Extra admins on top of product.config.ts admin.emails (comma-separated). */
     ADMIN_EMAILS?: string;
@@ -31,6 +35,19 @@ export type Bindings = AuthEnv &
 
 export const app = new Hono<{ Bindings: Bindings; Variables: SessionVariables }>();
 const db = (env: Bindings) => drizzle(env.DB, { schema });
+
+// API responses are JSON only: nothing may be framed, sniffed or loaded as a page resource.
+// The app's HTML gets its headers from apps/app/public/_headers (served by the assets layer).
+app.use(
+  "/api/*",
+  secureHeaders({
+    contentSecurityPolicy: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
+    xFrameOptions: "DENY",
+    strictTransportSecurity: "max-age=31536000; includeSubDomains",
+  }),
+);
+// No endpoint takes more than a small JSON or form body.
+app.use("/api/*", bodyLimit({ maxSize: 64 * 1024, onError: (c) => c.json({ error: "body_too_large" as const }, 413) }));
 
 // Only local dev needs CORS: Expo's dev server (:8081) calls wrangler dev (:8787).
 // Deployed, the app and API share one origin.
@@ -49,11 +66,12 @@ app.use(
 app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth(c.env).handler(c.req.raw));
 
 // Payment provider callbacks (no session). Signature checked by the provider; idempotent.
-app.post("/api/webhooks/:provider", async (c) => {
+app.post("/api/webhooks/:provider", rateLimit("WEBHOOK_LIMITER", clientIp), async (c) => {
   const provider = getProvider(c.env);
   if (c.req.param("provider") !== provider.name) return c.notFound();
   const outcome = await handleWebhook(db(c.env), provider, c.req.raw, config.plans);
   if (outcome.kind === "unauthorized") return c.json({ error: "invalid_signature" as const }, 401);
+  if (outcome.kind === "retry") return c.json({ error: "not_confirmed_yet" as const }, 503);
   if (outcome.kind === "processed" && outcome.entitlement) {
     const plan = config.plans.find((p) => p.id === outcome.payment.planId);
     const owner = await db(c.env)
@@ -112,7 +130,9 @@ app.post("/api/dev/expire-access", async (c) => {
 });
 
 const consentBody = z.object({ accept: z.array(z.enum(["terms", "privacy", "sensitive_data", "marketing"])) });
-const checkoutBody = z.object({ planId: z.string() });
+const checkoutBody = z.object({ planId: z.string().max(64) });
+const paymentIdQuery = z.object({ paymentId: z.string().regex(/^pay_[0-9a-f]{32}$/) });
+const deleteBody = z.object({ confirm: z.literal("HAPUS") });
 
 const routes = app
   .basePath("/api")
@@ -149,6 +169,10 @@ const routes = app
     return c.json({ ok: true as const });
   })
   .use("/billing/*", sessionMiddleware, requireSession)
+  .use(
+    "/billing/checkout",
+    rateLimit("CHECKOUT_LIMITER", (c) => c.get("user")?.id ?? clientIp(c)),
+  )
   .post("/billing/trial", async (c) => {
     if (!config.trial.enabled) return c.json({ error: "trial_disabled" as const }, 400);
     const trial = await grantTrial(db(c.env), c.get("user").id, config.trial.days);
@@ -171,8 +195,9 @@ const routes = app
     return c.json({ paymentId, redirectUrl });
   })
   .get("/billing/status", async (c) => {
-    const paymentId = c.req.query("paymentId") ?? "";
-    const row = await paymentStatus(db(c.env), c.get("user").id, paymentId);
+    const query = paymentIdQuery.safeParse(c.req.query());
+    if (!query.success) return c.json({ error: "not_found" as const }, 404);
+    const row = await paymentStatus(db(c.env), c.get("user").id, query.data.paymentId);
     if (!row) return c.json({ error: "not_found" as const }, 404);
     return c.json({ status: row.status, planId: row.planId, amountIdr: row.amountIdr });
   })
@@ -215,8 +240,8 @@ const routes = app
   })
   // UU PDP right to erasure. Requires typing the confirmation word.
   .post("/account/delete", async (c) => {
-    const body = (await c.req.json().catch(() => null)) as { confirm?: string } | null;
-    if (body?.confirm !== "HAPUS") return c.json({ error: "confirmation_required" as const }, 400);
+    if (!deleteBody.safeParse(await c.req.json().catch(() => null)).success)
+      return c.json({ error: "confirmation_required" as const }, 400);
     await deleteUserData(db(c.env), c.get("user").id);
     for (const name of [
       "better-auth.session_token",

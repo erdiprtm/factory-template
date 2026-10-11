@@ -13,6 +13,20 @@ export default defineConfig({
   trailingSlash: "always",
   build: { format: "directory" },
   compressHTML: true,
+  // Hash-based CSP <meta> on every page (inline scripts allowed by hash only). Headers that a
+  // <meta> can't carry (frame-ancestors…) live in public/_headers.
+  security: {
+    csp: {
+      directives: [
+        "default-src 'self'",
+        "img-src 'self' data: https:",
+        "connect-src 'self' https:",
+        "font-src 'self'",
+        "form-action 'self'",
+      ],
+    },
+  },
   integrations: [sitemap({ filter: (page) => !page.includes("/og/") })],
-  vite: { plugins: [tailwindcss()] },
+  // Never inline scripts into HTML: the CSP allows script files from self only.
+  vite: { plugins: [tailwindcss()], build: { assetsInlineLimit: 0 } },
 });
