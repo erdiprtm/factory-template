@@ -55,7 +55,15 @@ describe.skipIf(!isTemplate)("new-product transforms", () => {
   });
 
   it("registers the product in factory.json, replacing the example entry", () => {
-    const out = JSON.parse(registerProduct(read("factory.json"), { slug: "catatan-harian", status: "building" }));
-    expect(out.products.map((p) => p.slug)).toEqual(["catatan-harian"]);
+    // Fixture, not the real registry: factory.json gains an entry per product.
+    const registry = JSON.stringify({ products: [{ slug: "example" }, { slug: "older-product" }] });
+    const out = JSON.parse(registerProduct(registry, { slug: "catatan-harian", status: "building" }));
+    expect(out.products.map((p) => p.slug)).toEqual(["older-product", "catatan-harian"]);
+    // Re-registering replaces the entry instead of duplicating it.
+    const again = JSON.parse(registerProduct(JSON.stringify(out), { slug: "catatan-harian", status: "live" }));
+    expect(again.products.map((p) => [p.slug, p.status ?? null])).toEqual([
+      ["older-product", null],
+      ["catatan-harian", "live"],
+    ]);
   });
 });
