@@ -1,0 +1,32 @@
+{
+  "name": "factory-template",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.7.0",
+      "onFail": "download"
+    }
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "biome ci .",
+    "format": "biome check --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test && vitest run --dir scripts",
+    "check:migrations": "node scripts/check-migrations.mjs",
+    "verify": "pnpm lint && pnpm check:migrations && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@factory/config": "workspace:*",
+    "turbo": "catalog:",
+    "vitest": "catalog:"
+  }
+}

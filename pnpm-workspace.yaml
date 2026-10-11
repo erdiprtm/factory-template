@@ -1,0 +1,33 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Operating rule 4: only versions published at least 14 days ago (unit: minutes).
+# Applies to transitive dependencies too. Strict: fail instead of silently picking a newer one.
+minimumReleaseAge: 20160
+minimumReleaseAgeStrict: true
+
+# Install scripts are blocked unless listed here (strictDepBuilds is on by default).
+# esbuild and workerd download their platform binaries.
+allowBuilds:
+  esbuild: true
+  workerd: true
+
+# Optional peers that pnpm auto-installs at their newest version drift past Expo SDK 57's
+# bundledNativeModules; pin them to the SDK's versions.
+overrides:
+  "@react-native/metro-config": 0.86.3
+  react-native-worklets: 0.10.1
+
+# One version per dependency across the workspace; packages reference these as "catalog:".
+# Picked with `node scripts/pick-versions.mjs` (docs/DECISIONS.md D-012).
+catalog:
+  "@biomejs/biome": 2.5.14
+  "@cloudflare/vitest-plugin": 1.2.8
+  "@types/node": 26.6.3
+  hono: 4.13.9
+  turbo: 2.11.4
+  typescript: 6.0.3
+  vitest: 4.1.11
+  wrangler: 4.141.0
+  zod: 4.6.5

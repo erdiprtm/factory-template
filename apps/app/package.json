@@ -1,0 +1,37 @@
+{
+  "name": "@factory/app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "EXPO_PUBLIC_API_URL=http://localhost:8787 expo start --web --port 8081",
+    "start": "expo start",
+    "build": "expo export --platform web --output-dir dist",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "57.0.16",
+    "@factory/config": "workspace:*",
+    "@tanstack/react-query": "5.104.0",
+    "expo": "57.0.25",
+    "expo-constants": "57.0.19",
+    "expo-linking": "57.0.11",
+    "expo-router": "57.0.23",
+    "expo-status-bar": "57.0.1",
+    "hono": "catalog:",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "5.7.0",
+    "react-native-screens": "4.26.2",
+    "react-native-web": "0.21.3"
+  },
+  "devDependencies": {
+    "@factory/api": "workspace:*",
+    "@types/react": "19.2.18",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
