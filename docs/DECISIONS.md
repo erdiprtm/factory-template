@@ -539,4 +539,7 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
     - `deleteProductData` runs before the core delete.
   - Tables with `ON DELETE CASCADE` to `user.id` are also removed by the core delete.
 - **Slug-dependent tests.** The export filename was asserted as `data-factory-template.json`, which fails in every product repo. Both the API test and the E2E test now derive it from the slug or a pattern.
+- **First `/sync-template` into the dummy** found two more:
+  - `packages/config`'s test asserted `slug === "factory-template"`. It now checks the slug format and that plans exist.
+  - `new-product` renamed the Worker without regenerating `worker-configuration.d.ts`, so a new product's first `verify` failed the typecheck. The generator now runs `wrangler types`.
 - **Not changed:** the example feature (`/example`) stays in products for now, because template E2E and API tests use it to exercise the paywall. A later template change should move those tests to a fixture route so products can delete the example cleanly (follow-up).

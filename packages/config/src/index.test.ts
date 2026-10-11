@@ -5,9 +5,10 @@ import { defineProduct, type ProductConfigInput } from "./index";
 const base: ProductConfigInput = JSON.parse(JSON.stringify(product));
 
 describe("defineProduct", () => {
-  it("accepts the template's product.config.ts", () => {
-    expect(product.slug).toBe("factory-template");
-    expect(product.plans.map((p) => p.id)).toEqual(["6m", "12m"]);
+  // Must hold in every product repo too (D-028): no template-specific values here.
+  it("accepts this repo's product.config.ts", () => {
+    expect(product.slug).toMatch(/^[a-z][a-z0-9-]{1,38}[a-z0-9]$/);
+    expect(product.plans.length).toBeGreaterThan(0);
   });
 
   it("rejects a default locale that isn't supported", () => {

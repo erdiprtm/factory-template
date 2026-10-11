@@ -125,7 +125,7 @@ function main() {
     `gh repo create ${repo} --template ${templateRepo} --${a.public ? "public" : "private"} --clone → ${a.dir}`,
     `product.config.ts, wrangler.jsonc (api + site): slug/name/hosts → ${a.slug} on ${a.subdomain}.workers.dev`,
     `wrangler d1 create ${a.slug}-prod and ${a.slug}-preview (region apac), ids → apps/api/wrangler.jsonc`,
-    `pnpm theme, commit "chore: create ${a.slug} from factory template", push`,
+    `pnpm theme, wrangler types, commit "chore: create ${a.slug} from factory template", push`,
     `scripts/setup-github.sh ${repo} ${appUrl} ${siteUrl}; gh secret set CLOUDFLARE_ACCOUNT_ID, BETTER_AUTH_SECRET_PRODUCTION / _PREVIEW (random)`,
     `factory.json here: ${a.slug} status "building"`,
     `HUMAN: gh secret set CLOUDFLARE_API_TOKEN --repo ${repo}`,
@@ -159,6 +159,8 @@ function main() {
     setD1Ids(t, { prodId: d1(`${a.slug}-prod`), previewId: d1(`${a.slug}-preview`) }),
   );
   run("pnpm", ["theme"], { cwd: a.dir });
+  // Worker types embed the Worker/env names, so regenerate them after the rename (else typecheck fails).
+  run("pnpm", ["--filter", "@factory/api", "types"], { cwd: a.dir });
   run("git", ["add", "-A"], { cwd: a.dir });
   run("git", ["commit", "-m", `chore: create ${a.slug} from factory template`], { cwd: a.dir });
   run("git", ["push", "-u", "origin", "HEAD"], { cwd: a.dir });
