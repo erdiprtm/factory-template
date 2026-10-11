@@ -1,19 +1,21 @@
+import { Button, CenteredScreen, ErrorText, Input, Loading, Text } from "@factory/ui";
 import { Redirect } from "expo-router";
 import { useState } from "react";
-import { Text, TextInput } from "react-native";
+import { View } from "react-native";
+import product from "../../../../product.config";
 import { authClient } from "../core/auth/client";
 import { useMe } from "../core/auth/use-me";
-import { t } from "../core/i18n";
-import { Button, Loading, Screen, styles } from "../core/ui";
+import { useI18n } from "../core/i18n";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignIn() {
+  const { t } = useI18n();
   const me = useMe();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "invalid" | "error">("idle");
 
-  if (me.isPending) return <Loading />;
+  if (me.isPending) return <Loading label={t("common.loading")} />;
   if (me.data?.user) return <Redirect href="/" />;
 
   async function sendLink() {
@@ -25,18 +27,21 @@ export default function SignIn() {
   }
 
   return (
-    <Screen>
-      <Text role="heading" style={styles.title}>
-        {t("auth.signIn.title")}
-      </Text>
-      <Text style={styles.body}>{t("auth.signIn.subtitle")}</Text>
+    <CenteredScreen>
+      <View className="gap-2">
+        <Text variant="small" className="font-semibold uppercase tracking-wide">
+          {product.name}
+        </Text>
+        <Text variant="h1">{t("auth.signIn.title")}</Text>
+        <Text variant="lead">{t("auth.signIn.subtitle")}</Text>
+      </View>
       {state === "sent" ? (
-        <Text accessibilityLiveRegion="polite" style={styles.body}>
+        <Text accessibilityLiveRegion="polite" className="rounded-lg bg-accent p-4 text-accent-foreground">
           {t("auth.signIn.checkEmail")}
         </Text>
       ) : (
-        <>
-          <TextInput
+        <View className="gap-3">
+          <Input
             accessibilityLabel={t("auth.signIn.emailLabel")}
             placeholder={t("auth.signIn.emailPlaceholder")}
             autoCapitalize="none"
@@ -45,27 +50,27 @@ export default function SignIn() {
             value={email}
             onChangeText={setEmail}
             onSubmitEditing={sendLink}
-            style={styles.input}
           />
-          {state === "invalid" ? <Text style={styles.error}>{t("auth.signIn.invalidEmail")}</Text> : null}
-          {state === "error" ? <Text style={styles.error}>{t("auth.signIn.error")}</Text> : null}
-          <Button
-            label={state === "sending" ? t("auth.signIn.sending") : t("auth.signIn.sendLink")}
-            onPress={sendLink}
-            disabled={state === "sending"}
-          />
+          {state === "invalid" ? <ErrorText>{t("auth.signIn.invalidEmail")}</ErrorText> : null}
+          {state === "error" ? <ErrorText>{t("auth.signIn.error")}</ErrorText> : null}
+          <Button onPress={sendLink} disabled={state === "sending"}>
+            <Text>{state === "sending" ? t("auth.signIn.sending") : t("auth.signIn.sendLink")}</Text>
+          </Button>
           {me.data?.providers.google ? (
             <>
-              <Text style={styles.meta}>{t("auth.signIn.or")}</Text>
+              <Text variant="muted" className="text-center">
+                {t("auth.signIn.or")}
+              </Text>
               <Button
-                variant="ghost"
-                label={t("auth.signIn.google")}
+                variant="outline"
                 onPress={() => authClient.signIn.social({ provider: "google", callbackURL: "/" })}
-              />
+              >
+                <Text>{t("auth.signIn.google")}</Text>
+              </Button>
             </>
           ) : null}
-        </>
+        </View>
       )}
-    </Screen>
+    </CenteredScreen>
   );
 }

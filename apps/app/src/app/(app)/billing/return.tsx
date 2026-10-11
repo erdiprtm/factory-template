@@ -1,17 +1,18 @@
+import { Button, CenteredScreen, Text } from "@factory/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text } from "react-native";
+import { ActivityIndicator } from "react-native";
 import { api } from "../../../core/api";
 import { useRefreshMe } from "../../../core/auth/use-me";
-import { t } from "../../../core/i18n";
-import { Button, Screen, styles } from "../../../core/ui";
+import { useI18n } from "../../../core/i18n";
 
 const POLL_MS = 2000;
 const TIMEOUT_MS = 90_000;
 
 /** Back from the provider. Polls our API (never trusts the redirect's resultCode). */
 export default function BillingReturn() {
+  const { t } = useI18n();
   const { paymentId } = useLocalSearchParams<{ paymentId?: string }>();
   const router = useRouter();
   const refreshMe = useRefreshMe();
@@ -42,15 +43,19 @@ export default function BillingReturn() {
   if (state === "paid") text = t("billing.return.paid");
   else if (state === "failed" || state === "expired") text = t("billing.return.failed");
   else if (timedOut) text = t("billing.return.timeout");
+  const done = state && state !== "pending";
 
   return (
-    <Screen>
-      <Text accessibilityLiveRegion="polite" style={styles.body}>
+    <CenteredScreen className="items-center">
+      {!done && !timedOut ? <ActivityIndicator /> : null}
+      <Text variant={state === "paid" ? "h2" : "lead"} accessibilityLiveRegion="polite" className="text-center">
         {text}
       </Text>
-      {state && state !== "pending" ? (
-        <Button label={t("billing.return.home")} onPress={() => router.replace("/")} />
+      {done ? (
+        <Button onPress={() => router.replace("/")}>
+          <Text>{t("billing.return.home")}</Text>
+        </Button>
       ) : null}
-    </Screen>
+    </CenteredScreen>
   );
 }

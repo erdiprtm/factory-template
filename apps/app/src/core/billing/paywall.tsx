@@ -1,24 +1,25 @@
+import { Button, Card, CardDescription, CardHeader, CardTitle, Screen, Text } from "@factory/ui";
 import { useRouter } from "expo-router";
-import { Platform, Text } from "react-native";
-import { t } from "../i18n";
-import { Button, Screen, styles } from "../ui";
+import { Platform } from "react-native";
+import { useI18n } from "../i18n";
 
-/** Shown when a paid feature returns 402. Moves to packages/ui in Phase 5. */
+/** Shown when a paid feature returns 402. Native builds show no prices or checkout links. */
 export function Paywall() {
+  const { t } = useI18n();
   const router = useRouter();
   return (
-    <Screen>
-      <Text role="heading" style={styles.title}>
-        {t("paywall.title")}
-      </Text>
-      {Platform.OS === "web" ? (
-        <>
-          <Text style={styles.body}>{t("paywall.body")}</Text>
-          <Button label={t("paywall.cta")} onPress={() => router.push("/pricing")} />
-        </>
-      ) : (
-        <Text style={styles.body}>{t("pricing.native")}</Text>
-      )}
+    <Screen className="justify-center">
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("paywall.title")}</CardTitle>
+          <CardDescription>{Platform.OS === "web" ? t("paywall.body") : t("pricing.native")}</CardDescription>
+        </CardHeader>
+        {Platform.OS === "web" ? (
+          <Button onPress={() => router.push("/pricing")}>
+            <Text>{t("paywall.cta")}</Text>
+          </Button>
+        ) : null}
+      </Card>
     </Screen>
   );
 }

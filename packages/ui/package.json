@@ -1,0 +1,35 @@
+{
+  "name": "@factory/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@rn-primitives/slot": "1.5.2",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react-native": "1.48.0",
+    "tailwind-merge": "3.7.0"
+  },
+  "peerDependencies": {
+    "nativewind": "4.2.7",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-svg": "15.15.4"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "expo": "57.0.25",
+    "nativewind": "4.2.7",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-css-interop": "0.2.7",
+    "react-native-svg": "15.15.4",
+    "typescript": "catalog:"
+  }
+}

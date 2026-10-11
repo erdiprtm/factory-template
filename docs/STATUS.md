@@ -4,6 +4,18 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Phase 5 (app shell) built on branch `feat/phase-5-app-shell` (stacked on Phase 4); not merged
+
+- NativeWind v4, `packages/ui` (Reusables-style), and a theme generated from `product.config.ts` with light/dark/system (D-018).
+- i18n provider (`id` default, `en`), navigation bar, and every screen rebuilt mobile-first.
+- Akun page: status, history, renew, language, theme, UU PDP data export, account deletion.
+- `pnpm verify` green: 137 unit/integration tests (api 40, core 19, config 5, scripts 73) plus 6 Playwright E2E tests. These include the Phase 5 acceptance flow (trial → gated → simulated expiry → paywall → purchase → access restored) and the Akun flow (status, history, language persists, JSON download, delete).
+- Visual check in a mobile viewport: light and dark themes render with the product tokens.
+
+**Pending:** Lighthouse on the preview (after the merges), and the Expo Go native render (human).
+
+---
+
 ## 2026-10-11: Phase 4 (billing) built on branch `feat/phase-4-billing` (stacked on Phase 3); not merged
 
 - `PaymentProvider` interface, `DuitkuProvider` (POP, HMAC-SHA256 per the Apr 2026 docs), and `FakeProvider` (D-017).

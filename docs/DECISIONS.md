@@ -191,7 +191,7 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
 
 **Revisit** when Expo officially supports TS 7 or TS 7.1 ships its API.
 
-**Alternatives.** Side by side, `@typescript/native` (7) as the checker plus a 6.0 alias for tools.
+**Alternatives.** Side by side, `@typescript/native` (7) as the checker plus a 6.0 alias for tools. Faster, but two compilers in a template meant to stay simple for agents, and Expo tooling flags the alias.
 
 ## D-015: Core data model and entitlement logic (2026-10-11)
 
@@ -280,4 +280,47 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
 - 8 Duitku unit tests.
 - 2 billing E2E tests.
 
-**Native (Phase 10, auth).** Add `@better-auth/expo` (server plugin plus `expoClient` with SecureStore), add the app scheme to trusted origins, and use ID-token Google sign-in. Endpoints and session reads stay unchanged. Faster, but two compilers in a template meant to stay simple for agents, and Expo tooling flags the alias.
+**Native (Phase 10, auth).** Add `@better-auth/expo` (server plugin plus `expoClient` with SecureStore), add the app scheme to trusted origins, and use ID-token Google sign-in. Endpoints and session reads stay unchanged.
+
+## D-018: App shell with NativeWind v4, Reusables-style UI kit, generated theme (2026-10-11)
+
+**Styling.** NativeWind 4.2.7 with Tailwind 3.4.19. NativeWind v5 is still `5.0.0-rc.0`, a pre-release that depends on `react-native-css` RC, and React Native Reusables only ships NativeWind v4 and Uniwind registries.
+
+**pnpm workarounds** (nativewind#1849, #1833):
+- `react-native-css-interop` 0.2.7 and `@babel/plugin-transform-react-jsx` 7.29.7 are direct app dependencies. Babel 7, *not* 8: `babel-preset-expo` uses ^7.
+- `react-native-reanimated` 4.5.1, `react-native-worklets` 0.10.1, and `react-native-svg` 15.15.4 use the SDK 57 pins.
+
+**Known bug avoided:** on React Native 0.86, NativeWind 4.2.7 drops styles when a `Pressable` gets a function `style` (nativewind#1834). Our components use `className` only, noted in `button.tsx`.
+
+**Config.**
+- `babel.config.js` uses the `nativewind` jsxImportSource plus the `nativewind/babel` preset; the worklets plugin is added by `babel-preset-expo`.
+- `metro.config.js` is `withNativeWind(getDefaultConfig())` with absolute paths.
+- `tailwind.config.js` uses `darkMode: class` and colors as `hsl(var(--token) / <alpha-value>)`. Its content globs cover `apps/app/src` and `packages/ui/src`.
+- `apps/app` dropped `"type": "module"` so these configs stay CommonJS.
+
+**Theme from `product.config.ts`.**
+- `brand.tokens.colors.{light,dark}` use Reusables/shadcn token names, as hex validated by Zod.
+- `scripts/gen-theme.mjs` writes `apps/app/global.css` (Tailwind directives plus `:root` and `.dark:root` HSL channels and `--radius`). `pnpm theme` regenerates it, and `verify` fails if it's stale (`--check`).
+- Generated rather than `@import`ed, because Tailwind 3 under NativeWind doesn't inline imports.
+- The Astro site (Phase 6) reuses `renderTheme()`.
+
+**Dark mode.** Light, dark, or system, chosen on the Akun page and saved in localStorage (in-memory on native until Phase 10). NativeWind's class mode doesn't apply the `dark` class for `"system"` on web, so `core/theme.ts` resolves system through React Native's `Appearance` and follows device changes. Verified in the browser with emulated dark mode.
+
+**UI kit.** `packages/ui` holds hand-written components in React Native Reusables' API and style:
+- `cn()`, `Text` (variants plus `TextClassContext`), `Button` (cva variants), `Card` family, `Input`, accessible `Checkbox`, `Screen`, `CenteredScreen`, `Loading`, `Badge`, `Separator`, `ErrorText`.
+- Reusables' CLI (`@react-native-reusables/cli` 0.7.1) can add more components later.
+- react, react-native, nativewind, and react-native-svg are peer dependencies, so only one copy exists.
+
+**i18n.** `I18nProvider` and `useI18n()`: `id` by default, `en` selectable on the Akun page, choice saved (web). Every screen uses keys.
+
+**Akun page** (all from `/api/account/*`):
+- profile and sign-out;
+- subscription status with the expiry date in WIB, plus renew and subscribe buttons (web only);
+- payment history;
+- language and theme;
+- data export (JSON download, web; native in Phase 10);
+- account deletion: type `HAPUS`. Personal data is deleted. Payments are kept with the user identity removed (user link replaced with `deleted:<uuid>`, raw provider payload dropped) for financial record-keeping. Sessions end.
+
+**Dev-only endpoints** (development *and* localhost, for E2E): `/api/dev/last-email`, `/api/dev/fake-pay`, `/api/dev/expire-access`.
+
+**Pending for acceptance.** Lighthouse (mobile performance ≥ 80, accessibility ≥ 90) must be measured on the deployed preview. Home and Akun must also render in a native dev build on a phone (human, Expo Go).

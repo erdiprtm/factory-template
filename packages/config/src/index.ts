@@ -18,7 +18,33 @@ const planSchema = z.object({
   highlight: z.boolean().optional(),
 });
 
-const colorScale = z.record(z.string(), z.string());
+const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, "a 6-digit hex color like #2563eb");
+// Token names follow React Native Reusables / shadcn so components work unchanged.
+// scripts/gen-theme.mjs turns them into CSS variables for the app (and the site).
+export const colorTokens = [
+  "background",
+  "foreground",
+  "card",
+  "cardForeground",
+  "popover",
+  "popoverForeground",
+  "primary",
+  "primaryForeground",
+  "secondary",
+  "secondaryForeground",
+  "muted",
+  "mutedForeground",
+  "accent",
+  "accentForeground",
+  "destructive",
+  "destructiveForeground",
+  "border",
+  "input",
+  "ring",
+] as const;
+const colorScale = z.object(
+  Object.fromEntries(colorTokens.map((k) => [k, hex])) as Record<(typeof colorTokens)[number], typeof hex>,
+);
 
 export const productSchema = z.object({
   slug,

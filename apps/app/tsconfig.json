@@ -9,6 +9,13 @@
     },
     "allowImportingTsExtensions": true
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "../../product.config.ts"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "../../product.config.ts",
+    "nativewind-env.d.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }
