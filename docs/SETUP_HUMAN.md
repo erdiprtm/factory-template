@@ -266,6 +266,10 @@ Sumber: <https://support.google.com/cloud/answer/15549257>, <https://www.better-
 1. Daftar: <https://dashboard.openpanel.dev>
 2. Ikuti onboarding: buat **organization**, lalu satu **project** per produk (untuk template: `factory-template`).
 3. Di pengaturan project, buat **client** untuk web, salin **Client ID**, dan masukkan domain yang diizinkan (URL `workers.dev` dulu, domain asli nanti).
+4. **Client Secret** (dibuat bersama client). Jangan kirim ke chat. Simpan ke Worker **produksi** saja, untuk event dari server (pembayaran, pengingat). Jalankan di `~/ASF/apps/api`, lalu tempel saat diminta:
+   ```bash
+   pnpm exec wrangler versions secret put OPENPANEL_CLIENT_SECRET --env=""
+   ```
 
 **Soal biaya (Okt 2026):** OpenPanel Cloud **tidak punya paket gratis permanen**. Ada trial 30 hari, lalu paket termurah ±US$2,50/bulan (5.000 event). Alternatifnya self-host (gratis, tapi perlu server sendiri). Saran: tunda daftar sampai Phase 6 agar trial tidak habis sebelum dipakai.
 

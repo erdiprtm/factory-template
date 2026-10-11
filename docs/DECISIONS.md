@@ -544,3 +544,13 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - `new-product` renamed the Worker without regenerating `worker-configuration.d.ts`, so a new product's first `verify` failed the typecheck. The generator now runs `wrangler types`.
   - API and E2E tests hardcoded the template's plan ids and prices (149000 / 249000) and its Sentry DSN. They now read `product.config.ts` (`firstPlan` / `lastPlan` helpers), and `sentryOptions` takes an injectable DSN.
 - **Not changed:** the example feature (`/example`) stays in products for now, because template E2E and API tests use it to exercise the paywall. A later template change should move those tests to a fixture route so products can delete the example cleanly (follow-up).
+
+## D-030: Payment and reminder analytics come from the server (2026-10-11)
+
+- **Problem.** The human's two sandbox payments never produced a `payment_paid` event. It was sent from the browser's return page, but only if that page was still open when the webhook confirmed, and users often close the tab or come back later.
+- **Fix.**
+  - `openPanelServer` (`@factory/core/analytics`) posts `{type: "track", payload: {name, profileId, properties}}` to OpenPanel's `/track` with the client secret. It applies the same name check and PII scrubbing as the browser, and never throws.
+  - The webhook sends `payment_paid` when it grants access, and `payment_failed` when a payment ends unpaid. Properties are the plan, `amount_idr` and status; the profile is the opaque user id.
+  - The cron sends `renewal_reminder_sent` (with `kind`) and `entitlement_expired`.
+  - The browser no longer sends the payment events, so nothing is counted twice.
+- **Secret.** The `OPENPANEL_CLIENT_SECRET` Worker secret is set on **production only**: previews never send. Without it, server analytics are a no-op.

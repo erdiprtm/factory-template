@@ -15,6 +15,7 @@ import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
 import { adminRoutes } from "./core/admin";
+import { type AnalyticsEnv, serverAnalytics } from "./core/analytics";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
 import { captureError, withMonitoring } from "./core/monitoring";
@@ -28,6 +29,7 @@ import { deleteProductData, exportProductData } from "./features/user-data";
 // can type-check the RPC client against this source without pulling in Worker ambient types.
 export type Bindings = AuthEnv &
   PaymentEnv &
+  AnalyticsEnv &
   RateLimitEnv & {
     COMMIT_SHA: string;
     /** Extra admins on top of product.config.ts admin.emails (comma-separated). */
@@ -74,6 +76,19 @@ app.post("/api/webhooks/:provider", rateLimit("WEBHOOK_LIMITER", clientIp), asyn
   const outcome = await handleWebhook(db(c.env), provider, c.req.raw, config.plans);
   if (outcome.kind === "unauthorized") return c.json({ error: "invalid_signature" as const }, 401);
   if (outcome.kind === "retry") return c.json({ error: "not_confirmed_yet" as const }, 503);
+  if (outcome.kind === "processed") {
+    // Source of truth for payment analytics: the browser may be gone by the time this lands.
+    const { userId, planId, amountIdr, status } = outcome.payment;
+    const event = outcome.entitlement ? "payment_paid" : status !== "paid" ? "payment_failed" : null;
+    if (event) {
+      const sent = serverAnalytics(c.env).track(event, { plan: planId, amount_idr: amountIdr, status }, userId);
+      try {
+        c.executionCtx.waitUntil(sent);
+      } catch {
+        await sent; // no execution context (tests): just finish it
+      }
+    }
+  }
   if (outcome.kind === "processed" && outcome.entitlement) {
     const plan = config.plans.find((p) => p.id === outcome.payment.planId);
     const owner = await db(c.env)
