@@ -544,3 +544,13 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - `new-product` renamed the Worker without regenerating `worker-configuration.d.ts`, so a new product's first `verify` failed the typecheck. The generator now runs `wrangler types`.
   - API and E2E tests hardcoded the template's plan ids and prices (149000 / 249000) and its Sentry DSN. They now read `product.config.ts` (`firstPlan` / `lastPlan` helpers), and `sentryOptions` takes an injectable DSN.
 - **Not changed:** the example feature (`/example`) stays in products for now, because template E2E and API tests use it to exercise the paywall. A later template change should move those tests to a fixture route so products can delete the example cleanly (follow-up).
+
+## D-029: CI needs a scoped API Token, never the Global API Key (2026-10-11)
+
+- **What happened.** The Phase 8 dummy's preview failed four times with `Rate limited. Please wait… [code: 10429]` on its very first Cloudflare call (`GET /workers/services/<name>`). The account was nowhere near any limit: 218 / 100,000 requests that day. The template repo's CI, using its own token, worked throughout.
+- **Cause.** The repo secret `CLOUDFLARE_API_TOKEN` held the **Global API Key**. CI sends the secret as a Bearer token, and Cloudflare answered with 10429, not an authentication error, so the message pointed the wrong way. A scoped API Token fixed it at once, and the Global API Key was rolled.
+- **Rule.**
+  - CI tokens are API Tokens from the "Edit Cloudflare Workers" template, plus Account → D1 → Edit, with Zone Resources set to All zones (no zones are used yet).
+  - The Global API Key is never stored anywhere.
+  - `/new-product` and SETUP_HUMAN say so.
+  - When CI shows 10429 on the first call of a new repo, check the token before suspecting limits.
