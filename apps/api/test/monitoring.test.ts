@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { config } from "@factory/config/product";
 import { describe, expect, it } from "vitest";
 import { sentryOptions } from "../src/core/monitoring";
 import { app } from "../src/index";
@@ -55,6 +56,9 @@ describe("server analytics", () => {
     const { noopServerAnalytics } = await import("@factory/core/analytics");
     expect(serverAnalytics({ APP_ENV: "production" })).toBe(noopServerAnalytics);
     expect(serverAnalytics({ APP_ENV: "preview", OPENPANEL_CLIENT_SECRET: "s" })).toBe(noopServerAnalytics);
-    expect(serverAnalytics({ APP_ENV: "production", OPENPANEL_CLIENT_SECRET: "s" })).not.toBe(noopServerAnalytics);
+    // New products start without an OpenPanel project (/new-product clears the client ID): still a no-op.
+    const live = serverAnalytics({ APP_ENV: "production", OPENPANEL_CLIENT_SECRET: "s" });
+    if (config.analytics.openpanelClientId) expect(live).not.toBe(noopServerAnalytics);
+    else expect(live).toBe(noopServerAnalytics);
   });
 });
