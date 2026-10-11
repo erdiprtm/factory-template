@@ -99,7 +99,15 @@ jobs:
           PREVIOUS_VERSION: ${{ steps.before.outputs.version_id }}
         run: |
           pnpm exec wrangler rollback "$PREVIOUS_VERSION" --message "Auto-rollback: smoke test failed for ${COMMIT_SHA}"
-          node scripts/smoke-test.mjs "$PRODUCTION_URL"
+          # This step runs in apps/api, so the repo scripts are two levels up.
+          node ../../scripts/smoke-test.mjs "$PRODUCTION_URL"
+          # Prove the version answering is the rollback target, not just any healthy version.
+          for attempt in 1 2 3 4 5 6; do
+            live=$(curl -fsS "$PRODUCTION_URL/api/health" | jq -r '.version' || true)
+            [ "$live" = "$PREVIOUS_VERSION" ] && { echo "Live version is $live (rollback target)."; exit 0; }
+            echo "Live version $live, waiting for $PREVIOUS_VERSION (attempt $attempt/6)"; sleep 5
+          done
+          echo "::error::Rollback ran but the live version is not $PREVIOUS_VERSION"; exit 1
       - name: Open an incident issue
         if: failure()
         env:
