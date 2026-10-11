@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Phase 1 checkpoint done; first PR through the pipeline
+
+- Public repo https://github.com/erdiprtm/factory-template created. `scripts/setup-github.sh` applied: squash-only, auto-merge, delete-branch-on-merge, `PRODUCTION_URL`, and the `main` ruleset (active; works on the free plan because the repo is public).
+- Secrets `CLOUDFLARE_ACCOUNT_ID` (set by the agent) and `CLOUDFLARE_API_TOKEN` (pasted by the human via `gh secret set`; the agent never saw it). Token: the "Edit Cloudflare Workers" template plus D1:Edit.
+- The bootstrap push to `main` ran `deploy.yml` before configuration existed. It failed at "Check configuration" and opened incident #1 as designed. Closed with an explanation.
+
 ## 2026-10-11: Phase 1 local scaffold green; waiting on 🧑 HUMAN checkpoint
 
 **Done**
