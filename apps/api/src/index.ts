@@ -22,6 +22,7 @@ import { configuredProvider, fakeProvider, type PaymentEnv } from "./core/paymen
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
 import { exampleFeature } from "./features/example";
+import { deleteProductData, exportProductData } from "./features/user-data";
 
 // Bindings are typed explicitly (not via worker-configuration.d.ts globals) so the app package
 // can type-check the RPC client against this source without pulling in Worker ambient types.
@@ -237,7 +238,8 @@ const routes = app
   })
   // UU PDP right of access: the user's data as a JSON download.
   .get("/account/export", async (c) => {
-    const data = await exportUserData(db(c.env), c.get("user").id);
+    const userId = c.get("user").id;
+    const data = { ...(await exportUserData(db(c.env), userId)), product: await exportProductData(db(c.env), userId) };
     c.header("content-disposition", `attachment; filename="data-${config.slug}.json"`);
     c.header("cache-control", "no-store");
     return c.json(data);
@@ -246,6 +248,7 @@ const routes = app
   .post("/account/delete", async (c) => {
     if (!deleteBody.safeParse(await c.req.json().catch(() => null)).success)
       return c.json({ error: "confirmation_required" as const }, 400);
+    await deleteProductData(db(c.env), c.get("user").id);
     await deleteUserData(db(c.env), c.get("user").id);
     for (const name of [
       "better-auth.session_token",

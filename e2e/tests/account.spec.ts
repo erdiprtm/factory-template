@@ -41,7 +41,7 @@ test("account: status, history, language, export, delete", async ({ page, reques
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Unduh data saya (JSON)" }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("data-factory-template.json");
+  expect(download.suggestedFilename()).toMatch(/^data-[a-z0-9-]+\.json$/); // data-<slug>.json
 
   // Right to erasure: needs the confirmation word, then signs out.
   const deleteButton = page.getByRole("button", { name: "Hapus akun saya" });

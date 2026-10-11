@@ -525,3 +525,18 @@ Preparing the Phase 8 dummy showed two gaps that would break the first deploy of
   - When the GitHub secret is unset, as on the template itself, the file is `{}` and nothing changes.
 - **`deploy.yml` config gate.** A `config` job checks for the `CLOUDFLARE_API_TOKEN` secret and the `PRODUCTION_URL` variable. Without them, the deploy job is skipped with a notice. That is not an incident. The first deploy happens on the first push to `main` after setup, which is the first PR merge.
 - Verified in the pinned wrangler 4.141.0: `--secrets-file` exists for both commands.
+
+## D-028: Product extension points found by the Phase 8 dummy (2026-10-11)
+
+Building "Catatan Harian" from its spec in a real product repo showed places where a product had to touch template-owned code. Per the playbook, they are fixed in the template first and synced into products:
+
+- **Feature UI strings.** All strings lived in `apps/app/src/core/i18n` (template-owned).
+  - Products now put theirs in `apps/app/src/features/messages.ts` (product-owned). That file is merged into the core catalogs, and `MessageKey` covers both.
+  - `en` is typed from `id`, so a missing translation fails the typecheck. A test also checks key parity and that no feature key shadows a core key.
+- **UU PDP access and erasure for product tables.**
+  - Core export and delete only knew core tables. `apps/api/src/features/user-data.ts` (product-owned) now has two hooks:
+    - `exportProductData` is added to `/api/account/export` under `product`.
+    - `deleteProductData` runs before the core delete.
+  - Tables with `ON DELETE CASCADE` to `user.id` are also removed by the core delete.
+- **Slug-dependent tests.** The export filename was asserted as `data-factory-template.json`, which fails in every product repo. Both the API test and the E2E test now derive it from the slug or a pattern.
+- **Not changed:** the example feature (`/example`) stays in products for now, because template E2E and API tests use it to exercise the paywall. A later template change should move those tests to a fixture route so products can delete the example cleanly (follow-up).

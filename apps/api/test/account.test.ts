@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { config } from "@factory/config/product";
 import { consents, entitlements, payments, schema, session, user } from "@factory/db";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -50,9 +51,10 @@ describe("data export (right of access)", () => {
     const cookie = await signInWithConsent(email);
     await buy(cookie);
     const res = await get("/api/account/export", cookie);
-    expect(res.headers.get("content-disposition")).toMatch(/attachment; filename="data-factory-template\.json"/);
+    // The slug comes from product.config.ts, so this holds in every product repo.
+    expect(res.headers.get("content-disposition")).toBe(`attachment; filename="data-${config.slug}.json"`);
     const data = await res.json<Record<string, unknown>>();
-    expect(data).toMatchObject({ profile: { email } });
+    expect(data).toMatchObject({ profile: { email }, product: {} });
     expect((data.payments as unknown[]).length).toBe(1);
     expect((data.consents as unknown[]).length).toBe(2);
     const text = JSON.stringify(data);

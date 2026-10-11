@@ -1,14 +1,20 @@
 import { createContext, createElement, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import product from "../../../../../product.config";
+import { featureMessages } from "../../features/messages";
 import { en } from "./en";
 import { id, type Messages } from "./id";
 import { loadLocale, saveLocale } from "./storage";
 
 // All UI strings go through t(). Bahasa Indonesia is the default; English secondary.
 export type Locale = "id" | "en";
-export type MessageKey = keyof Messages;
+// Core strings plus the product's feature strings (src/features/messages.ts). Core wins on overlap.
+type AllMessages = Messages & typeof featureMessages.id;
+export type MessageKey = keyof AllMessages;
 
-const catalogs: Record<Locale, Messages> = { id, en };
+const catalogs: Record<Locale, AllMessages> = {
+  id: { ...featureMessages.id, ...id },
+  en: { ...featureMessages.en, ...en },
+};
 const supported = product.locale.supported as readonly Locale[];
 const fallback = product.locale.default as Locale;
 
