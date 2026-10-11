@@ -1,6 +1,9 @@
 #!/usr/bin/env node
-// Generates the design-token CSS (light + dark) from product.config.ts brand tokens.
-// Outputs: apps/app/global.css (Tailwind v3 directives + tokens) and apps/site/src/styles/tokens.css (tokens only).
+// Generates files derived from product.config.ts:
+// - design-token CSS (light + dark): apps/app/global.css (Tailwind v3 directives + tokens) and
+//   apps/site/src/styles/tokens.css (tokens only);
+// - apps/app/src/core/product.generated.json: the validated config (Zod defaults applied). Metro
+//   serves it in place of product.config.ts, so the app bundle doesn't ship Zod (D-031).
 // Colors become HSL channels ("221 83% 53%") so Tailwind can use hsl(var(--x) / <alpha>).
 //
 // Usage: node scripts/gen-theme.mjs           # write
@@ -12,6 +15,7 @@ import { fileURLToPath } from "node:url";
 const OUTPUTS = {
   app: fileURLToPath(new URL("../apps/app/global.css", import.meta.url)),
   site: fileURLToPath(new URL("../apps/site/src/styles/tokens.css", import.meta.url)),
+  appConfig: fileURLToPath(new URL("../apps/app/src/core/product.generated.json", import.meta.url)),
 };
 
 export function hexToHslChannels(hex) {
@@ -72,6 +76,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const files = {
     [OUTPUTS.app]: renderTheme(product.brand.tokens),
     [OUTPUTS.site]: `${HEADER}\n${renderTokens(product.brand.tokens)}`,
+    [OUTPUTS.appConfig]: `${JSON.stringify(product, null, 2)}\n`,
   };
   const check = process.argv.includes("--check");
   let stale = false;
@@ -82,7 +87,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     } catch {}
     if (current === css) continue;
     if (check) {
-      console.error(`${file} is out of date. Run: pnpm theme`);
+      console.error(`${file} is out of date (product.config.ts changed). Run: pnpm theme`);
       stale = true;
     } else {
       writeFileSync(file, css);
