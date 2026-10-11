@@ -3,7 +3,9 @@
     "name": "health",
     "path": "/api/health",
     "status": [200],
-    "json": { "status": "ok" },
+    "json": {
+      "status": "ok"
+    },
     "commitField": "commit"
   },
   {
@@ -11,5 +13,20 @@
     "path": "/",
     "status": [200],
     "contentType": "text/html"
+  },
+  {
+    "name": "sign-in page",
+    "path": "/sign-in",
+    "status": [200],
+    "contentType": "text/html"
+  },
+  {
+    "name": "auth configured (signed-out /api/me)",
+    "path": "/api/me",
+    "status": [200],
+    "json": {
+      "user": null,
+      "access": false
+    }
   }
 ]

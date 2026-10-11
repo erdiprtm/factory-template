@@ -9,7 +9,8 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: "./wrangler.jsonc" },
-        miniflare: { bindings: { TEST_MIGRATIONS: migrations } },
+        // APP_ENV=test: emails are captured and auth rate limits are off.
+        miniflare: { bindings: { TEST_MIGRATIONS: migrations, APP_ENV: "test", AUTH_HOSTS: "localhost" } },
       }),
     ],
     test: { setupFiles: ["./test/apply-migrations.ts"] },

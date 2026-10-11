@@ -16,7 +16,7 @@
     "run_worker_first": ["/api", "/api/*"]
   },
   // Non-inheritable keys below must be repeated in env.preview.
-  "vars": { "APP_ENV": "production", "COMMIT_SHA": "dev" },
+  "vars": { "APP_ENV": "production", "COMMIT_SHA": "dev", "AUTH_HOSTS": "factory-template.erdiprtm.workers.dev" },
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
   "d1_databases": [
     {
@@ -28,7 +28,11 @@
   ],
   "env": {
     "preview": {
-      "vars": { "APP_ENV": "preview", "COMMIT_SHA": "dev" },
+      "vars": {
+        "APP_ENV": "preview",
+        "COMMIT_SHA": "dev",
+        "AUTH_HOSTS": "factory-template-preview.erdiprtm.workers.dev,*-factory-template-preview.erdiprtm.workers.dev"
+      },
       "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "d1_databases": [
         {

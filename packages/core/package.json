@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     "./entitlements": "./src/entitlements/index.ts",
-    "./consents": "./src/consents/index.ts"
+    "./consents": "./src/consents/index.ts",
+    "./email": "./src/email/index.ts",
+    "./email/templates": "./src/email/templates.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",

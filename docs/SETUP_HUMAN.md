@@ -213,7 +213,10 @@ Sumber: <https://docs.duitku.com/pop/en/>
 4. Menu **Clients** → **Create client**:
    - **Application type**: **Web application**
    - **Name**: `factory-template-web`
-   - **Authorized redirect URIs**: **agent akan memberi daftar URL yang persis di Phase 3** (satu untuk lokal, satu untuk preview). Bentuknya: `<alamat-aplikasi>/api/auth/callback/google`
+   - **Authorized redirect URIs**: tambahkan dua URL ini persis:
+     - `https://factory-template.erdiprtm.workers.dev/api/auth/callback/google` (produksi)
+     - `http://localhost:8787/api/auth/callback/google` (lokal)
+   - URL preview per-PR berubah-ubah, jadi **di preview login cukup lewat magic link**. Login Google dites di produksi dan lokal.
    - Klik **Create**.
 5. **Segera salin Client ID dan Client Secret** ke password manager. Client Secret **hanya ditampilkan sekali**; setelah itu yang terlihat hanya 4 karakter terakhir.
 6. Perubahan redirect URI bisa butuh **5 menit sampai beberapa jam** untuk aktif. Kalau muncul error `redirect_uri_mismatch`, tunggu sebentar dan cek ulang URL-nya.

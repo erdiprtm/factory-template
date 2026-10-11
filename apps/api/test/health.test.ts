@@ -6,7 +6,7 @@ describe("GET /api/health", () => {
     const res = await exports.default.fetch("http://example.com/api/health");
     expect(res.status).toBe(200);
     const body = await res.json<{ status: string; env: string; commit: string; version: string }>();
-    expect(body).toMatchObject({ status: "ok", env: "production", commit: "dev" });
+    expect(body).toMatchObject({ status: "ok", env: "test", commit: "dev" });
     expect(body.version).toBeTruthy();
   });
 

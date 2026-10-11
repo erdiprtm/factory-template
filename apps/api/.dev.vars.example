@@ -1,3 +1,19 @@
 # Local secrets for `wrangler dev`. Copy this file to `.dev.vars` (gitignored) and fill it in.
 # The human fills real values; agents never read the real file.
-# Phase 1 needs no secrets. Each later phase adds and documents its keys here.
+# Deployed Workers get the same keys as Wrangler secrets (top level = production, --env preview = preview):
+#   pnpm exec wrangler secret put <NAME>            and    pnpm exec wrangler secret put <NAME> --env preview
+
+# Session signing key, >= 32 random chars. Different per environment.
+# Local dev works without it (a fixed dev-only key is used when APP_ENV=development).
+# Generate: openssl rand -base64 48
+BETTER_AUTH_SECRET=
+
+# Google sign-in (SETUP_HUMAN.md step 4). Optional: without them the Google button is hidden.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Resend (SETUP_HUMAN.md step 7). Optional locally: without it, magic links print to the wrangler log.
+# Required on production and preview, or sign-in emails fail.
+RESEND_API_KEY=
+# Sender. Without a verified domain use onboarding@resend.dev (delivers only to the Resend account owner).
+MAIL_FROM=Factory Template <onboarding@resend.dev>
