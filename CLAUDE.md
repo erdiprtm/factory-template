@@ -24,7 +24,8 @@ pnpm dev              # app (Expo web :8081) + API (wrangler dev :8787) locally
 pnpm verify           # lint + migration safety + typecheck + test + build + e2e: must be green
 pnpm db:generate      # new migration from schema changes (packages/db)
 pnpm db:migrate:local # apply migrations to the local D1;  pnpm db:seed:local loads dev data
-pnpm theme            # regenerate apps/app/global.css after changing brand tokens in product.config.ts
+pnpm theme            # regenerate app + site theme CSS after changing brand tokens in product.config.ts
+pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/seo/<slug>.md)
 ```
 
 - Migrations: see `packages/db/README.md`. Local only: `--local`. Remote databases are migrated **only by CI**.
@@ -78,7 +79,7 @@ Built in Phase 8 as `.claude/skills/<name>/SKILL.md`: `/new-product`, `/build-fr
 ```
 apps/app        Expo app (web export now, iOS/Android later). src/core = template, src/features = product
 apps/api        Hono Worker: /api/* + serves the app's web export. src/core = template, src/features = product
-apps/site       Astro marketing/SEO/legal site (Phase 6)
+apps/site       Astro 7 site: landing, harga, SEO pages (src/content/seo), legal templates, OG images
 packages/config product.config.ts schema (defineProduct)
 packages/core   billing, entitlements, email, analytics, i18n (Phases 3–7)
 packages/db     Drizzle schema + migrations (Phase 2)

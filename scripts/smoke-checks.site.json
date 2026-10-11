@@ -1,0 +1,43 @@
+[
+  {
+    "name": "landing",
+    "path": "/",
+    "status": [200],
+    "contentType": "text/html"
+  },
+  {
+    "name": "pricing",
+    "path": "/harga/",
+    "status": [200],
+    "contentType": "text/html"
+  },
+  {
+    "name": "privacy policy",
+    "path": "/privasi/",
+    "status": [200],
+    "contentType": "text/html"
+  },
+  {
+    "name": "terms",
+    "path": "/syarat/",
+    "status": [200],
+    "contentType": "text/html"
+  },
+  {
+    "name": "sitemap",
+    "path": "/sitemap-index.xml",
+    "status": [200]
+  },
+  {
+    "name": "robots",
+    "path": "/robots.txt",
+    "status": [200],
+    "contentType": "text/plain"
+  },
+  {
+    "name": "og image",
+    "path": "/og/home.png",
+    "status": [200],
+    "contentType": "image/png"
+  }
+]

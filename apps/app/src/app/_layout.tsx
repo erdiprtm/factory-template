@@ -2,9 +2,11 @@ import "../../global.css";
 import { PortalHost } from "@rn-primitives/portal";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import Head from "expo-router/head";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { View } from "react-native";
+import product from "../../../../product.config";
 import { I18nProvider } from "../core/i18n";
 import { useRestoreTheme, useThemePreference } from "../core/theme";
 
@@ -17,6 +19,10 @@ export default function RootLayout() {
   return (
     <I18nProvider>
       <QueryClientProvider client={queryClient}>
+        <Head>
+          <title>{product.name}</title>
+          <meta name="description" content={product.tagline} />
+        </Head>
         <View className="flex-1 bg-background">
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "transparent" } }} />
         </View>

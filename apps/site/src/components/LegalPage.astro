@@ -1,0 +1,31 @@
+---
+import { getEntry } from "astro:content";
+import { marked } from "marked";
+import Base from "../layouts/Base.astro";
+import { fillPlaceholders, showLegalBanner } from "../lib/site";
+
+interface Props {
+  id: "privasi" | "syarat";
+}
+const entry = await getEntry("legal", Astro.props.id);
+if (!entry) throw new Error(`missing legal page ${Astro.props.id}`);
+// Placeholders ({{companyName}} …) are filled from product.config.ts before rendering.
+const html = await marked.parse(fillPlaceholders(entry.body ?? ""));
+const title = fillPlaceholders(entry.data.title);
+const description = fillPlaceholders(entry.data.description);
+---
+
+<Base title={title} description={description} og={Astro.props.id}>
+  {
+    showLegalBanner && (
+      <div role="alert" class="bg-destructive px-5 py-3 text-center text-sm font-semibold text-destructive-foreground">
+        TEMPLATE — perlu review hukum sebelum launch
+      </div>
+    )
+  }
+  <article class="prose-legal mx-auto w-full max-w-3xl px-5 py-14">
+    <h1 class="mb-2 text-4xl font-extrabold tracking-tight">{title}</h1>
+    <p class="mb-8 text-sm text-muted-foreground">Versi {entry.data.version}</p>
+    <Fragment set:html={html} />
+  </article>
+</Base>

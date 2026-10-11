@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Assets-only Worker (no script): the static Astro build. Top level = PRODUCTION,
+  // env.preview = per-PR previews. Production changes only through CI.
+  "name": "factory-template-site",
+  "compatibility_date": "2026-09-25",
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  },
+  "env": {
+    "preview": {}
+  }
+}

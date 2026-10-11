@@ -1,0 +1,65 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Dark mode via the `dark` class on <html> (set before paint in Base.astro). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Same token names as the app (React Native Reusables), from product.config.ts. */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+}
+
+@layer base {
+  html {
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  .prose-legal h2 {
+    @apply mt-8 mb-3 text-xl font-semibold;
+  }
+  .prose-legal p,
+  .prose-legal li {
+    @apply leading-7 text-foreground;
+  }
+  .prose-legal ul {
+    @apply list-disc space-y-1 pl-6;
+  }
+  .prose-legal ol {
+    @apply list-decimal space-y-1 pl-6;
+  }
+  .prose-legal table {
+    @apply my-4 w-full border-collapse text-sm;
+  }
+  .prose-legal th,
+  .prose-legal td {
+    @apply border border-border p-2 text-left align-top;
+  }
+  .prose-legal blockquote {
+    @apply my-4 rounded-lg border border-border bg-muted p-4 text-muted-foreground;
+  }
+  .prose-legal a {
+    @apply text-primary underline;
+  }
+}

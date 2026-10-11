@@ -9,6 +9,7 @@ const config: ExpoConfig = {
   version: "0.0.0",
   orientation: "portrait",
   userInterfaceStyle: "automatic",
+  // asyncRoutes was tried and made the web bundle larger (3.1MB common + 1.1MB entry vs 1.8MB), so it stays off.
   plugins: ["expo-router"],
   web: {
     bundler: "metro",
