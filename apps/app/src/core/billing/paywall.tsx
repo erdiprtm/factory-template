@@ -5,16 +5,19 @@ import { Platform } from "react-native";
 import { track } from "../analytics";
 import { useI18n } from "../i18n";
 
-/** Shown when a paid feature returns 402. Native builds show no prices or checkout links. */
-export function Paywall() {
+/**
+ * Shown when a paid feature returns 402. `reason` is the API's (free_uses_used: the free quota of
+ * the core action ran out, D-037). Native builds show no prices or checkout links.
+ */
+export function Paywall({ reason }: { reason?: string } = {}) {
   const { t } = useI18n();
   const router = useRouter();
-  useEffect(() => track("paywall_view"), []);
+  useEffect(() => track("paywall_view", { surface: reason ?? "paid_feature" }), [reason]);
   return (
     <Screen className="justify-center">
       <Card>
         <CardHeader>
-          <CardTitle>{t("paywall.title")}</CardTitle>
+          <CardTitle>{t(reason === "free_uses_used" ? "paywall.freeUsedTitle" : "paywall.title")}</CardTitle>
           <CardDescription>{Platform.OS === "web" ? t("paywall.body") : t("pricing.native")}</CardDescription>
         </CardHeader>
         {Platform.OS === "web" ? (

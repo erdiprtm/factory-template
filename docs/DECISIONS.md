@@ -681,3 +681,31 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **The summary comes before signup or the paywall.** "Rencana kamu siap" shows the product's plan lines plus a recap of the answers. Its CTA leads to sign-in ("Simpan rencanaku"); what happens after sign-in is the paywall placement (Module 5).
 - **Events:** `quiz_start`, `quiz_step` (with `step`), `quiz_complete`. They go first-party and to OpenPanel; `quiz_complete` also goes to Meta as Lead, with consent.
 - **The template E2E is product-independent.** It answers whatever quiz the product defines (first option, or the lowest valid number), checks back navigation and the summary, signs in, and checks that the answers are attached (D-032 lesson).
+
+## D-037: Sell engine, Module 5: the first real result before the paywall (2026-10-11)
+
+- **Config.** `product.config.ts` gets `funnel`:
+  - `coreAction` (default `"core"`): the name of the one core action.
+  - `freeUses` (default 1): free uses of that action per user.
+  - `paywallPlacement`: `after_quiz`, `after_first_result` (the default) or `after_quota`.
+- **The quota is enforced on the server.** `requireAccessOrFreeUse` goes on the route that performs the core action.
+  - Paid access passes and spends nothing.
+  - Otherwise one free use is spent with an atomic upsert in `free_usage`: the increment happens only while `used < limit`, and a test fires 10 concurrent calls at a limit of 3.
+  - Once the uses run out, the route answers `402 { error: "payment_required", reason: "free_uses_used" }`.
+  - `x-free-uses-left` and `/api/me` `freeUses` tell the app how many uses are left. Reads of saved results must not use this gate.
+- **Placements.**
+
+  | Placement | When the paywall appears |
+  |---|---|
+  | `after_quiz` | The quiz summary leads to sign-in, then straight to `/pricing` (a one-time "after sign-in" flag). Pair it with `freeUses: 0` for a hard paywall. |
+  | `after_first_result` | The product calls `reportFirstResult()` (`first_result`, once per device) when it shows its first result, and renders `<UpgradePrompt />` under it: the offer plus how many free uses are left. |
+  | `after_quota` | Nothing until the API's 402. Then `<Paywall reason="free_uses_used" />` appears ("Jatah gratis kamu sudah habis"). |
+
+- **The paywall (`PlanCards`, used by `/pricing` and `UpgradePrompt`).**
+  - Plans come from config, each with "≈ Rp…/minggu" (`@factory/core/pricing`, rounded to Rp100).
+  - The highlighted plan is the configured one, or else the longest (the 12-month plan). It shows its saving against the next shorter plan bought repeatedly, e.g. "Hemat Rp49.000 (16%) dibanding 6 bulan".
+  - The real payment methods from `payments.methods` are listed (QRIS, DANA, ShopeePay, OVO, Virtual Account).
+  - The site's `/harga` uses the same framing.
+  - `paywall_view` is sent with a `surface`: pricing, first_result, free_uses_used or paid_feature.
+- **The example feature** now shows the pattern: `POST /api/example/run` sits behind `requireAccessOrFreeUse`, and the screen shows the result, reports the first result and renders the prompt. Template tests use test-only `CORE = "/api/__test/core"` instead (D-032).
+- **UU PDP.** The free-use counters are erased with the account.

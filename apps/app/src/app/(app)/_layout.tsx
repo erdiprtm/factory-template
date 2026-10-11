@@ -10,12 +10,20 @@ import { useI18n } from "../../core/i18n";
 import { syncMarketingConsent } from "../../core/marketing";
 import { setMonitoringUser } from "../../core/monitoring";
 import { sendQuiz } from "../../core/quiz/send";
+import { takeAfterSignIn } from "../../core/quiz/storage";
 
 /** Protected area: signed-in users with all required consents. Paid features add requireAccess. */
 export default function ProtectedLayout() {
   const me = useMe();
   const { t } = useI18n();
+  const router = useRouter();
   const userId = me.data?.user?.id;
+  const ready = Boolean(userId) && me.data?.missingConsents.length === 0;
+  useEffect(() => {
+    // Placement "after_quiz": the quiz asked to open the paywall once signed in (D-037).
+    const next = ready && !me.data?.access ? takeAfterSignIn() : null;
+    if (next) router.replace(next);
+  }, [ready, me.data?.access, router]);
   const marketingConsent = me.data?.marketingConsent ?? false;
   useEffect(() => {
     if (userId) void syncMarketingConsent(marketingConsent);

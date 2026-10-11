@@ -102,6 +102,20 @@ export const productSchema = z.object({
   // Sentry DSN (public: browsers carry it; it can only submit events). Unset = monitoring off.
   // Errors are reported from production and preview only, with PII scrubbed (@factory/core/monitoring).
   monitoring: z.object({ sentryDsn: z.url().nullable().default(null) }).default({ sentryDsn: null }),
+  // The paid funnel (sell engine Module 5, D-037): the first real result comes before the paywall.
+  // freeUses: free uses of the core action per user, enforced by the API (requireAccessOrFreeUse).
+  // paywallPlacement: when the paywall is offered: right after the quiz and sign-in, under the first
+  // result, or only once the free uses run out.
+  funnel: z
+    .object({
+      coreAction: z
+        .string()
+        .regex(/^[a-z][a-z0-9_]{1,30}$/)
+        .default("core"),
+      freeUses: z.int().min(0).max(100).default(1),
+      paywallPlacement: z.enum(["after_quiz", "after_first_result", "after_quota"]).default("after_first_result"),
+    })
+    .default({ coreAction: "core", freeUses: 1, paywallPlacement: "after_first_result" }),
   // Meta Pixel ID (public: browsers carry it). Unset = no Pixel, no Conversions API, no marketing
   // consent banner. The CAPI access token is a Worker secret (META_CAPI_TOKEN), never here. D-034.
   marketing: z

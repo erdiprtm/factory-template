@@ -26,3 +26,26 @@ export function savingVs(longer: PricedPlan, shorter: PricedPlan): { idr: number
   if (idr <= 0) return null;
   return { idr, percent: Math.round((idr / sameMonths) * 100) };
 }
+
+/** The plan to highlight: the configured one, else the longest (usually the 12-month plan). */
+export function highlightedPlan<P extends PricedPlan & { highlight?: boolean }>(plans: readonly P[]): P | undefined {
+  return plans.find((p) => p.highlight) ?? [...plans].sort((a, b) => b.months - a.months)[0];
+}
+
+/** The plan a longer one is compared with for its saving: the next shorter one. */
+export function comparedPlan<P extends PricedPlan>(plans: readonly P[], plan: P): P | undefined {
+  return [...plans].filter((p) => p.months < plan.months).sort((a, b) => b.months - a.months)[0];
+}
+
+const METHOD_LABELS: Record<string, string> = {
+  QRIS: "QRIS",
+  DANA: "DANA",
+  SHOPEEPAY: "ShopeePay",
+  OVO: "OVO",
+  GOPAY: "GoPay",
+  LINKAJA: "LinkAja",
+  VIRTUAL_ACCOUNT: "Virtual Account",
+};
+
+/** Display names for product.config.ts payments.methods (unknown codes are shown as given). */
+export const methodLabel = (code: string) => METHOD_LABELS[code] ?? code;

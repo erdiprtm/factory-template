@@ -47,6 +47,7 @@ export const id = {
   "billing.return.timeout":
     "Pembayaran belum terkonfirmasi. Kalau sudah bayar, akses aktif otomatis dalam beberapa menit.",
   "billing.return.home": "Ke beranda",
+  "example.run": "Jalankan fitur contoh",
   "example.title": "Fitur contoh",
   "nav.home": "Beranda",
   "nav.account": "Akun",
@@ -117,6 +118,15 @@ export const id = {
   "quiz.summary.subtitle": "Kami susun dari jawabanmu. Simpan rencanamu dengan masuk lewat email.",
   "quiz.summary.answers": "Jawabanmu",
   "quiz.summary.cta": "Simpan rencanaku",
+  "pricing.perWeek": "/minggu",
+  "pricing.save": "Hemat",
+  "pricing.vs": "dibanding",
+  "pricing.methods": "Bayar dengan",
+  "upgrade.title": "Suka hasilnya? Buka akses penuh",
+  "upgrade.freeLeft": "Sisa jatah gratis:",
+  "upgrade.freeUsed": "Jatah gratis kamu sudah terpakai.",
+  "upgrade.body": "Berlangganan untuk memakai tanpa batas.",
+  "paywall.freeUsedTitle": "Jatah gratis kamu sudah habis",
 };
 
 export type Messages = typeof id;
