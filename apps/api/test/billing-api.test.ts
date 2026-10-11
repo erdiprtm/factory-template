@@ -7,19 +7,19 @@ import { describe, expect, it } from "vitest";
 import { runScheduled } from "../src/core/cron";
 import { configuredProvider, fakeProvider } from "../src/core/payments";
 import { app } from "../src/index";
-import { firstPlan, get, lastPlan, post, signIn, signInWithConsent } from "./helpers";
+import { firstPlan, get, lastPlan, PAID, post, signIn, signInWithConsent } from "./helpers";
 
 // Billing endpoints end to end with the FakeProvider (APP_ENV=test), against real local D1.
 const db = drizzle(env.DB, { schema });
 const uniqueEmail = (tag: string) => `${tag}-${crypto.randomUUID()}@example.com`;
 
-describe("requireAccess (example paid feature)", () => {
+describe("requireAccess (paid route)", () => {
   it("401 signed out, 402 without entitlement, 200 during trial", async () => {
-    expect((await get("/api/example", null)).status).toBe(401);
+    expect((await get(PAID, null)).status).toBe(401);
     const cookie = await signInWithConsent(uniqueEmail("gate"));
-    expect((await get("/api/example", cookie)).status).toBe(402);
+    expect((await get(PAID, cookie)).status).toBe(402);
     expect((await post("/api/billing/trial", cookie, {})).status).toBe(200);
-    expect((await get("/api/example", cookie)).status).toBe(200);
+    expect((await get(PAID, cookie)).status).toBe(200);
   });
 });
 
@@ -46,7 +46,7 @@ describe("checkout → webhook → access", () => {
     };
     const res = await app.request(fakeProvider().webhook(paymentId, "paid"), undefined, env);
     expect(res.status).toBe(503);
-    expect((await get("/api/example", cookie)).status).toBe(402);
+    expect((await get(PAID, cookie)).status).toBe(402);
   });
 
   it("rejects unknown plans", async () => {
@@ -81,7 +81,7 @@ describe("checkout → webhook → access", () => {
       amountIdr: lastPlan.priceIdr,
     });
     expect(await db.select().from(entitlements).where(eq(entitlements.paymentId, paymentId))).toHaveLength(1);
-    expect((await get("/api/example", cookie)).status).toBe(200);
+    expect((await get(PAID, cookie)).status).toBe(200);
     expect(capturedEmails().last(email)?.subject).toMatch(/Pembayaran .* berhasil/);
 
     const history = await (await get("/api/billing/history", cookie)).json<{ payments: { id: string }[] }>();
