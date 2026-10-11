@@ -141,7 +141,12 @@ function main() {
   const edit = (p, fn) => writeFileSync(inRepo(p), fn(readFileSync(inRepo(p), "utf8")));
 
   edit("product.config.ts", (t) => applyProductConfig(t, { slug: a.slug, ...spec }));
-  for (const p of ["apps/api/wrangler.jsonc", "apps/site/wrangler.jsonc", "apps/site/astro.config.mjs"]) {
+  for (const p of [
+    "apps/api/wrangler.jsonc",
+    "apps/site/wrangler.jsonc",
+    "apps/site/astro.config.mjs",
+    "apps/site/src/lib/site.ts",
+  ]) {
     edit(p, (t) => renameWorkers(t, { slug: a.slug, subdomain: a.subdomain }));
   }
   writeFileSync(inRepo(`specs/${a.slug}.md`), specText);
