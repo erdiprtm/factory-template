@@ -98,6 +98,7 @@ describe("consents endpoint", () => {
       access: false,
       missingConsents: [],
       providers: { google: false },
+      isAdmin: false,
     });
   });
 });

@@ -10,7 +10,8 @@
     "./email/templates": "./src/email/templates.ts",
     "./billing": "./src/billing/index.ts",
     "./account": "./src/account/index.ts",
-    "./analytics": "./src/analytics/index.ts"
+    "./analytics": "./src/analytics/index.ts",
+    "./admin": "./src/admin/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",

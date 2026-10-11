@@ -10,7 +10,14 @@ export default defineConfig(async () => {
       cloudflareTest({
         wrangler: { configPath: "./wrangler.jsonc" },
         // APP_ENV=test: emails are captured and auth rate limits are off.
-        miniflare: { bindings: { TEST_MIGRATIONS: migrations, APP_ENV: "test", AUTH_HOSTS: "localhost" } },
+        miniflare: {
+          bindings: {
+            TEST_MIGRATIONS: migrations,
+            APP_ENV: "test",
+            AUTH_HOSTS: "localhost",
+            ADMIN_EMAILS: "admin@example.com",
+          },
+        },
       }),
     ],
     test: { setupFiles: ["./test/apply-migrations.ts"] },
