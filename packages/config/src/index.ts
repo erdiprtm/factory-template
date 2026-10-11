@@ -85,6 +85,13 @@ export const productSchema = z.object({
     companyName: z.string().min(1),
     contactEmail: z.email(),
     sensitiveDataConsent: z.boolean(),
+    // Filled into the privacy policy and terms templates (apps/site). Reviewed by a lawyer before launch.
+    productDataDescription: z.string().default("Tidak ada data tambahan selain data akun dan langganan."),
+    refundPolicy: z
+      .string()
+      .default(
+        "Karena akses diberikan segera setelah pembayaran, pembayaran tidak dapat dikembalikan, kecuali terjadi kesalahan tagihan atau layanan tidak dapat dipakai karena kesalahan kami. Hubungi kami untuk pengajuan.",
+      ),
   }),
   admin: z.object({ emails: z.array(z.email()) }),
 });
