@@ -4,6 +4,24 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Phase 8 accepted ✅ (dummy built, tested end to end, deleted)
+
+- **Built** `erdiprtm/catatan-harian` from `specs/catatan-harian.md`:
+  - `new-product --execute`, then the first `/sync-template`;
+  - `/build-from-spec`: notes table, API, screen, and an E2E acceptance path.
+- **First production deploy passed.** The new Worker got its auth secret from CI (`--secrets-file`, D-027).
+- **The human tested on the dummy's production:** sign in, write a note, free 7-day limit, trial, paid search, Duitku sandbox purchase, receipt.
+- **The human deleted** the repo, 4 Workers and 2 D1 databases. The agent verified they are gone and the template is untouched. `factory.json` is back to its example entry.
+- **The run found and fixed 9 template gaps** (PRs #20, #22, #23, #24; D-027, D-028):
+  - CI auth secrets and the config gate;
+  - feature UI strings;
+  - UU PDP export and delete hooks;
+  - slug, price and DSN assumptions in tests;
+  - Worker types regeneration;
+  - feature-message typing;
+  - generator tests in product repos.
+- **The dummy's "rate limited" failures were a credential mix-up.** The Global API Key had been stored as `CLOUDFLARE_API_TOKEN`; Cloudflare answers it with code 10429, not an auth error. The human replaced it with a scoped API Token and rolled the Global API Key. `/new-product` now warns about this (D-029).
+
 ## 2026-10-11: Phase 4 acceptance complete; Phase 8 dummy in progress
 
 - **Phase 4 ✅** on production (`DUITKU_MODE=sandbox`). The human paid twice through Duitku POP:

@@ -340,6 +340,8 @@ GitHub Actions butuh izin untuk deploy ke Cloudflare atas namamu.
 5. **Zone Resources**: *Include* → *All zones from an account* → akun kamu. Kalau belum punya domain, pilihan ini tetap boleh.
 6. **Continue to summary** → **Create Token** → **salin token-nya**. Token hanya ditampilkan sekali.
 
+⚠️ **Jangan pakai "Global API Key"** (bagian *API Keys* di halaman yang sama). Kunci itu punya akses penuh ke seluruh akun dan tidak bisa dipakai CI. Cloudflare menjawabnya dengan error `Rate limited [code: 10429]`, sehingga terlihat seperti kena limit padahal kuncinya salah (D-029). Untuk setiap produk baru, pakai API Token seperti langkah di atas.
+
 **B. Simpan token ke GitHub**, langsung dari Terminal, tanpa lewat chat. Jalankan di folder proyek (`~/ASF`) **setelah agent membuat repo GitHub-nya**:
 ```bash
 gh secret set CLOUDFLARE_API_TOKEN
