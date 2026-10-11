@@ -35,7 +35,7 @@ export default function Pricing() {
     const res = await api.api.billing.checkout.$post({ json: { planId } });
     if (!res.ok) {
       setBusy(false);
-      return setMessage(t("pricing.error"));
+      return setMessage(t(res.status === 503 ? "pricing.unavailable" : "pricing.error"));
     }
     openCheckout((await res.json()).redirectUrl);
   }

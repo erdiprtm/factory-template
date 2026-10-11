@@ -17,7 +17,7 @@ import { z } from "zod";
 import { adminRoutes } from "./core/admin";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
-import { fakeProvider, getProvider, type PaymentEnv } from "./core/payments";
+import { configuredProvider, fakeProvider, type PaymentEnv } from "./core/payments";
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
 import { exampleFeature } from "./features/example";
@@ -67,8 +67,8 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth(c.env).handler(c.req.raw))
 
 // Payment provider callbacks (no session). Signature checked by the provider; idempotent.
 app.post("/api/webhooks/:provider", rateLimit("WEBHOOK_LIMITER", clientIp), async (c) => {
-  const provider = getProvider(c.env);
-  if (c.req.param("provider") !== provider.name) return c.notFound();
+  const provider = configuredProvider(c.env);
+  if (!provider || c.req.param("provider") !== provider.name) return c.notFound();
   const outcome = await handleWebhook(db(c.env), provider, c.req.raw, config.plans);
   if (outcome.kind === "unauthorized") return c.json({ error: "invalid_signature" as const }, 401);
   if (outcome.kind === "retry") return c.json({ error: "not_confirmed_yet" as const }, 503);
@@ -186,7 +186,10 @@ const routes = app
     const user = c.get("user");
     const pending = await missingConsents(db(c.env), user.id, requiredConsents(config.legal));
     if (pending.length > 0) return c.json({ error: "consent_required" as const }, 403);
-    const { paymentId, redirectUrl } = await startCheckout(db(c.env), getProvider(c.env), {
+    // No sandbox credentials yet (e.g. a fresh product): a clear 503, not a 500.
+    const provider = configuredProvider(c.env);
+    if (!provider) return c.json({ error: "payments_unavailable" as const }, 503);
+    const { paymentId, redirectUrl } = await startCheckout(db(c.env), provider, {
       user: { id: user.id, name: user.name, email: user.email },
       plan,
       methods: config.payments.methods,

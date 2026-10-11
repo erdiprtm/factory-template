@@ -36,6 +36,15 @@ export function getProvider(env: PaymentEnv): PaymentProvider {
   throw new Error(`Payment provider "${provider}" is not configured for APP_ENV=${env.APP_ENV}`);
 }
 
+/** The provider, or null when this environment has no payment credentials yet (answer 503). */
+export function configuredProvider(env: PaymentEnv): PaymentProvider | null {
+  try {
+    return getProvider(env);
+  } catch {
+    return null;
+  }
+}
+
 /** Test/dev access to the fake provider (e.g. to simulate a paid webhook). */
 export function fakeProvider(): FakeProvider {
   return fake;
