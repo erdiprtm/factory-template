@@ -4,6 +4,33 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Phase 7 admin (branch `feat/phase-7-admin`) and Phase 8 factory tooling (branch `feat/phase-8-factory`) built; not merged
+
+- `/admin` (allowlist, metrics, revenue per Jakarta month, recent payments, manual grant, webhook log), with tests that check the numbers against the DB, plus E2E (D-020).
+- Spec checker, `new-product` script (dry run default) with tests, 6 playbooks, `docs/TEMPLATE_SYNC.md`, `docs/SPEC_TEMPLATE.md` plus `factory.json` (cherry-picked), and the dummy spec `specs/catatan-harian.md`.
+- `pnpm verify` green: 157 unit/integration tests (api 43, core 24, config 5, site 4, scripts 81) plus 7 E2E (3 consecutive clean runs; one sign-out race in the admin E2E was found and fixed).
+
+**Unmerged branch stack, in merge order:**
+1. `feat/phase-2-db`
+2. `feat/phase-3-auth`
+3. `feat/phase-4-billing`
+4. `feat/phase-5-app-shell`
+5. `feat/phase-6-site`
+6. `feat/phase-7-admin`
+7. `feat/phase-8-factory`
+
+(`docs/spec-template-and-registry` is now included in phase 8 and can be deleted.)
+
+**Blocked on 🧑 HUMAN:**
+- Expo Go test (phase 1 acceptance, then the phase 2 merge).
+- Resend key plus approval to set `BETTER_AUTH_SECRET` (phase 3).
+- Duitku sandbox (phase 4).
+- `SITE_URL` variable approval (phase 6).
+- OpenPanel and Sentry accounts (rest of phase 7).
+- Deleting the phase 8 dummy.
+
+---
+
 ## 2026-10-11: Phase 6 (launch kit / site) built on branch `feat/phase-6-site` (stacked on Phase 5); not merged
 
 - `apps/site` (Astro 7, Tailwind 4, shared tokens): landing, pricing, FAQ, SEO page template, privacy, terms (UU PDP templates with the TEMPLATE banner), contact, 404, sitemap, robots, OG images, JSON-LD (D-019).

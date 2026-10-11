@@ -70,9 +70,16 @@ pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/se
 - Nutrition or health numbers shown to users come from **curated data stored in the product**, never from model memory. AI may phrase and combine; it must not invent facts or numbers.
 - Tone: friendly, plain Bahasa Indonesia. Never shame users about their bodies, food, or habits.
 
-## Playbooks
+## Playbooks (`.claude/skills/`)
 
-Built in Phase 8 as `.claude/skills/<name>/SKILL.md`: `/new-product`, `/build-from-spec`, `/add-feature`, `/add-plan`, `/launch-check`, `/sync-template`. Not available yet.
+| Command | When |
+|---|---|
+| `/new-product <spec> <slug>` | Start a new product repo from a complete spec (`scripts/new-product.mjs`, dry run first) |
+| `/build-from-spec <spec>` | In a product repo: build v1 features (refuses incomplete specs: `scripts/spec-check.mjs`) |
+| `/add-feature <desc>` | One more feature, product-owned folders only |
+| `/add-plan <prices>` | Change plans/prices in `product.config.ts` and verify paywall + site |
+| `/launch-check` | Pre-launch checklist (blueprint Section 11), pass/fail per item |
+| `/sync-template` | Pull template updates into a product repo (`docs/TEMPLATE_SYNC.md`) |
 
 ## Where things are
 

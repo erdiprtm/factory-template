@@ -1,0 +1,20 @@
+{
+  "$comment": "Portfolio registry. One entry per product. status: idea | building | live | killed. Updated by /new-product and /launch-check; reviewed on reviewDate.",
+  "products": [
+    {
+      "slug": "example",
+      "name": "Example Product",
+      "repo": "erdiprtm/example",
+      "status": "idea",
+      "spec": "specs/example.md",
+      "launchDate": null,
+      "reviewDate": null,
+      "metricTargets": {
+        "day30": "50 trial starts, 10 paid",
+        "day60": "30 paid"
+      },
+      "killCriteria": "Fewer than 20 paying users by day 60",
+      "urls": { "app": null, "site": null }
+    }
+  ]
+}
