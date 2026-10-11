@@ -639,3 +639,22 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - Account deletion removes it.
 - **Failures never break payments.** `sendCapi` never throws, and it runs in `waitUntil`.
 - **Docs.** The privacy template lists Meta as a processor, with consent as the legal basis. `SETUP_HUMAN.md` step 10 covers the Business portfolio, ad account, Pixel, token, test code and domain.
+
+## D-035: Sell engine, Module 3: config-driven ad landers at /l/<slug> (2026-10-11)
+
+- **One content file per campaign, no code.** Each lander is a file in `apps/site/src/content/landers/<slug>.md`, and the file name is the URL: `/l/<slug>/`. Its fields are validated at build time:
+  - `hook`: the ad's hook, word for word. It is rendered as the page's `<h1>`, so the ad's promise and the lander can't drift apart ("scent").
+  - `sub` (sub-copy) and `cta` (button label).
+  - `description` (tab and share text).
+  - `campaign`: the `utm_campaign` the ads use, for `/admin`.
+  - Optional `proof`: a quote, up to 3 stats, or an image.
+  - The Markdown body is for "how it works" below the fold.
+- **One way forward.** The header shows only the logo, with no nav links. Both CTA buttons go to the app's `/quiz` (Module 4), and the site script adds the touch and the marketing choice to them (D-033, D-034). The page sends `lp_view`, the buttons send `cta_tap`.
+- **Price framing under the CTA** comes from `product.config.ts`: "Mulai dari ≈ Rp…/minggu", the cheapest plan per week rounded to Rp100 (`@factory/core/pricing`, shared with the paywall), plus the payment methods and "tanpa tagihan otomatis".
+- **Not for search.** Landers are `noindex` and left out of the sitemap: they exist for ads, and duplicate copy across campaigns would only dilute the SEO pages.
+- **Fast on a mid-range Android over 4G (LCP target < 2.5 s).**
+  - The page is static HTML plus one small CSS file and the shared site script (`async` module, not render-blocking).
+  - It uses the system font stack, so there is no web font to fetch.
+  - The LCP element is the text headline. The optional proof image sits below the fold: lazy, responsive `srcset` (400/800 px, WebP via `astro:assets`), with width and height set (no layout shift).
+  - The Meta Pixel loads only after consent, and after first paint.
+- An example lander ships at `/l/contoh/`. The site test checks the `<h1>`, the CTA target, `noindex`, the `lp_view` event, and the sitemap exclusion.

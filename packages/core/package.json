@@ -15,6 +15,7 @@
     "./attribution": "./src/attribution/index.ts",
     "./attribution/touch": "./src/attribution/touch.ts",
     "./monitoring": "./src/monitoring/index.ts",
+    "./pricing": "./src/pricing/index.ts",
     "./meta": "./src/meta/index.ts",
     "./meta/events": "./src/meta/events.ts"
   },

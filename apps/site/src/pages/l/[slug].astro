@@ -1,0 +1,77 @@
+---
+// Ad landers from src/content/landers/*.md (sell engine Module 3, D-035). Template-owned layout,
+// PRODUCT-OWNED content. Built for a mid-range Android on 4G: static HTML, no web font, no
+// above-the-fold image, one CTA. The headline is the ad's hook, word for word (scent).
+import { Image } from "astro:assets";
+import { getCollection, render } from "astro:content";
+import { cheapestPerWeekIdr } from "@factory/core/pricing";
+import Base from "../../layouts/Base.astro";
+import { appUrl, formatIdr, product } from "../../lib/site";
+
+export async function getStaticPaths() {
+  const landers = await getCollection("landers");
+  return landers.map((lander) => ({ params: { slug: lander.id }, props: { lander } }));
+}
+
+const { lander } = Astro.props;
+const { hook, sub, cta, description, proof } = lander.data;
+const { Content } = await render(lander);
+const cheapest = cheapestPerWeekIdr(product.plans);
+const quizUrl = `${appUrl}/quiz`;
+---
+
+<Base title={hook} description={description} event="lp_view" minimal>
+  <section class="mx-auto flex w-full max-w-2xl flex-col gap-5 px-5 pb-10 pt-8 sm:pt-14">
+    <h1 class="text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">{hook}</h1>
+    <p class="text-lg text-muted-foreground">{sub}</p>
+    <a
+      href={quizUrl}
+      data-event="cta_tap"
+      class="flex min-h-14 items-center justify-center rounded-xl bg-primary px-6 text-center text-lg font-bold text-primary-foreground hover:opacity-90"
+    >
+      {cta}
+    </a>
+    <p class="text-center text-sm text-muted-foreground">
+      Mulai dari ≈ {formatIdr(cheapest)}/minggu · QRIS, e-wallet, virtual account · tanpa tagihan otomatis
+    </p>
+  </section>
+
+  {
+    proof && (
+      <section class="border-y border-border bg-muted/40" aria-label="Bukti">
+        <div class="mx-auto w-full max-w-2xl px-5 py-10">
+          {proof.kind === "quote" && (
+            <figure class="flex flex-col gap-3">
+              <blockquote class="text-xl font-medium">“{proof.text}”</blockquote>
+              <figcaption class="text-sm text-muted-foreground">{proof.who}</figcaption>
+            </figure>
+          )}
+          {proof.kind === "stats" && (
+            <dl class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+              {proof.items.map((item) => (
+                <div class="flex flex-col gap-1">
+                  <dt class="order-2 text-sm text-muted-foreground">{item.label}</dt>
+                  <dd class="order-1 text-3xl font-extrabold">{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {proof.kind === "image" && (
+            <Image src={proof.src} alt={proof.alt} widths={[400, 800]} sizes="(max-width: 672px) 100vw, 672px" loading="lazy" class="h-auto w-full rounded-xl" />
+          )}
+        </div>
+      </section>
+    )
+  }
+
+  <section class="prose-legal mx-auto w-full max-w-2xl px-5 py-10">
+    <Content />
+    <a
+      href={quizUrl}
+      data-event="cta_tap"
+      class="not-prose mt-8 flex min-h-14 items-center justify-center rounded-xl bg-primary px-6 text-center text-lg font-bold text-primary-foreground no-underline hover:opacity-90"
+    >
+      {cta}
+    </a>
+  </section>
+</Base>
