@@ -542,4 +542,5 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **First `/sync-template` into the dummy** found two more:
   - `packages/config`'s test asserted `slug === "factory-template"`. It now checks the slug format and that plans exist.
   - `new-product` renamed the Worker without regenerating `worker-configuration.d.ts`, so a new product's first `verify` failed the typecheck. The generator now runs `wrangler types`.
+  - API and E2E tests hardcoded the template's plan ids and prices (149000 / 249000) and its Sentry DSN. They now read `product.config.ts` (`firstPlan` / `lastPlan` helpers), and `sentryOptions` takes an injectable DSN.
 - **Not changed:** the example feature (`/example`) stays in products for now, because template E2E and API tests use it to exercise the paywall. A later template change should move those tests to a fixture route so products can delete the example cleanly (follow-up).

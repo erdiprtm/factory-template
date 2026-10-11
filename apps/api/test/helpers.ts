@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { config } from "@factory/config/product";
 import { capturedEmails } from "@factory/core/email";
 import { app } from "../src/index";
 
@@ -38,3 +39,9 @@ export const post = (path: string, cookie: string | null, body: unknown) =>
   });
 
 export const get = (path: string, cookie: string | null) => call(path, { headers: cookie ? { cookie } : {} });
+
+// Tests read plans from product.config.ts, so they pass in every product repo (D-028).
+type Plan = (typeof config.plans)[number];
+// The schema requires at least one plan.
+export const firstPlan = config.plans[0] as Plan;
+export const lastPlan = (config.plans[config.plans.length - 1] ?? firstPlan) as Plan;
