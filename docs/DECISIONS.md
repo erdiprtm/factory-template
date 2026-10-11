@@ -363,3 +363,26 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
   - Expo Router `asyncRoutes` made the bundle *larger* (3.1 MB common plus 1.1 MB entry), so it stays off.
 - The app's `/robots.txt` disallows all, because the app is behind login and SEO lives on the site.
 - **Re-measure the app on the real preview:** performance is borderline.
+
+## D-020: Admin and factory tooling (2026-10-11)
+
+**`/admin`** (Phase 7, admin part).
+- Access: `requireAdmin` (401 signed out, 403 otherwise). Admins are `product.config.ts` `admin.emails` ∪ the `ADMIN_EMAILS` var (case-insensitive). In local dev `pnpm dev` adds `admin@example.com`.
+- Users and active access: active users are classified by the source of their latest-ending entitlement (trial / paid / admin grant / store).
+- Revenue by month: paid payments grouped by **Asia/Jakarta** month in JavaScript (portable SQL), plus count.
+- Recent payments with email; deleted accounts show "(akun dihapus)".
+- Webhook event log.
+- Manual grant of N days (1–366): extends, never overlaps.
+- Tests check the numbers against direct DB queries (Phase 7 acceptance). E2E: an admin grants access and the link is hidden from non-admins.
+- **Still Phase 7, blocked on accounts:** OpenPanel (wire `window.factoryTrack` and the app tracker to it) and Sentry (`@sentry/cloudflare` plus browser SDK with PII scrubbing). Both need the human's accounts (SETUP_HUMAN steps 5–6).
+
+**Factory tooling** (Phase 8).
+- `scripts/spec-check.mjs`: enforces the spec format. Required sections must be non-placeholder, there are at most 3 core features, and kill criteria must exist. Tests run against the unfilled template (rejected) and the `specs/catatan-harian.md` dummy (accepted).
+- `scripts/new-product.mjs`: a **dry run by default**; `--execute` acts.
+  - Steps: spec check → `gh repo create --template` → rewrite `product.config.ts` (slug, name, tagline, plans from the spec) → rename Workers/DBs/hosts in the wrangler and astro configs → `wrangler d1 create` both DBs and write the ids → theme → commit and push → `setup-github.sh` → `CLOUDFLARE_ACCOUNT_ID` secret → register in this repo's `factory.json`.
+  - The API token is never copied; the human runs `gh secret set CLOUDFLARE_API_TOKEN --repo …`.
+  - R2 is not created yet: no feature uses it, and enabling R2 on an account is a dashboard step.
+  - The transforms are pure functions with tests.
+- **Playbooks** in `.claude/skills/`, all `disable-model-invocation: true` (human-triggered): `new-product`, `build-from-spec` (refuses incomplete specs), `add-feature`, `add-plan`, `launch-check` (13 items mapped to commands; template-N/A items marked), `sync-template`.
+- `docs/TEMPLATE_SYNC.md`: template remote, merge (never rebase), conflict table by ownership. Migrations keep both sides thanks to timestamp prefixes, and the lockfile and drizzle meta are regenerated.
+- **Phase 8 acceptance pending:** create the "Catatan Harian" dummy end to end, then **the human deletes** the dummy repo, Workers and D1 (agents are denied deletes, D-006).
