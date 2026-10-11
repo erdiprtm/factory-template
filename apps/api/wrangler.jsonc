@@ -6,6 +6,8 @@
   "main": "src/index.ts",
   // Not later than the workerd bundled with the pinned wrangler (4.141.0 -> 2026-09-25)
   "compatibility_date": "2026-09-25",
+  // AsyncLocalStorage for @sentry/cloudflare (per-request scopes). docs/DECISIONS.md D-025.
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": true,
   "observability": { "enabled": true },

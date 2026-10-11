@@ -6,6 +6,7 @@ import product from "../../../../../product.config";
 import { identify } from "../../core/analytics";
 import { useMe } from "../../core/auth/use-me";
 import { useI18n } from "../../core/i18n";
+import { setMonitoringUser } from "../../core/monitoring";
 
 /** Protected area: signed-in users with all required consents. Paid features add requireAccess. */
 export default function ProtectedLayout() {
@@ -14,6 +15,7 @@ export default function ProtectedLayout() {
   const userId = me.data?.user?.id;
   useEffect(() => {
     if (userId) identify(userId);
+    if (userId) setMonitoringUser(userId);
   }, [userId]);
   if (me.isPending) return <Loading label={t("common.loading")} />;
   if (!me.data?.user) return <Redirect href="/sign-in" />;

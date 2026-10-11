@@ -20,6 +20,7 @@
     "@factory/config": "workspace:*",
     "@factory/core": "workspace:*",
     "@factory/db": "workspace:*",
+    "@sentry/cloudflare": "catalog:",
     "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
     "hono": "catalog:",

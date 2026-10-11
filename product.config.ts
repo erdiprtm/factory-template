@@ -73,4 +73,8 @@ export default defineProduct({
   admin: { emails: [] },
   // Template's own OpenPanel project. /new-product clears it: each product gets its own project.
   analytics: { openpanelClientId: "30b591cb-a810-42a6-a9cc-97f12a263446" },
+  // Template's own Sentry project. /new-product clears it, like the OpenPanel client ID.
+  monitoring: {
+    sentryDsn: "https://b5f9d8f1ce9efa50576995836b63637d@o4512236547801088.ingest.us.sentry.io/4512236556124160",
+  },
 });

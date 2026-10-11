@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Sentry wired (branch `feat/sentry`, on top of `fix/payments-unavailable`)
+
+- The human created the Sentry org and project (US region, error monitoring only), and the DSN is in `product.config.ts` (D-025).
+- Worker (`withSentry` + `onError`, `nodejs_compat`) and web app (lazy `@sentry/browser`), production and preview only, with PII off and scrubbed.
+- OpenPanel verified live: site and app send to `api.openpanel.dev/track` → 200 (PR #15).
+
+---
+
 ## 2026-10-11: OpenPanel analytics wired (branch `feat/openpanel`, on top of Phase 9)
 
 - The human created the OpenPanel project (allowed domains: production site and app). Its client ID is in `product.config.ts` (D-024).
