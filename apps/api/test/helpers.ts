@@ -1,6 +1,8 @@
 import { env } from "cloudflare:workers";
 import { config } from "@factory/config/product";
 import { capturedEmails } from "@factory/core/email";
+import { requireAccess } from "../src/core/access";
+import { sessionMiddleware } from "../src/core/session";
 import { app } from "../src/index";
 
 export const BASE = "http://localhost";
@@ -45,3 +47,8 @@ type Plan = (typeof config.plans)[number];
 // The schema requires at least one plan.
 export const firstPlan = config.plans[0] as Plan;
 export const lastPlan = (config.plans[config.plans.length - 1] ?? firstPlan) as Plan;
+
+// A paid route that exists only in tests, behind the real sessionMiddleware + requireAccess.
+// Template tests use it instead of the example feature, which products delete (D-032).
+export const PAID = "/api/__test/paid";
+app.get(PAID, sessionMiddleware, requireAccess, (c) => c.json({ ok: true as const }));

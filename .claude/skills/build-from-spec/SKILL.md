@@ -23,7 +23,7 @@ Write `specs/<slug>.plan.md`: one section per core feature (max 3) covering scre
 - **User data (UU PDP):** every product table is exported and deleted with the account. Add it to `apps/api/src/features/user-data.ts` (`exportProductData`, `deleteProductData`), or give it `ON DELETE CASCADE` to `user.id` and still export it.
 - **Site:** landing copy in `apps/site/src/pages/index.astro` (marked PRODUCT-OWNED), SEO pages in `apps/site/src/content/seo/`.
 - **Health/nutrition numbers** come only from curated data stored in the product, never from model memory.
-- Keep the template example feature (`/example`) for now: template API and E2E tests use it for the paywall (D-028). Point the home screen at your features instead.
+- Replace the home screen (`src/app/(app)/index.tsx`) with the product's main feature, and delete the example feature once a real paid feature exists: `apps/api/src/features/example.ts` and its mount, `apps/app/src/features/example/`, `src/app/(app)/example.tsx`, the `example.*` / `home.openExample` strings. Template tests don't depend on either (D-032).
 
 If a change is needed in `core/` or `packages/*` (other than `db/src/features`), stop: that is a **template bug**. Note it in STATUS and make the fix in the template repo first.
 

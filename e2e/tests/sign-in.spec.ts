@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { me } from "./support";
 
 // Phase 3 acceptance: magic-link sign-in end to end, with the dev mail capture.
 test("magic link sign-in → consent → home → sign out", async ({ page, request }) => {
@@ -27,7 +28,7 @@ test("magic link sign-in → consent → home → sign out", async ({ page, requ
   await continueButton.click();
 
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByText(`Masuk sebagai ${email}`)).toBeVisible();
+  await expect.poll(async () => (await me(page)).user?.email).toBe(email);
 
   await page.getByRole("link", { name: "Akun" }).click();
   await page.getByRole("button", { name: "Keluar" }).click();

@@ -1,20 +1,8 @@
-import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { firstPlan, idr } from "./plans";
+import { signIn } from "./support";
 
 // Akun page: subscription status after a purchase, language switch, data export, deletion.
-
-async function signIn(page: Page, request: APIRequestContext, email: string) {
-  await page.goto("/sign-in");
-  await page.getByLabel("Email").fill(email);
-  await page.getByRole("button", { name: "Kirim tautan masuk" }).click();
-  await expect(page.getByText("Cek email kamu")).toBeVisible();
-  const mail = await (await request.get(`/api/dev/last-email?to=${encodeURIComponent(email)}`)).json();
-  await page.goto((mail.text as string).match(/https?:\/\/\S+/)?.[0] as string);
-  await page.getByLabel("Saya menyetujui Syarat & Ketentuan").click();
-  await page.getByLabel("Saya menyetujui Kebijakan Privasi").click();
-  await page.getByRole("button", { name: "Lanjut" }).click();
-  await expect(page.getByText(`Masuk sebagai ${email}`)).toBeVisible();
-}
 
 test("account: status, history, language, export, delete", async ({ page, request }) => {
   const email = `e2e-account-${Date.now()}@example.com`;

@@ -573,3 +573,12 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - `verify` runs `gen-theme --check`, so a stale JSON fails CI.
 - **Result:** entry 1,490 KB raw / 394 KB gzip (−27% / −20%). The rest is framework (Expo Router 429 KB, React Native Web 276 KB, React DOM 175 KB).
 - **Rule:** after any change to `product.config.ts`, run `pnpm theme`. CLAUDE.md is updated.
+
+## D-032: Template tests don't depend on the home screen or the example feature (2026-10-11)
+
+- **Problem (from the Phase 8 dummy).** Template E2E checked the home screen's "Masuk sebagai …" text and clicked "Buka fitur contoh (berbayar)". API tests called `/api/example`. A product that replaces its home screen or deletes the example (as `/build-from-spec` says) would break template-owned tests.
+- **Fix.**
+  - `e2e/tests/support.ts`: shared `signIn` and `expectAccess`, which read the session, missing consents and paid access from `/api/me` with the page's cookies. Asking the API about consent also removed a race: the app can pass through `/` before redirecting to `/consent`.
+  - API tests use a test-only route `PAID = "/api/__test/paid"` (`test/helpers.ts`) behind the real `sessionMiddleware` + `requireAccess`.
+  - `/build-from-spec` now tells products to replace the home screen and delete the example once a real paid feature exists.
+- **Trade-off:** the Paywall UI is no longer driven by a template E2E. It is a small core component, and products' own E2E cover their paywalled screens (as the dummy's notes E2E did).
