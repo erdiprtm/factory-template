@@ -1,0 +1,18 @@
+---
+import Base from "../layouts/Base.astro";
+import { product } from "../lib/site";
+---
+
+<Base title="Kontak" description={`Hubungi tim ${product.name} untuk pertanyaan, bantuan akun, atau permintaan terkait data pribadi.`} og="kontak">
+  <section class="mx-auto flex w-full max-w-3xl flex-col gap-5 px-5 py-14">
+    <h1 class="text-4xl font-extrabold tracking-tight">Kontak</h1>
+    <p class="text-lg text-muted-foreground">Ada pertanyaan, kendala pembayaran, atau permintaan terkait data pribadi? Kirim email ke:</p>
+    <p>
+      <a href={`mailto:${product.legal.contactEmail}`} class="text-2xl font-semibold text-primary underline">{product.legal.contactEmail}</a>
+    </p>
+    <p class="text-muted-foreground">
+      Sertakan email akun kamu dan nomor pembayaran (jika ada). Untuk mengunduh atau menghapus data, kamu juga bisa langsung memakai menu Akun di aplikasi.
+    </p>
+    <p class="text-sm text-muted-foreground">{product.legal.companyName}</p>
+  </section>
+</Base>

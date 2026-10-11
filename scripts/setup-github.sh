@@ -2,12 +2,13 @@
 # One-time GitHub setup for fully automated delivery (docs/DECISIONS.md D-007).
 # Safe to re-run: it updates the existing "main" ruleset instead of adding a second one.
 #
-# Usage: scripts/setup-github.sh <owner/repo> <production-url>
-#   e.g. scripts/setup-github.sh erdiprtm/factory-template https://factory-template.<subdomain>.workers.dev
+# Usage: scripts/setup-github.sh <owner/repo> <production-url> [<site-url>]
+#   e.g. scripts/setup-github.sh erdiprtm/factory-template https://factory-template.<sub>.workers.dev https://factory-template-site.<sub>.workers.dev
 set -euo pipefail
 
 repo="${1:?usage: setup-github.sh <owner/repo> <production-url>}"
-prod_url="${2:?usage: setup-github.sh <owner/repo> <production-url>}"
+prod_url="${2:?usage: setup-github.sh <owner/repo> <production-url> [<site-url>]}"
+site_url="${3:-}"
 
 echo "• Merge settings: squash only, auto-merge on, delete head branches after merge"
 gh repo edit "$repo" \
@@ -19,6 +20,10 @@ gh repo edit "$repo" \
 
 echo "• Actions variable PRODUCTION_URL=$prod_url"
 gh variable set PRODUCTION_URL --repo "$repo" --body "$prod_url"
+if [ -n "$site_url" ]; then
+  echo "• Actions variable SITE_URL=$site_url"
+  gh variable set SITE_URL --repo "$repo" --body "$site_url"
+fi
 
 # main: no deletion, no force push, changes only through PRs, and the PR checks
 # `verify` + `preview` must pass. No bypass actors, not even admins.

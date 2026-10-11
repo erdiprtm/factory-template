@@ -3,6 +3,7 @@
 // deployed URL, retrying the whole suite while the new version propagates.
 //
 // Usage: node scripts/smoke-test.mjs <base-url> [--expect-commit <sha>] [--attempts 10] [--delay-ms 3000]
+//                                   [--checks scripts/smoke-checks.site.json]
 //
 // Each check: { name, path, status: number[], json?: object (subset match),
 //               contentType?: string (prefix), commitField?: string }
@@ -12,12 +13,13 @@
 import { readFile } from "node:fs/promises";
 
 function parseArgs(argv) {
-  const args = { attempts: 10, delayMs: 3000, expectCommit: undefined, baseUrl: undefined };
+  const args = { attempts: 10, delayMs: 3000, expectCommit: undefined, baseUrl: undefined, checks: undefined };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--expect-commit") args.expectCommit = argv[++i];
     else if (a === "--attempts") args.attempts = Number(argv[++i]);
     else if (a === "--delay-ms") args.delayMs = Number(argv[++i]);
+    else if (a === "--checks") args.checks = argv[++i];
     else if (!args.baseUrl) args.baseUrl = a;
     else throw new Error(`Unknown argument: ${a}`);
   }
@@ -82,7 +84,10 @@ async function runSuite(checks, opts) {
 }
 
 const opts = parseArgs(process.argv.slice(2));
-const checks = JSON.parse(await readFile(new URL("./smoke-checks.json", import.meta.url), "utf8"));
+const checksFile = opts.checks
+  ? new URL(opts.checks, `file://${process.cwd()}/`)
+  : new URL("./smoke-checks.json", import.meta.url);
+const checks = JSON.parse(await readFile(checksFile, "utf8"));
 
 let failures = [];
 for (let attempt = 1; attempt <= opts.attempts; attempt++) {

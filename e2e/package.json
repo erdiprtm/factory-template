@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@playwright/test": "catalog:",
-    "@types/node": "catalog:"
+    "@types/node": "catalog:",
+    "lighthouse": "13.5.0"
   }
 }

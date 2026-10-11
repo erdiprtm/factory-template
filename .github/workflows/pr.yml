@@ -89,17 +89,50 @@ jobs:
       - name: Smoke test the preview
         id: smoke
         run: node scripts/smoke-test.mjs "${{ steps.upload.outputs.url }}" --expect-commit "$COMMIT_SHA"
+
+      # Marketing site (apps/site): assets-only Worker `<slug>-site-preview`, linking to the app preview.
+      - name: Build the site for this preview
+        env:
+          PUBLIC_APP_URL: ${{ steps.upload.outputs.url }}
+          PUBLIC_APP_ENV: preview
+        run: pnpm --filter @factory/site build
+      - name: Bootstrap the site preview Worker on first use
+        working-directory: apps/site
+        run: |
+          pnpm exec wrangler deployments status --env preview >/dev/null 2>&1 \
+            || pnpm exec wrangler deploy --env preview
+      - name: Upload site preview version
+        id: site_upload
+        working-directory: apps/site
+        run: |
+          set -o pipefail
+          pnpm exec wrangler versions upload --env preview \
+            --preview-alias "pr-${PR_NUMBER}" \
+            --message "PR #${PR_NUMBER} @ ${COMMIT_SHA}" | tee upload.log
+          url=$(grep -oE "https://pr-${PR_NUMBER}-[a-z0-9.-]+\.workers\.dev" upload.log | head -n 1)
+          if [ -z "$url" ]; then
+            echo "::error::No site preview alias URL found in the wrangler output"
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Smoke test the site preview
+        id: site_smoke
+        run: node scripts/smoke-test.mjs "${{ steps.site_upload.outputs.url }}" --checks scripts/smoke-checks.site.json
+
       - name: Comment the preview URL on the PR
         if: always() && steps.upload.outputs.url != ''
         env:
           GH_TOKEN: ${{ github.token }}
           URL: ${{ steps.upload.outputs.url }}
+          SITE_URL: ${{ steps.site_upload.outputs.url }}
           SMOKE: ${{ steps.smoke.outcome }}
+          SITE_SMOKE: ${{ steps.site_smoke.outcome }}
         run: |
           marker='<!-- factory-preview -->'
           body="${marker}
-          **Preview:** ${URL}
-          Commit \`${COMMIT_SHA}\` · smoke test: **${SMOKE}**"
+          **App preview:** ${URL} · smoke test: **${SMOKE}**
+          **Site preview:** ${SITE_URL:-n/a} · smoke test: **${SITE_SMOKE:-skipped}**
+          Commit \`${COMMIT_SHA}\`"
           id=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
             --jq ".[] | select(.body | startswith(\"${marker}\")) | .id" | head -n 1)
           if [ -n "$id" ]; then

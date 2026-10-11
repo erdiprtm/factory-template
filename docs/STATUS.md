@@ -4,6 +4,18 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Phase 6 (launch kit / site) built on branch `feat/phase-6-site` (stacked on Phase 5); not merged
+
+- `apps/site` (Astro 7, Tailwind 4, shared tokens): landing, pricing, FAQ, SEO page template, privacy, terms (UU PDP templates with the TEMPLATE banner), contact, 404, sitemap, robots, OG images, JSON-LD (D-019).
+- Standard analytics events plus PII scrubbing in `@factory/core/analytics`; the site wires the events (no-op until Phase 7).
+- CI/CD: site preview per PR plus a production deploy with its own smoke test and site-only rollback.
+- Lighthouse locally: site 100 SEO on every page type; app performance 79–82 after removing lucide (4.2 MB → 2 MB bundle), accessibility 95.
+- `pnpm verify` green: 144 unit/integration tests (api 40, core 22, config 5, site 4, scripts 73) plus 6 E2E.
+
+**Before Phase 6 can merge:** repo variable `SITE_URL=https://factory-template-site.erdiprtm.workers.dev`, via `gh variable set` (the agent can do it with approval), plus a Lighthouse re-check on the preview.
+
+---
+
 ## 2026-10-11: Phase 5 (app shell) built on branch `feat/phase-5-app-shell` (stacked on Phase 4); not merged
 
 - NativeWind v4, `packages/ui` (Reusables-style), and a theme generated from `product.config.ts` with light/dark/system (D-018).

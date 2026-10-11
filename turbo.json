@@ -26,6 +26,14 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "@factory/site#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": ["SITE_URL", "PUBLIC_APP_URL", "PUBLIC_APP_ENV"]
+    },
+    "@factory/site#test": {
+      "dependsOn": ["@factory/site#build"]
     }
   }
 }

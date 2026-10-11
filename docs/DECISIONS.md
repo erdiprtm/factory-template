@@ -324,3 +324,42 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
 **Dev-only endpoints** (development *and* localhost, for E2E): `/api/dev/last-email`, `/api/dev/fake-pay`, `/api/dev/expire-access`.
 
 **Pending for acceptance.** Lighthouse (mobile performance ≥ 80, accessibility ≥ 90) must be measured on the deployed preview. Home and Akun must also render in a native dev build on a phone (human, Expo Go).
+
+## D-019: Marketing site with Astro 7 on an assets-only Worker (2026-10-11)
+
+**Stack.**
+- astro 7.3.5 (static), @astrojs/sitemap 3.7.4, @astrojs/check 0.9.10. The check requires TS ≤ 6, which confirms D-014.
+- Tailwind 4.3.3 through @tailwindcss/vite 4.3.3. `@astrojs/tailwind` only supports Astro ≤ 5. The app stays on Tailwind 3 because NativeWind 4 needs it.
+- Both read the same generated tokens: `scripts/gen-theme.mjs` now also writes `apps/site/src/styles/tokens.css`, mapped with `@theme inline { --color-x: hsl(var(--x)); }`.
+- Dark mode follows the device: an inline script sets `.dark` on `<html>` before paint.
+
+**Pages.**
+- Landing (hero, features, pricing, FAQ) and `/harga/`. Plans come from `product.config.ts`, and a test checks the built HTML.
+- SEO content pages from `src/content/seo/*.md`: file name = URL, frontmatter title (10–70 chars) and description (50–170) validated, optional FAQ rendered with FAQPage JSON-LD.
+- `/privasi/` and `/syarat/`: Bahasa Indonesia templates following UU PDP, with `{{placeholders}}` filled from config (`legal.*`, plans, trial). They render through `marked` 18.0.14.
+- `/kontak/` and `404`.
+
+**Legal banner.** "TEMPLATE — perlu review hukum sebelum launch" shows unless it's a production build *and* `legal.reviewed: true`. Only a human sets `reviewed`, after legal review; this is a launch-check item.
+
+**SEO.**
+- `<html lang>`, a unique title and description per page (tested), canonical URLs with trailing slashes matching Cloudflare's `auto-trailing-slash`, OG and Twitter tags.
+- JSON-LD: Organization, Product with IDR Offers, FAQPage.
+- Sitemap. `robots.txt` allows indexing **only in production** (`PUBLIC_APP_ENV=production`); previews disallow.
+- OG images: 1200×630 PNGs per page, generated at build time with satori 0.33.5, @resvg/resvg-wasm 2.6.2 (no native deps), and @fontsource/inter 5.3.0 `.woff` files (OFL).
+
+**Analytics.** `@factory/core/analytics` holds the standard event names (Section 9 plus the Section 6b funnel events), a `feature_*` convention, and PII scrubbing (email/phone/name keys and values) with tests. The site fires `site_view` / `pricing_view` and `data-event` clicks (`signup_started`, `checkout_started`) through `window.factoryTrack`, which is a no-op until OpenPanel is wired in Phase 7.
+
+**Deploy.**
+- `apps/site/wrangler.jsonc`: assets-only Worker `factory-template-site` (production) plus `env.preview` (`factory-template-site-preview`), `not_found_handling: 404-page`. This is Cloudflare's recommendation for new static projects.
+- PR: build the site with `PUBLIC_APP_URL` set to the app preview, bootstrap the site preview Worker, upload alias `pr-<n>`, smoke-test it (`scripts/smoke-checks.site.json`, 7 checks), and add a site link to the sticky comment.
+- main: after the app is healthy, build with `SITE_URL` / `PUBLIC_APP_URL` / `PUBLIC_APP_ENV=production`, record the live site version, deploy, smoke-test, and roll back the site alone on failure. The app rollback now triggers only when the *app* smoke test fails.
+- New repo variable `SITE_URL` (`scripts/setup-github.sh` 3rd argument).
+
+**Lighthouse (local, mobile emulation, 2026-10-11).**
+- Site (production build): landing 100/100/100 (performance/accessibility/SEO); pricing 100/98/100; SEO page 100/95/100; legal 100/100/100. Target: SEO ≥ 95.
+- App sign-in: performance 79–82, accessibility 95. Targets: ≥ 80 / ≥ 90.
+- The audit caught two problems:
+  - `lucide-react-native` pulled the whole icon set into the web bundle (Metro doesn't tree-shake), taking it from 2 MB to 4.2 MB. The single check icon is now drawn with react-native-svg and lucide was removed.
+  - Expo Router `asyncRoutes` made the bundle *larger* (3.1 MB common plus 1.1 MB entry), so it stays off.
+- The app's `/robots.txt` disallows all, because the app is behind login and SEO lives on the site.
+- **Re-measure the app on the real preview:** performance is borderline.

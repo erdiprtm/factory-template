@@ -1,0 +1,37 @@
+---
+// SEO content pages from src/content/seo/*.md (PRODUCT-OWNED content, template-owned layout).
+import { getCollection, render } from "astro:content";
+import Faq from "../components/Faq.astro";
+import Base from "../layouts/Base.astro";
+import { faqLd } from "../lib/jsonld";
+import { appUrl, product } from "../lib/site";
+
+export async function getStaticPaths() {
+  const pages = await getCollection("seo");
+  return pages.map((page) => ({ params: { slug: page.id }, props: { page } }));
+}
+
+const { page } = Astro.props;
+const { Content } = await render(page);
+const ld = page.data.faq.length > 0 ? [faqLd(page.data.faq)] : [];
+---
+
+<Base title={page.data.title} description={page.data.description} og={page.id} jsonLd={ld}>
+  <article class="prose-legal mx-auto w-full max-w-3xl px-5 py-14">
+    <h1 class="mb-2 text-4xl font-extrabold tracking-tight">{page.data.title}</h1>
+    <p class="mb-8 text-sm text-muted-foreground">Diperbarui {page.data.updated}</p>
+    <Content />
+    {
+      page.data.faq.length > 0 && (
+        <section class="mt-10">
+          <h2>Pertanyaan umum</h2>
+          <Faq items={page.data.faq} />
+        </section>
+      )
+    }
+    <p class="mt-10 rounded-lg bg-accent p-5 text-accent-foreground">
+      Informasi ini bersifat umum dan bukan pengganti tenaga profesional.
+      <a href={`${appUrl}/sign-in`} data-event="signup_started">Coba {product.name} gratis {product.trial.days} hari</a>.
+    </p>
+  </article>
+</Base>

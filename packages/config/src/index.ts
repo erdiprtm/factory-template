@@ -86,6 +86,8 @@ export const productSchema = z.object({
     contactEmail: z.email(),
     sensitiveDataConsent: z.boolean(),
     // Filled into the privacy policy and terms templates (apps/site). Reviewed by a lawyer before launch.
+    // Set true only after a lawyer reviewed the privacy policy and terms; removes the TEMPLATE banner.
+    reviewed: z.boolean().default(false),
     productDataDescription: z.string().default("Tidak ada data tambahan selain data akun dan langganan."),
     refundPolicy: z
       .string()

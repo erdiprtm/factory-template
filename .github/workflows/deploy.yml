@@ -93,9 +93,52 @@ jobs:
           ATTEMPTS: ${{ inputs.rollback_drill && '2' || '10' }}
         run: node scripts/smoke-test.mjs "$PRODUCTION_URL" --expect-commit "$EXPECT" --attempts "$ATTEMPTS"
 
+      # Marketing site (apps/site), deployed after the app is healthy.
+      - name: Build the site for production
+        id: site_build
+        if: ${{ !inputs.rollback_drill }}
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          PUBLIC_APP_URL: ${{ vars.PRODUCTION_URL }}
+          PUBLIC_APP_ENV: production
+        run: |
+          if [ -z "$SITE_URL" ]; then
+            echo "::error::Repository variable SITE_URL is not set (scripts/setup-github.sh)"
+            exit 1
+          fi
+          pnpm --filter @factory/site build
+      - name: Record the live site version
+        id: site_before
+        if: ${{ !inputs.rollback_drill }}
+        working-directory: apps/site
+        run: |
+          id=""
+          if json=$(pnpm exec wrangler deployments status --json 2>/dev/null); then
+            id=$(printf '%s' "$json" | jq -r '([.versions[]? | select(.percentage == 100) | .version_id][0]) // empty')
+          fi
+          echo "version_id=${id}" >> "$GITHUB_OUTPUT"
+      - name: Deploy the site
+        id: site_deploy
+        if: ${{ !inputs.rollback_drill }}
+        working-directory: apps/site
+        run: pnpm exec wrangler deploy --message "main @ ${COMMIT_SHA}"
+      - name: Smoke test the site
+        id: site_smoke
+        if: ${{ !inputs.rollback_drill }}
+        run: node scripts/smoke-test.mjs "${{ vars.SITE_URL }}" --checks scripts/smoke-checks.site.json
+      - name: Roll back the site
+        id: site_rollback
+        if: failure() && steps.site_smoke.outcome == 'failure' && steps.site_before.outputs.version_id != ''
+        working-directory: apps/site
+        env:
+          PREVIOUS_VERSION: ${{ steps.site_before.outputs.version_id }}
+        run: |
+          pnpm exec wrangler rollback "$PREVIOUS_VERSION" --message "Auto-rollback: site smoke test failed for ${COMMIT_SHA}"
+          node ../../scripts/smoke-test.mjs "${{ vars.SITE_URL }}" --checks ../../scripts/smoke-checks.site.json
+
       - name: Roll back to the previous version
         id: rollback
-        if: failure() && steps.deploy.outcome == 'success' && steps.before.outputs.version_id != ''
+        if: failure() && steps.smoke.outcome == 'failure' && steps.before.outputs.version_id != ''
         working-directory: apps/api
         env:
           PREVIOUS_VERSION: ${{ steps.before.outputs.version_id }}
@@ -121,6 +164,9 @@ jobs:
             migrate=${{ steps.migrate.outcome }},
             deploy=${{ steps.deploy.outcome }},
             smoke=${{ steps.smoke.outcome }},
+            site_deploy=${{ steps.site_deploy.outcome }},
+            site_smoke=${{ steps.site_smoke.outcome }},
+            site_rollback=${{ steps.site_rollback.outcome }},
             rollback=${{ steps.rollback.outcome }}
           PREVIOUS_VERSION: ${{ steps.before.outputs.version_id }}
           BOOKMARK: ${{ steps.backup.outputs.bookmark }}

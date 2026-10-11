@@ -1,0 +1,29 @@
+---
+import Faq from "../components/Faq.astro";
+import Pricing from "../components/Pricing.astro";
+import Base from "../layouts/Base.astro";
+import { faqLd, productLd } from "../lib/jsonld";
+import { faqs, product } from "../lib/site";
+
+const site = Astro.site as URL;
+---
+
+<Base
+  title="Harga"
+  description={`Harga langganan ${product.name}: paket 6 dan 12 bulan, bayar sekali tanpa perpanjangan otomatis. Coba gratis ${product.trial.days} hari.`}
+  og="harga"
+  event="pricing_view"
+  jsonLd={[productLd(site), faqLd()]}
+>
+  <section class="mx-auto w-full max-w-5xl px-5 py-14">
+    <h1 class="mb-3 text-4xl font-extrabold tracking-tight">Harga</h1>
+    <p class="mb-8 max-w-2xl text-lg text-muted-foreground">
+      Bayar sekali di muka. Tidak ada tagihan otomatis. Memperpanjang lebih awal tidak menghanguskan sisa hari.
+    </p>
+    <Pricing />
+  </section>
+  <section class="mx-auto w-full max-w-3xl px-5 pb-16">
+    <h2 class="mb-6 text-2xl font-bold">Pertanyaan umum</h2>
+    <Faq items={faqs} />
+  </section>
+</Base>
