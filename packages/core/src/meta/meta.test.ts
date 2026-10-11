@@ -133,7 +133,7 @@ describe("Pixel", () => {
         head: { appendChild: (s: { src: string }) => added.push(s) },
       },
     };
-    return { w: w as unknown as Window, added };
+    return { w: w as unknown as Parameters<typeof loadPixel>[1] & object, added };
   }
 
   it("loads once, inits the pixel and queues calls until fbevents.js arrives", () => {

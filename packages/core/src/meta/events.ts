@@ -35,13 +35,22 @@ export const choiceFromParam = (v: string | null): MarketingChoice | null =>
 // ---- Pixel loader ---------------------------------------------------------------------------
 
 type Fbq = ((...args: unknown[]) => void) & { queue?: unknown[]; loaded?: boolean; version?: string };
-type PixelWindow = Window & { fbq?: Fbq; _fbq?: Fbq };
+// Structural, so this file type-checks without the DOM lib (the Worker imports @factory/core/meta).
+type PixelWindow = {
+  fbq?: Fbq;
+  _fbq?: Fbq;
+  document: {
+    createElement(tag: "script"): { async: boolean; src: string };
+    head: { appendChild(n: unknown): unknown };
+  };
+};
+const browser = () => globalThis as unknown as PixelWindow;
 
 /**
  * Meta's base code, as a function instead of an inline script (the CSP allows script files only).
  * Idempotent. Call only after the user granted marketing consent.
  */
-export function loadPixel(pixelId: string, w: PixelWindow = window as PixelWindow): void {
+export function loadPixel(pixelId: string, w: PixelWindow = browser()): void {
   if (w.fbq) return;
   const queue: unknown[] = [];
   const fbq: Fbq = Object.assign(
@@ -68,7 +77,7 @@ export function pixelTrack(
   event: string,
   params: { value?: number; currency?: "IDR" } = {},
   eventId?: string,
-  w: PixelWindow = window as PixelWindow,
+  w: PixelWindow = browser(),
 ): void {
   if (!w.fbq || !isMetaEvent(event)) return;
   const meta = META_EVENTS[event];
