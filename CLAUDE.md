@@ -12,7 +12,7 @@ The full design is in `FACTORY_BLUEPRINT.md`. Progress is in `docs/STATUS.md`, d
 
 | May edit in a product repo | Must not edit in a product repo |
 |---|---|
-| `apps/app/src/features/**`, `apps/api/src/features/**` | `apps/app/src/core/**`, `apps/api/src/core/**` |
+| `apps/app/src/features/**` (incl. `messages.ts` for UI strings), `apps/api/src/features/**` (incl. `user-data.ts` export/delete hooks) | `apps/app/src/core/**`, `apps/api/src/core/**` |
 | `product.config.ts`, `specs/**`, site content in `apps/site` | `packages/**` (core, db, ui, config) |
 | `packages/db/src/features/**` (product tables + their migrations) | existing core tables or merged migrations |
 
