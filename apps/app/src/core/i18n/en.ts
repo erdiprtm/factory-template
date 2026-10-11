@@ -38,6 +38,7 @@ export const en: Messages = {
   "pricing.trialDays": "days free",
   "pricing.trialUsed": "You've already used the free trial.",
   "pricing.error": "Couldn't open the payment. Try again.",
+  "pricing.unavailable": "Payments aren't available yet. Try again later or contact us.",
   "pricing.native": "Your subscription is managed in your account.",
   "paywall.title": "This feature is for subscribers",
   "paywall.body": "Start a free trial or subscribe to unlock this feature.",

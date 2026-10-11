@@ -36,6 +36,7 @@ export const id = {
   "pricing.trialDays": "hari gratis",
   "pricing.trialUsed": "Masa coba gratis sudah pernah dipakai.",
   "pricing.error": "Gagal membuka pembayaran. Coba lagi.",
+  "pricing.unavailable": "Pembayaran belum aktif. Coba lagi nanti atau hubungi kami.",
   "pricing.native": "Langganan dikelola di akun kamu.",
   "paywall.title": "Fitur ini untuk pelanggan",
   "paywall.body": "Mulai coba gratis atau berlangganan untuk membuka fitur ini.",

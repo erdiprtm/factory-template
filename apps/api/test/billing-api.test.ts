@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
 import { runScheduled } from "../src/core/cron";
-import { fakeProvider } from "../src/core/payments";
+import { configuredProvider, fakeProvider } from "../src/core/payments";
 import { app } from "../src/index";
 import { get, post, signIn, signInWithConsent } from "./helpers";
 
@@ -127,5 +127,15 @@ describe("cron", () => {
       .from(remindersSent)
       .where(eq(remindersSent.userId, u?.id ?? ""));
     expect(sent.map((r) => r.kind)).toEqual(["d7"]);
+  });
+});
+
+describe("payments not configured", () => {
+  it("has no provider without credentials on deployed environments, and webhooks answer 404", async () => {
+    const deployed = { ...env, APP_ENV: "preview" as const };
+    expect(configuredProvider(deployed)).toBeNull();
+    expect(configuredProvider(env)?.name).toBe("fake");
+    const hook = await app.request("http://localhost/api/webhooks/duitku", { method: "POST", body: "" }, deployed);
+    expect(hook.status).toBe(404);
   });
 });
