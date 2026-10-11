@@ -1,7 +1,7 @@
 ---
 # EXAMPLE lander (PRODUCT-OWNED). Copy this file per campaign: the file name is the URL (/l/contoh/).
-# `hook` must be the ad's hook WORD FOR WORD. Follow CLAUDE.md ad guardrails (no before/after
-# bodies, no weight-loss or medical claims, promise only what the product does).
+# `hook` must be the ad's hook WORD FOR WORD. Follow CLAUDE.md "Ads and landers" (no before/after
+# bodies, no weight-loss or medical claims, no personal attributes, promise only what the product does).
 hook: "Untuk kamu yang sibuk, dapatkan rencana harian yang jelas dalam 2 menit"
 sub: "Jawab beberapa pertanyaan singkat, lalu lihat rencana yang disusun untuk kebutuhanmu. Gratis dicoba, tanpa kartu kredit."
 cta: "Mulai kuis 2 menit"

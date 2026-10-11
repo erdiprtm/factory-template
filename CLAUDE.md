@@ -70,6 +70,20 @@ pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/se
 - Nutrition or health numbers shown to users come from **curated data stored in the product**, never from model memory. AI may phrase and combine; it must not invent facts or numbers.
 - Tone: friendly, plain Bahasa Indonesia. Never shame users about their bodies, food, or habits.
 
+## Ads and landers (sell engine, D-033 to D-040)
+
+- **Meta Advertising Standards apply** to every ad, hook, creative brief and lander. Read the current standards before writing ad copy; don't rely on memory.
+- **Health, fitness and food products:**
+  - no before/after body images (or wording that implies them);
+  - no weight-loss claims or timelines ("turun 5 kg dalam 2 minggu");
+  - no body shaming, in images or words;
+  - no medical claims: no diagnosing, curing, preventing or treating.
+- **No personal attributes about the viewer.** "Kamu penderita diabetes?" is not allowed; "Untuk yang ingin pola makan lebih teratur" is fine.
+- **Promise only what the product actually does**, and in its first session. The "hasil" and "waktu" in a hook are true for the first real result (for example "rencana harian dalam 2 menit"), never a body change or a guaranteed outcome.
+- **Scent.** A lander keeps the ad's exact promise: its `hook` (the page headline) repeats the ad's hook **word for word**, and the CTA leads to what the ad showed. One hook = one lander file (`apps/site/src/content/landers/`). Change both together or neither.
+- **Tracking respects consent.** No Pixel or CAPI without the "iklan/marketing" consent (UU PDP, D-034). Never add another ad tag or tracker outside `@factory/core/meta`.
+- **Money stays honest.** Purchase, renewal and refund events come from the server only. Never fire a purchase from the browser alone or inflate values.
+
 ## Playbooks (`.claude/skills/`)
 
 | Command | When |
@@ -92,9 +106,9 @@ pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/se
 ```
 apps/app        Expo app (web export now, iOS/Android later). src/core = template, src/features = product
 apps/api        Hono Worker: /api/* + serves the app's web export. src/core = template, src/features = product
-apps/site       Astro 7 site: landing, harga, SEO pages (src/content/seo), legal templates, OG images
+apps/site       Astro 7 site: landing, harga, SEO pages (src/content/seo), ad landers (src/content/landers → /l/<slug>), legal templates, OG images
 packages/config product.config.ts schema (defineProduct)
-packages/core   billing, entitlements, email, analytics, i18n (Phases 3–7)
+packages/core   billing, entitlements, email, analytics, i18n (Phases 3–7); sell engine: attribution, meta, quiz, quota, pricing, economics
 packages/db     Drizzle schema + migrations (Phase 2)
 packages/ui     Reusables-style NativeWind components (cn, Button, Card, Text, Input, Checkbox, Screen…)
 scripts/        smoke test, migration gate, version picker, GitHub setup

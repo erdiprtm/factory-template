@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Sell engine, Module 8: guardrails (branch `feat/ad-guardrails`)
+
+- `CLAUDE.md` gained an "Ads and landers" section covering Meta Advertising Standards, the health/fitness/food rules, promising only what the product does, lander scent, consent-only tracking and server-only money events (D-040).
+
+---
+
 ## 2026-10-11: Sell engine, Module 7: playbooks (branch `feat/sell-playbooks`)
 
 - New skills: `/spec-interview`, `/ad-hooks` (not `/hooks`, which is built in), `/creative-brief`, `/ad-test-plan`, `/funnel-diagnose` and `/explain`.
