@@ -658,3 +658,26 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - The LCP element is the text headline. The optional proof image sits below the fold: lazy, responsive `srcset` (400/800 px, WebP via `astro:assets`), with width and height set (no layout shift).
   - The Meta Pixel loads only after consent, and after first paint.
 - An example lander ships at `/l/contoh/`. The site test checks the `<h1>`, the CTA target, `noindex`, the `lp_view` event, and the sitemap exclusion.
+
+## D-036: Sell engine, Module 4: config-driven quiz onboarding (2026-10-11)
+
+- **The product defines the quiz** in `apps/app/src/features/quiz.ts` (product-owned). The definition has an `id`, 5 to 8 steps, and an optional `summary(answers)` that returns message keys. Step kinds:
+
+  | Kind | Answer |
+  |---|---|
+  | `single` | One option, which auto-advances |
+  | `multi` | Options with an optional `max`, then "Lanjut" |
+  | `number` | A number within `min`/`max`, with an optional unit |
+
+  All strings are i18n keys in `features/messages.ts`. A template ships as an EXAMPLE. Setting `quiz = null` turns the quiz off, and `/quiz` then sends visitors to sign-in.
+- **The engine is template-owned.**
+  - `@factory/core/quiz` holds the pure rules: `quizProblems`, `isValidAnswer`, `cleanAnswers`, `firstOpenStep`, `recapAnswers`.
+  - `apps/app/src/core/quiz/runner.tsx` is the UI: one step per screen, an accessible progress bar ("Langkah n dari N"), a back button that keeps answers, and 56 px tap targets.
+  - `apps/app/test/quiz.test.ts` checks in every product repo that the product's quiz is well-formed and that every key is translated.
+- **Saved locally first.** Answers go to `localStorage` after every step, so they survive reloads and the magic-link round trip. On native they are in memory until Phase 10.
+- **Attached after signup.** The protected layout renders only after the required consents, including `sensitive_data` for products that need it. It then posts the completed answers to `POST /api/quiz`: one `quiz_responses` row per user and quiz, which a retake replaces.
+  - The API validates shape only (at most 8 answers; values are short strings, lists or finite numbers), because the questions live in the app.
+  - Product API features read the answers to personalize. The export includes them and erasure deletes them.
+- **The summary comes before signup or the paywall.** "Rencana kamu siap" shows the product's plan lines plus a recap of the answers. Its CTA leads to sign-in ("Simpan rencanaku"); what happens after sign-in is the paywall placement (Module 5).
+- **Events:** `quiz_start`, `quiz_step` (with `step`), `quiz_complete`. They go first-party and to OpenPanel; `quiz_complete` also goes to Meta as Lead, with consent.
+- **The template E2E is product-independent.** It answers whatever quiz the product defines (first option, or the lowest valid number), checks back navigation and the summary, signs in, and checks that the answers are attached (D-032 lesson).

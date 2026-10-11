@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Sell engine, Module 4: quiz onboarding (branch `feat/quiz`)
+
+- The quiz is defined per product in `features/quiz.ts`: 5–8 single, multi or number steps, with a progress bar and back navigation.
+- Answers are saved on the device, then attached after sign-in (`quiz_responses`). The quiz ends on "Rencana kamu siap" (D-036).
+
+---
+
 ## 2026-10-11: Sell engine, Module 3: landers (branch `feat/landers`)
 
 - `/l/<slug>/` landers come from one Markdown file each. The headline is the ad's hook, word for word, and one CTA leads to the quiz, with price framing per week (D-035).

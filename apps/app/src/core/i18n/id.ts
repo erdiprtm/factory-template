@@ -107,6 +107,16 @@ export const id = {
   "marketing.banner.save": "Simpan pilihan",
   "account.marketingHint":
     "Jika diizinkan, data kunjungan dan pembelian (email dalam bentuk acak/hash) dikirim ke Meta untuk mengukur iklan.",
+  "quiz.back": "Kembali",
+  "quiz.next": "Lanjut",
+  "quiz.step": "Langkah",
+  "quiz.of": "dari",
+  "quiz.pickUpTo": "Pilih maksimal",
+  "quiz.numberRange": "Masukkan angka antara",
+  "quiz.summary.title": "Rencana kamu siap",
+  "quiz.summary.subtitle": "Kami susun dari jawabanmu. Simpan rencanamu dengan masuk lewat email.",
+  "quiz.summary.answers": "Jawabanmu",
+  "quiz.summary.cta": "Simpan rencanaku",
 };
 
 export type Messages = typeof id;

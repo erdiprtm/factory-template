@@ -16,6 +16,8 @@
     "./attribution/touch": "./src/attribution/touch.ts",
     "./monitoring": "./src/monitoring/index.ts",
     "./pricing": "./src/pricing/index.ts",
+    "./quiz": "./src/quiz/index.ts",
+    "./quiz/store": "./src/quiz/store.ts",
     "./meta": "./src/meta/index.ts",
     "./meta/events": "./src/meta/events.ts"
   },

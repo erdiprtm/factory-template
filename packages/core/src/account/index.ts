@@ -12,6 +12,7 @@ import {
 import { desc, eq, inArray } from "drizzle-orm";
 import { deleteAttribution, exportAttribution } from "../attribution";
 import type { Db } from "../entitlements";
+import { deleteQuizResponses, quizResponsesFor } from "../quiz/store";
 
 export type SubscriptionSummary = {
   active: boolean;
@@ -102,12 +103,13 @@ export async function exportUserData(db: Db, userId: string) {
     entitlements: entitlementRows,
     consents: consentRows,
     ...(await exportAttribution(db, userId)),
+    quizResponses: await quizResponsesFor(db, userId),
   };
 }
 
 /**
  * UU PDP right to erasure. Deletes the account, sessions, consents, entitlements, reminders,
- * attribution and funnel events. Payment rows are kept for financial record-keeping obligations
+ * attribution, funnel events and quiz answers. Payment rows are kept for financial record-keeping obligations
  * but de-identified: the user link, raw provider payload and ad click id are removed (the
  * campaign name stays, so ad reporting keeps its totals). Idempotent: safe to re-run if interrupted.
  */
@@ -131,6 +133,7 @@ export async function deleteUserData(db: Db, userId: string): Promise<void> {
     .set({ userId: `deleted:${crypto.randomUUID()}`, rawPayload: null, fbclid: null })
     .where(eq(payments.userId, userId));
   await deleteAttribution(db, userId);
+  await deleteQuizResponses(db, userId);
   await db.delete(consents).where(eq(consents.userId, userId));
   await db.delete(session).where(eq(session.userId, userId));
   await db.delete(account).where(eq(account.userId, userId));
