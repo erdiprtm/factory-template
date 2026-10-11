@@ -129,14 +129,24 @@ export type FunnelStepResult = {
   firstBad: boolean;
 };
 
-/** Distinct visitors per step and step-to-step conversion, flagged against benchmarks. */
+/**
+ * Distinct visitors per step and step-to-step conversion, flagged against benchmarks. Sequential:
+ * a visitor counts at a step only if they also reached the step before, so visitors who enter
+ * midway (straight to /pricing, an organic sign-up) don't push a rate above 100%.
+ */
 export function computeFunnel(
   events: { event: string; visitor: string }[],
   steps: readonly string[],
   benchmarks: Partial<Record<string, number>>,
 ): FunnelStepResult[] {
-  const seen = new Map<string, Set<string>>(steps.map((s) => [s, new Set()]));
-  for (const e of events) seen.get(e.event)?.add(e.visitor);
+  const raw = new Map<string, Set<string>>(steps.map((s) => [s, new Set()]));
+  for (const e of events) raw.get(e.event)?.add(e.visitor);
+  const seen = new Map<string, Set<string>>();
+  steps.forEach((step, i) => {
+    const here = raw.get(step) ?? new Set<string>();
+    const before = i > 0 ? seen.get(steps[i - 1] as string) : undefined;
+    seen.set(step, before ? new Set([...here].filter((v) => before.has(v))) : here);
+  });
   let flagged = false;
   return steps.map((step, i) => {
     const visitors = seen.get(step)?.size ?? 0;

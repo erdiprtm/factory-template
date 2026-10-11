@@ -730,6 +730,7 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 
   - Totals are blended: all spend over all new buyers, organic included. Per-campaign rows join on `utm_campaign`, and a "(tanpa kampanye)" row shows organic buyers.
 - **Funnel.** The view counts distinct visitors per step (`FUNNEL_STEPS`; `first_result` drops out for `after_quiz`) and the conversion from the previous step.
+  - It is sequential: a visitor counts at a step only if they also reached the step before. Without that, visitors who enter midway (straight to `/pricing`, an organic sign-up) pushed rates above 100% in the first local run.
   - Benchmarks are configurable (`product.config.ts` `economics.benchmarks`). The defaults are a starting point, not truth.
   - The first step below its benchmark is flagged red: that is the layer to fix first (`/funnel-diagnose`).
 - **Target CAC calculator.**

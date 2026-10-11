@@ -28,7 +28,19 @@ async function buyerFrom(campaign: string) {
   const anonId = anon();
   await call("/api/events", {
     method: "POST",
-    body: JSON.stringify({ anonId, utm_campaign: campaign, events: [{ event: "lp_view" }, { event: "cta_tap" }] }),
+    body: JSON.stringify({
+      anonId,
+      utm_campaign: campaign,
+      events: [
+        "lp_view",
+        "cta_tap",
+        "quiz_start",
+        "quiz_complete",
+        "first_result",
+        "paywall_view",
+        "checkout_start",
+      ].map((event) => ({ event })),
+    }),
   });
   await post("/api/attribution", cookie, {
     anonId,

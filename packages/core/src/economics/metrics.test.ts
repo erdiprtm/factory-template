@@ -67,6 +67,8 @@ describe("computeFunnel", () => {
       { event: "cta_tap", visitor: "a" },
       { event: "quiz_start", visitor: "a" },
       { event: "purchase", visitor: "a" },
+      // Entered midway (straight to checkout): not counted past the first step it skipped.
+      { event: "purchase", visitor: "z" },
     ];
     const f = computeFunnel(events, ["lp_view", "cta_tap", "quiz_start", "purchase"], {
       cta_tap: 0.5,
