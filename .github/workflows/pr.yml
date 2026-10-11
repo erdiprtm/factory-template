@@ -48,6 +48,9 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Optional (set by /new-product): uploaded with every preview version, so a brand-new
+      # preview Worker has its auth secret before its first smoke test (D-027).
+      AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET_PREVIEW }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
       COMMIT_SHA: ${{ github.sha }}
     steps:
@@ -62,11 +65,19 @@ jobs:
 
       # Previews run on a separate Worker (`<slug>-preview`) with its own D1 database,
       # never on the production Worker, so PR code can't touch production data.
+      - name: Prepare Worker secrets
+        run: |
+          # Additive: secrets not in the file (Resend, Duitku...) stay as they are on the Worker.
+          echo '{}' > "$RUNNER_TEMP/worker-secrets.json"
+          if [ -n "$AUTH_SECRET" ]; then
+            jq -n --arg v "$AUTH_SECRET" '{BETTER_AUTH_SECRET: $v}' > "$RUNNER_TEMP/worker-secrets.json"
+          fi
       - name: Bootstrap the preview Worker on first use
         working-directory: apps/api
         run: |
           pnpm exec wrangler deployments status --env preview >/dev/null 2>&1 \
-            || pnpm exec wrangler deploy --env preview --var "COMMIT_SHA:bootstrap"
+            || pnpm exec wrangler deploy --env preview --var "COMMIT_SHA:bootstrap" \
+              --secrets-file "$RUNNER_TEMP/worker-secrets.json"
       - name: Apply migrations to the preview database
         if: hashFiles('packages/db/migrations/*.sql') != ''  # D1 arrives in Phase 2
         working-directory: apps/api
@@ -79,7 +90,8 @@ jobs:
           pnpm exec wrangler versions upload --env preview \
             --preview-alias "pr-${PR_NUMBER}" \
             --message "PR #${PR_NUMBER} @ ${COMMIT_SHA}" \
-            --var "COMMIT_SHA:${COMMIT_SHA}" | tee upload.log
+            --var "COMMIT_SHA:${COMMIT_SHA}" \
+            --secrets-file "$RUNNER_TEMP/worker-secrets.json" | tee upload.log
           url=$(grep -oE "https://pr-${PR_NUMBER}-[a-z0-9.-]+\.workers\.dev" upload.log | head -n 1)
           if [ -z "$url" ]; then
             echo "::error::No preview alias URL found in the wrangler output"

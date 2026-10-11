@@ -9,10 +9,13 @@
 // Steps (--execute):
 //   1. spec-check   2. gh repo create --template   3. product.config.ts + wrangler names/hosts
 //   4. wrangler d1 create <slug>-prod / <slug>-preview, IDs written to wrangler.jsonc
-//   5. theme + commit + push   6. scripts/setup-github.sh on the new repo   7. factory.json entry here
+//   5. theme + commit + push   6. scripts/setup-github.sh on the new repo + CI secrets
+//      (account id, random BETTER_AUTH_SECRET per environment)   7. factory.json entry here
+// The push to main skips the deploy (not configured yet); the first PR merge deploys.
 // Human afterwards: `gh secret set CLOUDFLARE_API_TOKEN --repo <owner>/<slug>` (token is never copied).
 
 import { execFileSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -123,7 +126,7 @@ function main() {
     `product.config.ts, wrangler.jsonc (api + site): slug/name/hosts → ${a.slug} on ${a.subdomain}.workers.dev`,
     `wrangler d1 create ${a.slug}-prod and ${a.slug}-preview (region apac), ids → apps/api/wrangler.jsonc`,
     `pnpm theme, commit "chore: create ${a.slug} from factory template", push`,
-    `scripts/setup-github.sh ${repo} ${appUrl} ${siteUrl}; gh secret set CLOUDFLARE_ACCOUNT_ID`,
+    `scripts/setup-github.sh ${repo} ${appUrl} ${siteUrl}; gh secret set CLOUDFLARE_ACCOUNT_ID, BETTER_AUTH_SECRET_PRODUCTION / _PREVIEW (random)`,
     `factory.json here: ${a.slug} status "building"`,
     `HUMAN: gh secret set CLOUDFLARE_API_TOKEN --repo ${repo}`,
   ];
@@ -163,6 +166,14 @@ function main() {
   run("bash", ["scripts/setup-github.sh", repo, appUrl, siteUrl], { cwd: a.dir, stdio: "inherit" });
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   if (accountId) run("gh", ["secret", "set", "CLOUDFLARE_ACCOUNT_ID", "--repo", repo, "--body", accountId]);
+  // Per-environment session keys. CI uploads them with each deploy (--secrets-file), so the very
+  // first preview and production smoke tests pass. Passed on stdin: never in argv or logs (D-027).
+  for (const name of ["BETTER_AUTH_SECRET_PRODUCTION", "BETTER_AUTH_SECRET_PREVIEW"]) {
+    run("gh", ["secret", "set", name, "--repo", repo], {
+      input: randomBytes(48).toString("base64"),
+      stdio: ["pipe", "pipe", "inherit"],
+    });
+  }
 
   const registry = fileURLToPath(new URL("../factory.json", import.meta.url));
   writeFileSync(

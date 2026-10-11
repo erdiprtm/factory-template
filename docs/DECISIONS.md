@@ -491,7 +491,7 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
 - **Web app:**
   - Reports only when `/api/health` says production or preview. One shared request (`deploy-env.web.ts`) serves both analytics and monitoring.
   - Sentry is a lazy chunk (~1.1 MB raw; Metro doesn't tree-shake) loaded after `load` plus idle, so it never competes with the first screen. The entry bundle grew by 3 KB.
-  - Errors in the first seconds after load aren't reported. The idle wait has a 3 s timeout: hidden tabs never go idle, which the preview check caught.
+  - Superseded by D-026: the SDK now loads on the first error. While verifying #17 on preview, hidden tabs never went idle, so the idle-based loading never ran.
   - The root `ErrorBoundary` reports render errors.
 - **Native and site:** native is a no-op until Phase 10 (`@sentry/react-native`). The static site has no Sentry: it has very little JS.
 
@@ -510,3 +510,18 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
 - **Result** (local Worker in production mode, three runs): performance **79 / 80 / 81**, LCP 3.8–4.1 s, TBT 300–350 ms. The Sentry chunk is not requested.
 - **Remaining cost:** the 2 MB (494 KB gzip) entry bundle. Expo Router `asyncRoutes` made it larger (D-019), so splitting needs a different approach.
   - Follow-up: audit the heaviest modules (better-auth client, zod, react-query, i18n) and lazy-load per route where Metro allows.
+
+## D-027: New products deploy on their first PR, with auth secrets from CI (2026-10-11)
+
+Preparing the Phase 8 dummy showed two gaps that would break the first deploy of **every** new product:
+
+1. **`BETTER_AUTH_SECRET` chicken-and-egg.** `wrangler versions secret put` needs an existing Worker, but a brand-new Worker's first smoke test already needs the secret (`/sign-in`, `/api/me`). With no rollback target on a first deploy, that would leave production broken.
+2. **`gh repo create --template` pushes to `main` immediately.** `deploy.yml` ran before `setup-github.sh` and the Cloudflare token existed, then failed and opened an incident.
+
+**Fixes:**
+- **Auth secrets from GitHub.**
+  - `/new-product` stores random `BETTER_AUTH_SECRET_PRODUCTION` and `BETTER_AUTH_SECRET_PREVIEW` repo secrets: 48 bytes each, piped on stdin, never in argv or logs.
+  - CI writes a `--secrets-file` and passes it to the preview bootstrap, every preview version upload, and the production deploy. The file is additive, so other Worker secrets (Resend, Duitku) are kept.
+  - When the GitHub secret is unset, as on the template itself, the file is `{}` and nothing changes.
+- **`deploy.yml` config gate.** A `config` job checks for the `CLOUDFLARE_API_TOKEN` secret and the `PRODUCTION_URL` variable. Without them, the deploy job is skipped with a notice. That is not an incident. The first deploy happens on the first push to `main` after setup, which is the first PR merge.
+- Verified in the pinned wrangler 4.141.0: `--secrets-file` exists for both commands.
