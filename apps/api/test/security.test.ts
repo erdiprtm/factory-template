@@ -52,15 +52,34 @@ describe("input limits", () => {
 
 describe("rate limits", () => {
   it("limits checkout starts per user (10 per minute)", async () => {
+    // Counting fake: the real binding uses fixed 60 s windows, so 11 calls that straddle a window
+    // boundary all pass and the test flaked in CI. The binding is configured in wrangler.jsonc.
+    const counts = new Map<string, number>();
+    const tenPerKey = {
+      limit: async ({ key }: { key: string }) => {
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+        return { success: (counts.get(key) ?? 0) <= 10 };
+      },
+    };
+    const limitedEnv = { ...env, CHECKOUT_LIMITER: tenPerKey };
+    const checkout = (cookie: string) =>
+      app.request(
+        `${BASE}/api/billing/checkout`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json", origin: BASE, cookie },
+          body: JSON.stringify({ planId: config.plans[0]?.id }),
+        },
+        limitedEnv,
+      );
     const cookie = await signInWithConsent(`sec-${crypto.randomUUID()}@example.com`);
     const statuses: number[] = [];
-    for (let i = 0; i < 11; i++)
-      statuses.push((await post("/api/billing/checkout", cookie, { planId: config.plans[0]?.id })).status);
+    for (let i = 0; i < 11; i++) statuses.push((await checkout(cookie)).status);
     expect(statuses.slice(0, 10)).toEqual(Array(10).fill(200));
     expect(statuses[10]).toBe(429);
     // Another user is unaffected.
     const other = await signInWithConsent(`sec-${crypto.randomUUID()}@example.com`);
-    expect((await post("/api/billing/checkout", other, { planId: config.plans[0]?.id })).status).toBe(200);
+    expect((await checkout(other)).status).toBe(200);
   });
 
   it("answers 429 on webhooks when the limiter says no, before touching the payment", async () => {
