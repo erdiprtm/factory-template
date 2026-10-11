@@ -11,7 +11,8 @@ import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqli
 const id = () => text("id").primaryKey();
 const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
 
-export const paymentStatus = ["pending", "paid", "failed", "expired"] as const;
+// refunded: set by an admin after refunding at the provider (D-038); access ends at that moment.
+export const paymentStatus = ["pending", "paid", "failed", "expired", "refunded"] as const;
 export const entitlementSource = ["trial", "payment", "admin_grant", "app_store", "play_store"] as const;
 export const consentType = ["terms", "privacy", "sensitive_data", "marketing"] as const;
 export const reminderKind = ["d7", "d1", "expired"] as const;
@@ -218,4 +219,29 @@ export const freeUsage = sqliteTable(
     updatedAt: timestamp("updated_at").notNull(),
   },
   (t) => [uniqueIndex("free_usage_user_action_unique").on(t.userId, t.action)],
+);
+
+/**
+ * Ad spend per day, channel and campaign (sell engine Module 6, D-038), entered by hand or
+ * imported from an Ads Manager CSV. `campaign` must equal the ads' utm_campaign, which is how
+ * spend joins to buyers. One row per (day, channel, campaign): a re-import replaces the amount.
+ */
+export const adSpend = sqliteTable(
+  "ad_spend",
+  {
+    id: id(),
+    /** Asia/Jakarta calendar day, YYYY-MM-DD. */
+    day: text("day").notNull(),
+    channel: text("channel").notNull(),
+    campaign: text("campaign").notNull(),
+    amountIdr: integer("amount_idr").notNull(),
+    /** manual | csv | api (a future Marketing API sync, AdSpendSource). */
+    source: text("source").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("ad_spend_day_channel_campaign_unique").on(t.day, t.channel, t.campaign),
+    index("ad_spend_day_idx").on(t.day),
+  ],
 );

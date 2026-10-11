@@ -118,6 +118,20 @@
     "freeUses": 1,
     "paywallPlacement": "after_first_result"
   },
+  "economics": {
+    "paymentFeePercent": 2,
+    "adTaxPercent": 11,
+    "targetCacFactor": 0.9,
+    "benchmarks": {
+      "cta_tap": 0.25,
+      "quiz_start": 0.7,
+      "quiz_complete": 0.6,
+      "first_result": 0.5,
+      "paywall_view": 0.6,
+      "checkout_start": 0.15,
+      "purchase": 0.5
+    }
+  },
   "marketing": {
     "metaPixelId": null
   }

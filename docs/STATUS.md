@@ -4,6 +4,15 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Sell engine, Module 6: unit economics in /admin (branch `feat/unit-economics`)
+
+- Ad spend can be entered by hand or imported from an Ads Manager CSV.
+- Per product and per campaign: CAC, ROAS D7/D30, AOV, renewal rate, LTV and LTV − CAC.
+- A funnel view flags the first step below its benchmark, and a target-CAC calculator is included.
+- Admins can mark a payment refunded (D-038).
+
+---
+
 ## 2026-10-11: Sell engine, Module 5: result before paywall (branch `feat/result-paywall`)
 
 - A free quota of the core action is enforced by the API (`requireAccessOrFreeUse`).

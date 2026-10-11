@@ -2,6 +2,7 @@ import { Button, Card, CardContent, CardTitle, ErrorText, Input, Loading, Screen
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { View } from "react-native";
+import { EconomicsSection } from "../../core/admin/economics";
 import { api } from "../../core/api";
 import { useMe } from "../../core/auth/use-me";
 import { formatDate, formatIdr } from "../../core/format";
@@ -49,6 +50,8 @@ export default function Admin() {
         </View>
       ) : null}
 
+      <EconomicsSection />
+
       <Card>
         <CardTitle>{t("admin.revenue")}</CardTitle>
         <CardContent>
@@ -67,13 +70,16 @@ export default function Admin() {
       <Card>
         <CardTitle>{t("admin.payments")}</CardTitle>
         <CardContent>
+          <Text variant="muted">{t("admin.refundHint")}</Text>
           {payments.data?.payments.map((p) => (
-            <Row
-              key={p.id}
-              left={`${p.email} · ${p.planId}`}
-              sub={formatDate(p.createdAt, locale)}
-              right={`${formatIdr(p.amountIdr)} · ${t(`account.status.${p.status}` as MessageKey)}`}
-            />
+            <View key={p.id} className="gap-1">
+              <Row
+                left={`${p.email} · ${p.planId}`}
+                sub={formatDate(p.createdAt, locale)}
+                right={`${formatIdr(p.amountIdr)} · ${t(`account.status.${p.status}` as MessageKey)}`}
+              />
+              {p.status === "paid" ? <RefundButton paymentId={p.id} /> : null}
+            </View>
           ))}
         </CardContent>
       </Card>
@@ -157,5 +163,23 @@ function GrantForm() {
         {message ? message.ok ? <Text>{message.text}</Text> : <ErrorText>{message.text}</ErrorText> : null}
       </CardContent>
     </Card>
+  );
+}
+
+/** After refunding in the provider's dashboard: two taps (confirm), then access ends (D-038). */
+function RefundButton({ paymentId }: { paymentId: string }) {
+  const { t } = useI18n();
+  const client = useQueryClient();
+  const [armed, setArmed] = useState(false);
+  async function refund() {
+    if (!armed) return setArmed(true);
+    await api.api.admin.refund.$post({ json: { paymentId } });
+    setArmed(false);
+    void client.invalidateQueries();
+  }
+  return (
+    <Button variant={armed ? "destructive" : "ghost"} onPress={refund} className="self-end">
+      <Text>{t(armed ? "admin.refundConfirm" : "admin.refund")}</Text>
+    </Button>
   );
 }
