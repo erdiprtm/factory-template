@@ -7,6 +7,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      rollback_drill:
+        description: "Rollback drill: deploy, then fail the smoke test on purpose to prove auto-rollback"
+        type: boolean
+        default: false
 
 concurrency:
   group: production
@@ -80,7 +85,11 @@ jobs:
         run: pnpm exec wrangler deploy --var "COMMIT_SHA:${COMMIT_SHA}" --message "main @ ${COMMIT_SHA}"
       - name: Smoke test
         id: smoke
-        run: node scripts/smoke-test.mjs "$PRODUCTION_URL" --expect-commit "$COMMIT_SHA"
+        env:
+          # The drill expects a commit that can never be live, so the check fails after a real deploy.
+          EXPECT: ${{ inputs.rollback_drill && 'rollback-drill-never-live' || github.sha }}
+          ATTEMPTS: ${{ inputs.rollback_drill && '2' || '10' }}
+        run: node scripts/smoke-test.mjs "$PRODUCTION_URL" --expect-commit "$EXPECT" --attempts "$ATTEMPTS"
 
       - name: Roll back to the previous version
         id: rollback

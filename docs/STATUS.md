@@ -9,6 +9,13 @@ Progress log, newest entry on top.
 - Public repo https://github.com/erdiprtm/factory-template created. `scripts/setup-github.sh` applied: squash-only, auto-merge, delete-branch-on-merge, `PRODUCTION_URL`, and the `main` ruleset (active; works on the free plan because the repo is public).
 - Secrets `CLOUDFLARE_ACCOUNT_ID` (set by the agent) and `CLOUDFLARE_API_TOKEN` (pasted by the human via `gh secret set`; the agent never saw it). Token: the "Edit Cloudflare Workers" template plus D1:Edit.
 - The bootstrap push to `main` ran `deploy.yml` before configuration existed. It failed at "Check configuration" and opened incident #1 as designed. Closed with an explanation.
+- **PR #2 went fully hands-off.**
+  - `verify` ✅.
+  - `preview` ✅: CI bootstrapped the preview Worker, uploaded alias `pr-2`, smoke-tested it, and posted the sticky comment. https://pr-2-factory-template-preview.erdiprtm.workers.dev/api/health returns `env: preview`.
+  - It auto-merged, then `deploy.yml` deployed production: version `6c443ae4…`, commit `dcdc88a`, smoke test ✅. https://factory-template.erdiprtm.workers.dev serves the app, and `/api/health` returns `env: production`.
+  - A brand-new workers.dev hostname answered `error code: 1042` for its first seconds. The smoke test's retries absorbed this (attempt 3 passed).
+- Validated against real Cloudflare output: `versions upload --var` plus alias URL parsing, `deployments status --json` (first deploy correctly reported "none"), a token with Workers Scripts Edit could create both Workers, and the ruleset plus auto-merge work on the free plan for a public repo.
+- PR #3 adds a `rollback_drill` input to `deploy.yml` for the rollback proof.
 
 ## 2026-10-11: Phase 1 local scaffold green; waiting on 🧑 HUMAN checkpoint
 
