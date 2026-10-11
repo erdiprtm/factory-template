@@ -491,6 +491,6 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
 - **Web app:**
   - Reports only when `/api/health` says production or preview. One shared request (`deploy-env.web.ts`) serves both analytics and monitoring.
   - Sentry is a lazy chunk (~1.1 MB raw; Metro doesn't tree-shake) loaded after `load` plus idle, so it never competes with the first screen. The entry bundle grew by 3 KB.
-  - Errors in the first seconds after load aren't reported.
+  - Errors in the first seconds after load aren't reported. The idle wait has a 3 s timeout: hidden tabs never go idle, which the preview check caught.
   - The root `ErrorBoundary` reports render errors.
 - **Native and site:** native is a no-op until Phase 10 (`@sentry/react-native`). The static site has no Sentry: it has very little JS.
