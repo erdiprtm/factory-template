@@ -29,6 +29,7 @@ test("magic link sign-in → consent → home → sign out", async ({ page, requ
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByText(`Masuk sebagai ${email}`)).toBeVisible();
 
+  await page.getByRole("link", { name: "Akun" }).click();
   await page.getByRole("button", { name: "Keluar" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
 });

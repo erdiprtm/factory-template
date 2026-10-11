@@ -92,6 +92,21 @@ app.get("/api/dev/fake-pay", async (c) => {
   return c.redirect(`/billing/return?paymentId=${encodeURIComponent(paymentId)}`);
 });
 
+// Local dev only: simulate time passing by ending the user's current access (E2E: trial expiry).
+app.post("/api/dev/expire-access", async (c) => {
+  if (c.env.APP_ENV !== "development" || new URL(c.req.url).hostname !== "localhost") return c.notFound();
+  const email = c.req.query("email") ?? "";
+  const owner = await db(c.env)
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .where(eq(schema.user.email, email))
+    .get();
+  if (!owner) return c.notFound();
+  const past = new Date(Date.now() - 60_000);
+  await db(c.env).update(schema.entitlements).set({ expiresAt: past }).where(eq(schema.entitlements.userId, owner.id));
+  return c.json({ ok: true as const });
+});
+
 const consentBody = z.object({ accept: z.array(z.enum(["terms", "privacy", "sensitive_data", "marketing"])) });
 const checkoutBody = z.object({ planId: z.string() });
 
@@ -198,7 +213,12 @@ const routes = app
     const body = (await c.req.json().catch(() => null)) as { confirm?: string } | null;
     if (body?.confirm !== "HAPUS") return c.json({ error: "confirmation_required" as const }, 400);
     await deleteUserData(db(c.env), c.get("user").id);
-    for (const name of ["better-auth.session_token", "better-auth.session_data", "__Secure-better-auth.session_token", "__Secure-better-auth.session_data"]) {
+    for (const name of [
+      "better-auth.session_token",
+      "better-auth.session_data",
+      "__Secure-better-auth.session_token",
+      "__Secure-better-auth.session_data",
+    ]) {
       c.header("set-cookie", `${name}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`, { append: true });
     }
     return c.json({ ok: true as const });

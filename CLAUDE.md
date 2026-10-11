@@ -24,6 +24,7 @@ pnpm dev              # app (Expo web :8081) + API (wrangler dev :8787) locally
 pnpm verify           # lint + migration safety + typecheck + test + build + e2e: must be green
 pnpm db:generate      # new migration from schema changes (packages/db)
 pnpm db:migrate:local # apply migrations to the local D1;  pnpm db:seed:local loads dev data
+pnpm theme            # regenerate apps/app/global.css after changing brand tokens in product.config.ts
 ```
 
 - Migrations: see `packages/db/README.md`. Local only: `--local`. Remote databases are migrated **only by CI**.
@@ -81,7 +82,7 @@ apps/site       Astro marketing/SEO/legal site (Phase 6)
 packages/config product.config.ts schema (defineProduct)
 packages/core   billing, entitlements, email, analytics, i18n (Phases 3–7)
 packages/db     Drizzle schema + migrations (Phase 2)
-packages/ui     shared UI components + design tokens (Phase 5)
+packages/ui     Reusables-style NativeWind components (cn, Button, Card, Text, Input, Checkbox, Screen…)
 scripts/        smoke test, migration gate, version picker, GitHub setup
 .github/        pr.yml (verify + preview), deploy.yml (production + rollback)
 docs/           STATUS, DECISIONS, SETUP_HUMAN (Bahasa Indonesia), later OPERATIONS, SPEC_TEMPLATE, TEMPLATE_SYNC

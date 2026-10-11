@@ -37,3 +37,23 @@ test("purchase: pricing → hosted payment → return page → access", async ({
   await page.goto("/example");
   await expect(page.getByText("Konten berbayar contoh")).toBeVisible();
 });
+
+// Phase 5 acceptance: trial → gated feature → trial expiry (time simulated) → paywall → purchase → access restored.
+test("trial expiry then purchase restores access", async ({ page, request }) => {
+  const email = `e2e-expiry-${Date.now()}@example.com`;
+  await signIn(page, request, email);
+  await page.goto("/pricing");
+  await page.getByRole("button", { name: /Mulai coba gratis/ }).click();
+  await page.goto("/example");
+  await expect(page.getByText("Konten berbayar contoh")).toBeVisible();
+
+  expect((await request.post(`/api/dev/expire-access?email=${encodeURIComponent(email)}`)).status()).toBe(200);
+  await page.goto("/example");
+  await expect(page.getByText("Fitur ini untuk pelanggan")).toBeVisible();
+
+  await page.getByRole("button", { name: "Lihat paket" }).click();
+  await page.getByRole("button", { name: "Bayar Rp149.000" }).click();
+  await expect(page.getByText("Pembayaran berhasil! Akses kamu sudah aktif.")).toBeVisible();
+  await page.goto("/example");
+  await expect(page.getByText("Konten berbayar contoh")).toBeVisible();
+});

@@ -11,7 +11,8 @@
       "!!**/coverage",
       "!!**/worker-configuration.d.ts",
       "!!**/expo-env.d.ts",
-      "!!.claude"
+      "!!.claude",
+      "!!apps/app/global.css"
     ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },

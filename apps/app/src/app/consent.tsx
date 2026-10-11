@@ -1,26 +1,25 @@
+import { Button, CenteredScreen, Checkbox, ErrorText, Loading, Text } from "@factory/ui";
 import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
-import { Switch, Text } from "react-native";
+import { View } from "react-native";
 import { acceptConsents } from "../core/api";
 import { useMe, useRefreshMe } from "../core/auth/use-me";
-import { type MessageKey, t } from "../core/i18n";
-import { Button, Loading, Screen, styles } from "../core/ui";
+import { type MessageKey, useI18n } from "../core/i18n";
 
 type Consent = "terms" | "privacy" | "sensitive_data";
 
 export default function ConsentScreen() {
+  const { t } = useI18n();
   const me = useMe();
   const refresh = useRefreshMe();
   const router = useRouter();
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [failed, setFailed] = useState(false);
 
-  if (me.isPending) return <Loading />;
+  if (me.isPending) return <Loading label={t("common.loading")} />;
   if (!me.data?.user) return <Redirect href="/sign-in" />;
   const needed = me.data.missingConsents as Consent[];
   if (needed.length === 0) return <Redirect href="/" />;
-
-  const allChecked = needed.every((c) => checked[c]);
 
   async function submit() {
     setFailed(false);
@@ -34,23 +33,25 @@ export default function ConsentScreen() {
   }
 
   return (
-    <Screen>
-      <Text role="heading" style={styles.title}>
-        {t("consent.title")}
-      </Text>
-      <Text style={styles.body}>{t("consent.subtitle")}</Text>
-      {needed.map((c) => (
-        <Text key={c} style={styles.row}>
-          <Switch
-            accessibilityLabel={t(`consent.${c}` as MessageKey)}
-            value={Boolean(checked[c])}
-            onValueChange={(v) => setChecked((s) => ({ ...s, [c]: v }))}
+    <CenteredScreen>
+      <View className="gap-2">
+        <Text variant="h1">{t("consent.title")}</Text>
+        <Text variant="lead">{t("consent.subtitle")}</Text>
+      </View>
+      <View className="gap-1">
+        {needed.map((c) => (
+          <Checkbox
+            key={c}
+            label={t(`consent.${c}` as MessageKey)}
+            checked={Boolean(checked[c])}
+            onCheckedChange={(v) => setChecked((s) => ({ ...s, [c]: v }))}
           />
-          <Text style={styles.body}>{t(`consent.${c}` as MessageKey)}</Text>
-        </Text>
-      ))}
-      {failed ? <Text style={styles.error}>{t("consent.error")}</Text> : null}
-      <Button label={t("consent.continue")} onPress={submit} disabled={!allChecked} />
-    </Screen>
+        ))}
+      </View>
+      {failed ? <ErrorText>{t("consent.error")}</ErrorText> : null}
+      <Button onPress={submit} disabled={!needed.every((c) => checked[c])}>
+        <Text>{t("consent.continue")}</Text>
+      </Button>
+    </CenteredScreen>
   );
 }

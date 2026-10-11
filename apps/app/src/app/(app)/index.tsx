@@ -1,15 +1,14 @@
+import { Button, Card, CardDescription, CardHeader, CardTitle, Screen, Text } from "@factory/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { Text } from "react-native";
 import { fetchHealth } from "../../core/api";
-import { authClient } from "../../core/auth/client";
-import { useMe, useRefreshMe } from "../../core/auth/use-me";
-import { t } from "../../core/i18n";
-import { Button, Screen, styles } from "../../core/ui";
+import { useMe } from "../../core/auth/use-me";
+import { useI18n } from "../../core/i18n";
 
+// Home: a placeholder for the product's features (src/features).
 export default function Home() {
+  const { t } = useI18n();
   const me = useMe();
-  const refresh = useRefreshMe();
   const router = useRouter();
   const health = useQuery({ queryKey: ["health"], queryFn: fetchHealth });
 
@@ -19,26 +18,23 @@ export default function Home() {
 
   return (
     <Screen>
-      <Text role="heading" style={styles.title}>
-        {t("home.title")}
-      </Text>
-      <Text style={styles.body}>
+      <Text variant="h1">{t("home.title")}</Text>
+      <Text variant="lead">
         {t("home.signedInAs")} {me.data?.user?.email}
       </Text>
-      <Text accessibilityLiveRegion="polite" style={styles.meta}>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("example.title")}</CardTitle>
+          <CardDescription>{t("paywall.body")}</CardDescription>
+        </CardHeader>
+        <Button onPress={() => router.push("/example")}>
+          <Text>{t("home.openExample")}</Text>
+        </Button>
+      </Card>
+      <Text variant="small" accessibilityLiveRegion="polite">
         {status}
         {health.data ? ` · ${t("health.version")} ${health.data.commit.slice(0, 7)}` : ""}
       </Text>
-      <Button label={t("home.openExample")} onPress={() => router.push("/example")} />
-      <Button variant="ghost" label={t("home.pricing")} onPress={() => router.push("/pricing")} />
-      <Button
-        variant="ghost"
-        label={t("auth.signOut")}
-        onPress={async () => {
-          await authClient.signOut();
-          await refresh();
-        }}
-      />
     </Screen>
   );
 }
