@@ -14,6 +14,7 @@ Kebijakan ini menjelaskan bagaimana **{{companyName}}** ("kami") memproses data 
 - **Data langganan dan pembayaran:** paket yang dipilih, jumlah, status, dan waktu pembayaran. Data kartu atau rekening **tidak** kami simpan. Pembayaran diproses oleh penyedia pembayaran.
 - **Data teknis:** alamat IP dan jenis perangkat/browser, untuk keamanan (misalnya mencegah penyalahgunaan login) dan pencatatan sesi.
 - **Data penggunaan:** kejadian anonim seperti halaman yang dibuka, tanpa data pribadi, untuk memperbaiki layanan.
+- **Sumber kunjungan:** dari iklan atau tautan mana kamu pertama kali datang (misalnya nama kampanye dan kode klik iklan), dengan ID acak perangkat. Data ini dikaitkan ke akun saat kamu mendaftar dan ke pembayaran, untuk mengukur iklan kami.
 - **Data yang kamu masukkan ke layanan:** {{productDataDescription}}
 
 ## 2. Tujuan dan dasar pemrosesan
@@ -25,6 +26,7 @@ Kebijakan ini menjelaskan bagaimana **{{companyName}}** ("kami") memproses data 
 | Mengirim email layanan (tautan masuk, struk, pengingat perpanjangan) | Pelaksanaan perjanjian |
 | Keamanan dan pencegahan penipuan | Kepentingan yang sah |
 | Analitik anonim untuk perbaikan layanan | Kepentingan yang sah |
+| Mengukur efektivitas iklan kami (sumber kunjungan) | Kepentingan yang sah |
 | Pencatatan keuangan | Kewajiban hukum |
 | Pemrosesan data sensitif (jika produk memerlukannya) | Persetujuan eksplisit |
 

@@ -32,11 +32,18 @@ export const payments = sqliteTable(
     expiresAt: timestamp("expires_at").notNull(),
     paidAt: timestamp("paid_at"),
     rawPayload: text("raw_payload"),
+    // The buyer's first-touch ad attribution, copied at checkout (sell engine, D-033).
+    utmSource: text("utm_source"),
+    utmMedium: text("utm_medium"),
+    utmCampaign: text("utm_campaign"),
+    utmContent: text("utm_content"),
+    fbclid: text("fbclid"),
   },
   (t) => [
     uniqueIndex("payments_provider_ref_unique").on(t.provider, t.providerRef),
     index("payments_user_idx").on(t.userId),
     index("payments_status_expires_idx").on(t.status, t.expiresAt),
+    index("payments_utm_campaign_idx").on(t.utmCampaign),
   ],
 );
 
@@ -103,4 +110,57 @@ export const remindersSent = sqliteTable(
     sentAt: timestamp("sent_at").notNull(),
   },
   (t) => [uniqueIndex("reminders_sent_entitlement_kind_unique").on(t.entitlementId, t.kind)],
+);
+
+/**
+ * First-touch ad attribution, one row per user (sell engine, D-033). Captured on the device's
+ * first visit (UTM tags, fbclid) and attached at signup. anon_id is the device's random id, which
+ * ties the user's pre-signup funnel events to them.
+ */
+export const attributions = sqliteTable(
+  "attributions",
+  {
+    id: id(),
+    userId: text("user_id").notNull(),
+    anonId: text("anon_id"),
+    utmSource: text("utm_source"),
+    utmMedium: text("utm_medium"),
+    utmCampaign: text("utm_campaign"),
+    utmContent: text("utm_content"),
+    fbclid: text("fbclid"),
+    landingPath: text("landing_path"),
+    firstSeenAt: timestamp("first_seen_at").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("attributions_user_unique").on(t.userId),
+    index("attributions_anon_idx").on(t.anonId),
+    index("attributions_utm_campaign_idx").on(t.utmCampaign),
+  ],
+);
+
+/**
+ * First-party funnel events (the standard funnel names in @factory/core/analytics), for /admin's
+ * funnel and per-campaign numbers. Browser steps are keyed by anon_id; purchase, renewal and
+ * refund are written by the server only. No personal data: ids are random, values are integer IDR.
+ */
+export const funnelEvents = sqliteTable(
+  "funnel_events",
+  {
+    id: id(),
+    event: text("event").notNull(),
+    anonId: text("anon_id"),
+    userId: text("user_id"),
+    step: integer("step"),
+    utmSource: text("utm_source"),
+    utmCampaign: text("utm_campaign"),
+    valueIdr: integer("value_idr"),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (t) => [
+    index("funnel_events_event_created_idx").on(t.event, t.createdAt),
+    index("funnel_events_campaign_created_idx").on(t.utmCampaign, t.createdAt),
+    index("funnel_events_anon_idx").on(t.anonId),
+    index("funnel_events_user_idx").on(t.userId),
+  ],
 );

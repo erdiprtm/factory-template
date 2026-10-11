@@ -8,8 +8,8 @@ interface Props {
   /** Path of the OG image under /og/, e.g. "home" → /og/home.png */
   og?: string;
   jsonLd?: unknown[];
-  /** Standard analytics event fired on load (Section 9), e.g. "pricing_view". */
-  event?: "site_view" | "pricing_view";
+  /** Standard analytics event fired on load (Section 9), e.g. "pricing_view"; landers send "lp_view". */
+  event?: "site_view" | "pricing_view" | "lp_view";
 }
 
 const { title, description, og = "home", jsonLd = [], event = "site_view" } = Astro.props;
@@ -44,7 +44,7 @@ const year = new Date().getFullYear();
     <!-- Apply dark mode before paint (follows the device; no flash). -->
     <script is:inline src="/theme.js"></script>
   </head>
-  <body class="flex min-h-screen flex-col" data-page-event={event} data-op-client={analyticsClientId}>
+  <body class="flex min-h-screen flex-col" data-page-event={event} data-op-client={analyticsClientId} data-app-url={appUrl}>
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded-md focus:bg-background focus:p-2">Langsung ke konten</a>
     <header class="border-b border-border">
       <nav class="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4" aria-label="Utama">
@@ -72,21 +72,59 @@ const year = new Date().getFullYear();
     <script>
       // Standard events (Section 9) to OpenPanel. Bundled by Astro into a file (CSP: script-src 'self').
       // data-op-client is set only on production builds with a client ID; otherwise this is a no-op.
-      import { createAnalytics, noopAnalytics, openPanelProvider, type StandardEvent } from "@factory/core/analytics";
+      import {
+        createAnalytics,
+        isClientFunnelEvent,
+        noopAnalytics,
+        openPanelProvider,
+        type StandardEvent,
+      } from "@factory/core/analytics";
+      import { parseTouch, resolveTouch, withTouch } from "@factory/core/attribution/touch";
       import { OpenPanel } from "@openpanel/web";
 
-      const clientId = document.body.dataset.opClient;
+      const { opClient: clientId, appUrl = "" } = document.body.dataset;
       const analytics = createAnalytics(
         clientId ? openPanelProvider(new OpenPanel({ clientId, trackOutgoingLinks: true })) : noopAnalytics,
       );
-      analytics.track((document.body.dataset.pageEvent ?? "site_view") as StandardEvent);
+
+      // First-touch attribution (D-033): kept on this device and handed to the app in its links,
+      // so the app keeps the same anonId and UTM tags (the site and the app are different origins).
+      let stored = null;
+      try {
+        stored = window.localStorage.getItem("factory.touch");
+      } catch {}
+      const touch = resolveTouch(parseTouch(stored), window.location.href);
+      try {
+        window.localStorage.setItem("factory.touch", JSON.stringify(touch));
+      } catch {}
+      for (const a of document.querySelectorAll("a[href]")) {
+        if (a instanceof HTMLAnchorElement && appUrl && a.href.startsWith(appUrl)) a.href = withTouch(a.href, touch);
+      }
+
+      // Funnel steps are also stored first-party by the app's API. sendBeacon with text/plain is
+      // a simple cross-origin request (no preflight) and survives the navigation a CTA starts.
+      const funnel = (event: string) => {
+        if (!appUrl || !isClientFunnelEvent(event)) return;
+        const body = JSON.stringify({
+          anonId: touch.anonId,
+          utm_source: touch.utm_source,
+          utm_campaign: touch.utm_campaign,
+          events: [{ event }],
+        });
+        try {
+          navigator.sendBeacon(`${appUrl}/api/events`, new Blob([body], { type: "text/plain" }));
+        } catch {}
+      };
+      const track = (event: string, props?: Record<string, string>) => {
+        analytics.track(event as StandardEvent, props);
+        funnel(event);
+      };
+
+      track(document.body.dataset.pageEvent ?? "site_view");
       for (const el of document.querySelectorAll("[data-event]")) {
         if (!(el instanceof HTMLElement)) continue;
         el.addEventListener("click", () =>
-          analytics.track(
-            (el.dataset.event ?? "") as StandardEvent,
-            el.dataset.plan ? { plan: el.dataset.plan } : undefined,
-          ),
+          track(el.dataset.event ?? "", el.dataset.plan ? { plan: el.dataset.plan } : undefined),
         );
       }
     </script>

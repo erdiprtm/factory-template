@@ -31,7 +31,7 @@ export default function Pricing() {
   async function buy(planId: string) {
     setBusy(true);
     setMessage(null);
-    track("checkout_started", { plan: planId });
+    track("checkout_start", { plan: planId });
     const res = await api.api.billing.checkout.$post({ json: { planId } });
     if (!res.ok) {
       setBusy(false);

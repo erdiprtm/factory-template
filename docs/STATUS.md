@@ -4,6 +4,15 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Sell engine, Module 1: funnel events and attribution (branch `feat/funnel-events`)
+
+- The standard funnel events (`lp_view` … `purchase`, `renewal`, `refund`) go to OpenPanel and to a first-party `funnel_events` table (D-033).
+- First-touch attribution (UTM tags plus `fbclid`) is captured on the first visit, carried from the site to the app, attached at sign-in, and copied onto every payment.
+- The webhook records `purchase` or `renewal`.
+- **Next:** Module 2 (Meta Pixel plus Conversions API with consent), then landers, quiz, free quota with paywall placement, unit economics in `/admin`, playbooks and guardrails.
+
+---
+
 ## 2026-10-11: Phase 8 accepted ✅ (dummy built, tested end to end, deleted)
 
 - **Built** `erdiprtm/catatan-harian` from `specs/catatan-harian.md`:

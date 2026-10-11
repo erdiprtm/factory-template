@@ -1,6 +1,15 @@
 import { config } from "@factory/config/product";
 import { deleteUserData, exportUserData, subscriptionSummary } from "@factory/core/account";
 import { isAdminEmail } from "@factory/core/admin";
+import { CLIENT_FUNNEL_EVENTS } from "@factory/core/analytics";
+import {
+  attributionFor,
+  paidEventKind,
+  paymentAttribution,
+  recordClientEvents,
+  recordServerEvent,
+  saveAttribution,
+} from "@factory/core/attribution";
 import { handleWebhook, paymentStatus, startCheckout } from "@factory/core/billing";
 import { missingConsents, recordConsents, requiredConsents } from "@factory/core/consents";
 import { capturedDevEmails, emailProvider } from "@factory/core/email";
@@ -9,7 +18,7 @@ import { grantTrial, hasAccess } from "@factory/core/entitlements";
 import { payments, schema } from "@factory/db";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
@@ -39,6 +48,15 @@ export type Bindings = AuthEnv &
 
 export const app = new Hono<{ Bindings: Bindings; Variables: SessionVariables }>();
 const db = (env: Bindings) => drizzle(env.DB, { schema });
+
+/** Work that must not delay the response (analytics). Tests have no execution context: just finish it. */
+async function background(c: Context, work: Promise<unknown>): Promise<void> {
+  try {
+    c.executionCtx.waitUntil(work);
+  } catch {
+    await work;
+  }
+}
 
 // API responses are JSON only: nothing may be framed, sniffed or loaded as a page resource.
 // The app's HTML gets its headers from apps/app/public/_headers (served by the assets layer).
@@ -78,15 +96,14 @@ app.post("/api/webhooks/:provider", rateLimit("WEBHOOK_LIMITER", clientIp), asyn
   if (outcome.kind === "retry") return c.json({ error: "not_confirmed_yet" as const }, 503);
   if (outcome.kind === "processed") {
     // Source of truth for payment analytics: the browser may be gone by the time this lands.
-    const { userId, planId, amountIdr, status } = outcome.payment;
-    const event = outcome.entitlement ? "payment_paid" : status !== "paid" ? "payment_failed" : null;
-    if (event) {
-      const sent = serverAnalytics(c.env).track(event, { plan: planId, amount_idr: amountIdr, status }, userId);
-      try {
-        c.executionCtx.waitUntil(sent);
-      } catch {
-        await sent; // no execution context (tests): just finish it
-      }
+    const { id, userId, planId, amountIdr, status, utmCampaign, utmSource } = outcome.payment;
+    if (outcome.entitlement) {
+      const event = await paidEventKind(db(c.env), { id, userId });
+      await recordServerEvent(db(c.env), { event, userId, valueIdr: amountIdr, utmCampaign, utmSource });
+      const props = { plan: planId, amount_idr: amountIdr, utm_campaign: utmCampaign };
+      await background(c, serverAnalytics(c.env).track(event, props, userId));
+    } else if (status !== "paid") {
+      await background(c, serverAnalytics(c.env).track("payment_failed", { plan: planId, status }, userId));
     }
   }
   if (outcome.kind === "processed" && outcome.entitlement) {
@@ -111,6 +128,30 @@ app.post("/api/webhooks/:provider", rateLimit("WEBHOOK_LIMITER", clientIp), asyn
     }
   }
   return provider.webhookAck();
+});
+
+// First-party funnel events from the site and the app (sell engine, D-033). No session: the
+// device's random anonId keys them. The site sends them cross-origin with sendBeacon (text/plain,
+// a "simple" request, so no CORS preflight). purchase/renewal/refund are server-only.
+const eventsBody = z.object({
+  anonId: z.string().regex(/^[A-Za-z0-9_-]{16,64}$/),
+  utm_source: z.string().max(100).optional(),
+  utm_campaign: z.string().max(200).optional(),
+  events: z
+    .array(z.object({ event: z.enum(CLIENT_FUNNEL_EVENTS), step: z.int().min(0).max(50).optional() }))
+    .min(1)
+    .max(20),
+});
+app.post("/api/events", rateLimit("EVENTS_LIMITER", clientIp), async (c) => {
+  let body: unknown = null;
+  try {
+    body = JSON.parse(await c.req.text());
+  } catch {}
+  const parsed = eventsBody.safeParse(body);
+  if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
+  const { anonId, utm_source, utm_campaign, events } = parsed.data;
+  await recordClientEvents(db(c.env), { anonId, attribution: { utm_source, utm_campaign }, events });
+  return c.body(null, 204);
 });
 
 // Local dev only (E2E reads the magic link from here). Never reachable when deployed:
@@ -146,6 +187,16 @@ app.post("/api/dev/expire-access", async (c) => {
   return c.json({ ok: true as const });
 });
 
+const touchBody = z.object({
+  anonId: z.string().regex(/^[A-Za-z0-9_-]{16,64}$/),
+  firstSeenAt: z.int().positive(),
+  landingPath: z.string().max(300).optional(),
+  utm_source: z.string().max(100).optional(),
+  utm_medium: z.string().max(100).optional(),
+  utm_campaign: z.string().max(200).optional(),
+  utm_content: z.string().max(200).optional(),
+  fbclid: z.string().max(500).optional(),
+});
 const consentBody = z.object({ accept: z.array(z.enum(["terms", "privacy", "sensitive_data", "marketing"])) });
 const checkoutBody = z.object({ planId: z.string().max(64) });
 const paymentIdQuery = z.object({ paymentId: z.string().regex(/^pay_[0-9a-f]{32}$/) });
@@ -185,6 +236,14 @@ const routes = app
     await recordConsents(db(c.env), c.get("user").id, parsed.data.accept);
     return c.json({ ok: true as const });
   })
+  // Attaches the device's first-touch attribution to the user, once (first touch wins).
+  .use("/attribution", sessionMiddleware, requireSession)
+  .post("/attribution", async (c) => {
+    const parsed = touchBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
+    const saved = await saveAttribution(db(c.env), c.get("user").id, parsed.data);
+    return c.json({ ok: true as const, saved });
+  })
   .use("/billing/*", sessionMiddleware, requireSession)
   .use(
     "/billing/checkout",
@@ -211,6 +270,7 @@ const routes = app
       plan,
       methods: config.payments.methods,
       origin: new URL(c.req.url).origin,
+      attribution: paymentAttribution(await attributionFor(db(c.env), user.id)),
     });
     return c.json({ paymentId, redirectUrl });
   })

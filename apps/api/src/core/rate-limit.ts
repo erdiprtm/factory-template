@@ -12,6 +12,8 @@ export type RateLimitEnv = {
   CHECKOUT_LIMITER?: RateLimiter;
   /** Webhook calls per client IP (120 per 60 s). Signed callbacks are cheap, but D1 writes aren't free. */
   WEBHOOK_LIMITER?: RateLimiter;
+  /** First-party funnel event batches per client IP (300 per 60 s: mobile carriers share IPs). */
+  EVENTS_LIMITER?: RateLimiter;
 };
 
 type Env = { Bindings: Bindings; Variables: SessionVariables };
@@ -19,7 +21,7 @@ type Env = { Bindings: Bindings; Variables: SessionVariables };
 /**
  * 429 once `limiter` says no for this key. Counters are per Cloudflare location and eventually
  * consistent: abuse protection, not accounting. A missing binding means "no limit", which only
- * happens in tests that don't configure one; wrangler.jsonc declares both for every environment.
+ * happens in tests that don't configure one; wrangler.jsonc declares all of them for every environment.
  */
 export function rateLimit(name: keyof RateLimitEnv, key: (c: Context<Env>) => string) {
   return createMiddleware<Env>(async (c, next) => {
