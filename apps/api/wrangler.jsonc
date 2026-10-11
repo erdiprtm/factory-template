@@ -18,10 +18,26 @@
   // Non-inheritable keys below must be repeated in env.preview.
   "vars": { "APP_ENV": "production", "COMMIT_SHA": "dev" },
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "factory-template-prod",
+      "database_id": "a30e51f0-7037-459d-a34b-9fe25aa30e43",
+      "migrations_dir": "../../packages/db/migrations"
+    }
+  ],
   "env": {
     "preview": {
       "vars": { "APP_ENV": "preview", "COMMIT_SHA": "dev" },
-      "version_metadata": { "binding": "CF_VERSION_METADATA" }
+      "version_metadata": { "binding": "CF_VERSION_METADATA" },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "factory-template-preview",
+          "database_id": "c7642715-9126-4634-abcf-b230eb7089aa",
+          "migrations_dir": "../../packages/db/migrations"
+        }
+      ]
     }
   }
 }
