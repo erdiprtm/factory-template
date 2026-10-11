@@ -69,10 +69,13 @@ export function QuizRunner({ quiz, onDone }: { quiz: QuizDefinition<MessageKey>;
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={total}
-          aria-valuenow={index}
+          aria-valuenow={index + 1}
           className="h-2 w-full overflow-hidden rounded-full bg-muted"
         >
-          <View className="h-2 rounded-full bg-primary" style={{ width: `${Math.round((index / total) * 100)}%` }} />
+          <View
+            className="h-2 rounded-full bg-primary"
+            style={{ width: `${Math.round(((index + 1) / total) * 100)}%` }}
+          />
         </View>
       </View>
       <View className="gap-2">
@@ -161,7 +164,9 @@ function StepInput({
       })}
       {isMulti ? (
         <>
-          {max < step.options.length ? <Text variant="muted">{`${t("quiz.pickUpTo")} ${max}`}</Text> : null}
+          {max < step.options.length && !step.hint ? (
+            <Text variant="muted">{`${t("quiz.pickUpTo")} ${max}`}</Text>
+          ) : null}
           <Button testID="quiz-next" onPress={() => onAnswer(multi)} disabled={multi.length === 0}>
             <Text>{t("quiz.next")}</Text>
           </Button>

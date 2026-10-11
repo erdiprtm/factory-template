@@ -1,5 +1,15 @@
 import { config } from "@factory/config/product";
 import { adminStats, findUserByEmail, isAdminEmail, recentPayments, recentWebhookEvents } from "@factory/core/admin";
+import { FUNNEL_STEPS } from "@factory/core/analytics";
+import {
+  deleteSpend,
+  jakartaDay,
+  loadEconomics,
+  markRefunded,
+  recentSpend,
+  spendFromMetaCsv,
+  upsertSpend,
+} from "@factory/core/economics";
 import { grantAdminDays } from "@factory/core/entitlements";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
@@ -7,6 +17,7 @@ import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { z } from "zod";
 import type { Bindings } from "../index";
+import { serverAnalytics } from "./analytics";
 import { type SessionVariables, sessionMiddleware } from "./session";
 
 /** 401 signed out, 403 not on the allowlist (product.config.ts admin.emails ∪ ADMIN_EMAILS var). */
@@ -20,6 +31,21 @@ export const requireAdmin = createMiddleware<{ Bindings: Bindings; Variables: Se
 });
 
 const grantBody = z.object({ email: z.email(), days: z.int().min(1).max(366) });
+const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const spendBody = z.object({
+  date: day,
+  channel: z.string().regex(/^[a-z0-9_-]{2,30}$/),
+  campaign: z.string().trim().min(1).max(200),
+  amountIdr: z.int().min(0).max(10_000_000_000),
+});
+const economicsQuery = z.object({ from: day.optional(), to: day.optional(), campaign: z.string().max(200).optional() });
+const refundBody = z.object({ paymentId: z.string().regex(/^pay_[0-9a-f]{32}$/) });
+
+/** The funnel /admin shows: after_quiz puts the paywall before any result, so first_result drops out. */
+export const funnelSteps = () =>
+  config.funnel.paywallPlacement === "after_quiz"
+    ? FUNNEL_STEPS.filter((s) => s !== "first_result")
+    : [...FUNNEL_STEPS];
 const db = (env: Bindings) => drizzle(env.DB, { schema });
 
 /** /api/admin/*: portfolio numbers for this product (Section 7, Phase 7). */
@@ -28,6 +54,56 @@ export const adminRoutes = new Hono<{ Bindings: Bindings; Variables: SessionVari
   .get("/stats", async (c) => c.json(await adminStats(db(c.env))))
   .get("/payments", async (c) => c.json({ payments: await recentPayments(db(c.env)) }))
   .get("/webhooks", async (c) => c.json({ events: await recentWebhookEvents(db(c.env)) }))
+  // Unit economics (D-038): CAC, ROAS d7/d30, AOV, renewal rate, LTV per campaign, and the funnel.
+  // Default range: the last 30 Jakarta days.
+  .get("/economics", async (c) => {
+    const q = economicsQuery.safeParse(c.req.query());
+    if (!q.success) return c.json({ error: "invalid_query" as const }, 400);
+    const today = jakartaDay(new Date());
+    const to = q.data.to ?? today;
+    const from = q.data.from ?? jakartaDay(new Date(Date.now() - 29 * 86_400_000));
+    const data = await loadEconomics(db(c.env), {
+      from,
+      to,
+      campaign: q.data.campaign,
+      plans: config.plans,
+      steps: funnelSteps(),
+      benchmarks: config.economics.benchmarks,
+    });
+    return c.json({ ...data, settings: config.economics });
+  })
+  .get("/spend", async (c) => c.json({ spend: await recentSpend(db(c.env)) }))
+  .post("/spend", async (c) => {
+    const parsed = spendBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
+    await upsertSpend(db(c.env), [parsed.data], "manual");
+    return c.json({ ok: true as const });
+  })
+  .delete("/spend/:id", async (c) =>
+    (await deleteSpend(db(c.env), c.req.param("id")))
+      ? c.json({ ok: true as const })
+      : c.json({ error: "not_found" as const }, 404),
+  )
+  // Ads Manager CSV export (Breakdown → By time → Day), sent as the raw text body.
+  .post("/spend/import", async (c) => {
+    const { rows, errors } = spendFromMetaCsv(await c.req.text());
+    if (rows.length === 0) return c.json({ error: "nothing_imported" as const, errors }, 400);
+    await upsertSpend(db(c.env), rows, "csv");
+    return c.json({ ok: true as const, imported: rows.length, errors });
+  })
+  // After refunding at the provider's dashboard: mark it here so access ends and numbers stay right.
+  .post("/refund", async (c) => {
+    const parsed = refundBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
+    const r = await markRefunded(db(c.env), parsed.data.paymentId);
+    if (r.kind === "not_found") return c.json({ error: "not_found" as const }, 404);
+    if (r.kind === "not_paid") return c.json({ error: "not_paid" as const }, 409);
+    if (r.kind === "refunded") {
+      const { userId, planId, amountIdr } = r.payment;
+      await serverAnalytics(c.env).track("refund", { plan: planId, amount_idr: amountIdr }, userId);
+    }
+    return c.json({ ok: true as const });
+  })
   // Manual access for support and partners. Extends from the user's latest expiry.
   .post("/grant", async (c) => {
     const parsed = grantBody.safeParse(await c.req.json().catch(() => null));

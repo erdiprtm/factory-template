@@ -79,8 +79,11 @@ app.use(
     strictTransportSecurity: "max-age=31536000; includeSubDomains",
   }),
 );
-// No endpoint takes more than a small JSON or form body.
-app.use("/api/*", bodyLimit({ maxSize: 64 * 1024, onError: (c) => c.json({ error: "body_too_large" as const }, 413) }));
+// No endpoint takes more than a small JSON or form body, except the admin's ad-spend CSV import.
+const tooLarge = (c: Context) => c.json({ error: "body_too_large" as const }, 413);
+const smallBody = bodyLimit({ maxSize: 64 * 1024, onError: tooLarge });
+const csvBody = bodyLimit({ maxSize: 1024 * 1024, onError: tooLarge });
+app.use("/api/*", (c, next) => (c.req.path === "/api/admin/spend/import" ? csvBody(c, next) : smallBody(c, next)));
 
 // Only local dev needs CORS: Expo's dev server (:8081) calls wrangler dev (:8787).
 // Deployed, the app and API share one origin.

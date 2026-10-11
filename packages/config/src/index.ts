@@ -116,6 +116,52 @@ export const productSchema = z.object({
       paywallPlacement: z.enum(["after_quiz", "after_first_result", "after_quota"]).default("after_first_result"),
     })
     .default({ coreAction: "core", freeUses: 1, paywallPlacement: "after_first_result" }),
+  // /admin unit economics (sell engine Module 6, D-038). paymentFeePercent: the provider's fee on a
+  // typical method; adTaxPercent: tax on top of ad spend (Meta charges 11% in Indonesia);
+  // targetCacFactor: target CAC = breakeven CAC × this; benchmarks: the minimum conversion from the
+  // previous funnel step (0–1), below which /admin flags the step red.
+  economics: z
+    .object({
+      paymentFeePercent: z.number().min(0).max(20).default(2),
+      adTaxPercent: z.number().min(0).max(50).default(11),
+      targetCacFactor: z.number().min(0.1).max(1).default(0.9),
+      benchmarks: z
+        .partialRecord(
+          z.enum([
+            "cta_tap",
+            "quiz_start",
+            "quiz_complete",
+            "first_result",
+            "paywall_view",
+            "checkout_start",
+            "purchase",
+          ]),
+          z.number().min(0).max(1),
+        )
+        .default({
+          cta_tap: 0.25,
+          quiz_start: 0.7,
+          quiz_complete: 0.6,
+          first_result: 0.5,
+          paywall_view: 0.6,
+          checkout_start: 0.15,
+          purchase: 0.5,
+        }),
+    })
+    .default({
+      paymentFeePercent: 2,
+      adTaxPercent: 11,
+      targetCacFactor: 0.9,
+      benchmarks: {
+        cta_tap: 0.25,
+        quiz_start: 0.7,
+        quiz_complete: 0.6,
+        first_result: 0.5,
+        paywall_view: 0.6,
+        checkout_start: 0.15,
+        purchase: 0.5,
+      },
+    }),
   // Meta Pixel ID (public: browsers carry it). Unset = no Pixel, no Conversions API, no marketing
   // consent banner. The CAPI access token is a Worker secret (META_CAPI_TOKEN), never here. D-034.
   marketing: z

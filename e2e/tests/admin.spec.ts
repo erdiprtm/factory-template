@@ -17,4 +17,14 @@ test("admin sees metrics and grants access", async ({ page, request }) => {
   await page.getByLabel("Jumlah hari").fill("14");
   await page.getByRole("button", { name: "Beri akses" }).click();
   await expect(page.getByText(/^Akses diberikan sampai /)).toBeVisible();
+
+  // Unit economics (D-038): enter spend for a campaign, and it shows up in the numbers.
+  const campaign = `e2e-${Date.now()}`;
+  await expect(page.getByText("Unit economics iklan")).toBeVisible();
+  await page.getByLabel("Nama kampanye (utm_campaign)").fill(campaign);
+  await page.getByLabel("Jumlah (Rp, sebelum pajak)").fill("150000");
+  await page.getByRole("button", { name: "Simpan biaya" }).click();
+  await expect(page.getByText("Tersimpan.")).toBeVisible();
+  await expect(page.getByRole("button", { name: campaign })).toBeVisible();
+  await expect(page.getByText("Target CAC", { exact: false }).first()).toBeVisible();
 });

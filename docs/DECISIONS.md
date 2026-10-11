@@ -709,3 +709,34 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - `paywall_view` is sent with a `surface`: pricing, first_result, free_uses_used or paid_feature.
 - **The example feature** now shows the pattern: `POST /api/example/run` sits behind `requireAccessOrFreeUse`, and the screen shows the result, reports the first result and renders the prompt. Template tests use test-only `CORE = "/api/__test/core"` instead (D-032).
 - **UU PDP.** The free-use counters are erased with the account.
+
+## D-038: Sell engine, Module 6: unit economics in /admin (2026-10-11)
+
+- **Ad spend in.** The `ad_spend` table keeps one row per Jakarta day, channel and campaign; re-entering the same key replaces the amount. There are two inputs:
+  - manual entry in `/admin`;
+  - CSV import of a Meta Ads Manager export (`POST /api/admin/spend/import`, raw text body, up to 1 MB; every other route stays at 64 KB). The export needs **Breakdown → By time → Day**. English and Indonesian column names, comma or semicolon separators, and both number formats are accepted, and summary rows are skipped. A multi-day row is rejected with an explanation instead of being guessed.
+  - `campaign` must equal the ads' `utm_campaign`: that is the join to buyers. Set it in Meta as `utm_campaign={{campaign.name}}`.
+- **Future API sync.** The interface is the `AdSpendSource` (`fetchDaily(range)`) plus `syncSpend`, writing `source: "api"`. A Meta Marketing API sync isn't built: it needs app review and a long-lived token.
+- **Numbers out** (`GET /api/admin/economics?from&to&campaign`, pure functions in `@factory/core/economics/metrics`, unit-tested). The cohort is the users first seen in the range: the attribution's first visit, else signup.
+
+  | Metric | Definition |
+  |---|---|
+  | CAC | Spend divided by cohort users who bought. Null when no spend was entered, rather than a misleading 0. |
+  | ROAS D7 / D30 | Revenue within 7 / 30 days of the first visit, divided by spend. |
+  | AOV | Average paid order of the cohort's buyers. |
+  | Renewal rate | Of buyers whose first paid period has ended, the share who bought again. |
+  | Estimated LTV | AOV / (1 − renewal rate), with the rate capped at 0.9 so tiny samples don't explode. |
+  | LTV − CAC | LTV minus CAC. |
+
+  - Totals are blended: all spend over all new buyers, organic included. Per-campaign rows join on `utm_campaign`, and a "(tanpa kampanye)" row shows organic buyers.
+- **Funnel.** The view counts distinct visitors per step (`FUNNEL_STEPS`; `first_result` drops out for `after_quiz`) and the conversion from the previous step.
+  - It is sequential: a visitor counts at a step only if they also reached the step before. Without that, visitors who enter midway (straight to `/pricing`, an organic sign-up) pushed rates above 100% in the first local run.
+  - Benchmarks are configurable (`product.config.ts` `economics.benchmarks`). The defaults are a starting point, not truth.
+  - The first step below its benchmark is flagged red: that is the layer to fix first (`/funnel-diagnose`).
+- **Target CAC calculator.**
+  - Breakeven CAC = price × (1 − payment fee) / (1 + ad tax). Target CAC = breakeven × `targetCacFactor`.
+  - Defaults: fee 2%, ad tax 11% (Meta's VAT in Indonesia), factor 0.9.
+  - The admin can change the fee and tax per plan in the UI. The calculator also shows the same numbers for the estimated LTV.
+- **Refunds.** `POST /api/admin/refund` is used after refunding in the provider's dashboard.
+  - It sets the payment to `refunded`, ends the access the payment granted now, and records the `refund` event (first-party plus OpenPanel). Refunded payments drop out of revenue. It is idempotent.
+  - In the UI it is a two-tap confirm.
