@@ -3,14 +3,20 @@ import { describe, expect, it } from "vitest";
 import { sentryOptions } from "../src/core/monitoring";
 import { app } from "../src/index";
 
+const DSN = "https://0123456789abcdef@o1.ingest.us.sentry.io/1";
+
 describe("Sentry options", () => {
+  it("are off without a DSN", () => {
+    expect(sentryOptions({ APP_ENV: "production" }, null)).toBeUndefined();
+  });
+
   it("are off in local dev and tests", () => {
-    expect(sentryOptions({ APP_ENV: "development" })).toBeUndefined();
-    expect(sentryOptions({ APP_ENV: "test" })).toBeUndefined();
+    expect(sentryOptions({ APP_ENV: "development" }, DSN)).toBeUndefined();
+    expect(sentryOptions({ APP_ENV: "test" }, DSN)).toBeUndefined();
   });
 
   it("report from deployed environments with every personal-data collector off and no tracing", () => {
-    const opts = sentryOptions({ APP_ENV: "production", COMMIT_SHA: "abc123" });
+    const opts = sentryOptions({ APP_ENV: "production", COMMIT_SHA: "abc123" }, DSN);
     expect(opts).toMatchObject({
       environment: "production",
       release: "abc123",
@@ -18,11 +24,11 @@ describe("Sentry options", () => {
     });
     expect(opts?.dsn).toMatch(/^https:\/\/[0-9a-f]+@[^/]+\.sentry\.io\/\d+$/);
     expect(opts).not.toHaveProperty("tracesSampleRate");
-    expect(sentryOptions({ APP_ENV: "preview" })?.environment).toBe("preview");
+    expect(sentryOptions({ APP_ENV: "preview" }, DSN)?.environment).toBe("preview");
   });
 
   it("beforeSend scrubs the event", () => {
-    const opts = sentryOptions({ APP_ENV: "production" });
+    const opts = sentryOptions({ APP_ENV: "production" }, DSN);
     const event = opts?.beforeSend?.(
       { type: undefined, user: { id: "u1", email: "a@b.co" }, request: { url: "https://x.dev/a?token=t" } },
       {},

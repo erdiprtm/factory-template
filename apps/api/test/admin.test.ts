@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
 import { fakeProvider } from "../src/core/payments";
 import { app } from "../src/index";
-import { get, post, signInWithConsent } from "./helpers";
+import { firstPlan, get, lastPlan, post, signInWithConsent } from "./helpers";
 
 // /admin: allowlist + numbers that match the database (Phase 7 acceptance).
 const db = drizzle(env.DB, { schema });
@@ -32,7 +32,7 @@ describe("admin numbers", () => {
     const trial = await signInWithConsent(uniqueEmail("t"));
     await post("/api/billing/trial", trial, {});
     const buyer = await signInWithConsent(uniqueEmail("b"));
-    await buy(buyer, "12m");
+    await buy(buyer, lastPlan.id);
     const admin = await signInWithConsent("admin@example.com");
     expect((await (await get("/api/me", admin)).json<{ isAdmin: boolean }>()).isAdmin).toBe(true);
     const grantee = uniqueEmail("g");
@@ -69,7 +69,7 @@ describe("admin numbers", () => {
   it("lists recent payments and webhook events, and validates grants", async () => {
     const admin = await signInWithConsent("admin@example.com");
     const buyer = await signInWithConsent(uniqueEmail("p"));
-    await buy(buyer, "6m");
+    await buy(buyer, firstPlan.id);
     const list = await (await get("/api/admin/payments", admin)).json<{ payments: { status: string }[] }>();
     expect(list.payments.some((p) => p.status === "paid")).toBe(true);
     const events = await (await get("/api/admin/webhooks", admin)).json<{ events: { status: string }[] }>();

@@ -6,14 +6,14 @@ import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
 import { fakeProvider } from "../src/core/payments";
 import { app } from "../src/index";
-import { get, post, signInWithConsent } from "./helpers";
+import { firstPlan, get, post, signInWithConsent } from "./helpers";
 
 // Akun page API + UU PDP rights (access and erasure), against real local D1.
 const db = drizzle(env.DB, { schema });
 const uniqueEmail = (tag: string) => `${tag}-${crypto.randomUUID()}@example.com`;
 
 async function buy(cookie: string) {
-  const { paymentId } = await (await post("/api/billing/checkout", cookie, { planId: "6m" })).json<{
+  const { paymentId } = await (await post("/api/billing/checkout", cookie, { planId: firstPlan.id })).json<{
     paymentId: string;
   }>();
   const hook = fakeProvider().pay(paymentId);
@@ -86,7 +86,7 @@ describe("account deletion (right to erasure)", () => {
     const kept = await db.select().from(payments).where(eq(payments.id, paymentId)).get();
     expect(kept?.userId).toMatch(/^deleted:/);
     expect(kept?.rawPayload).toBeNull();
-    expect(kept?.amountIdr).toBe(149000);
+    expect(kept?.amountIdr).toBe(firstPlan.priceIdr);
 
     expect((await get("/api/account/summary", cookie)).status).toBe(401);
   });

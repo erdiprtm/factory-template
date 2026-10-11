@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { runScheduled } from "../src/core/cron";
 import { configuredProvider, fakeProvider } from "../src/core/payments";
 import { app } from "../src/index";
-import { get, post, signIn, signInWithConsent } from "./helpers";
+import { firstPlan, get, lastPlan, post, signIn, signInWithConsent } from "./helpers";
 
 // Billing endpoints end to end with the FakeProvider (APP_ENV=test), against real local D1.
 const db = drizzle(env.DB, { schema });
@@ -36,12 +36,12 @@ describe("trial endpoint", () => {
 describe("checkout → webhook → access", () => {
   it("requires consent before checkout", async () => {
     const cookie = await signIn(uniqueEmail("noconsent"));
-    expect((await post("/api/billing/checkout", cookie, { planId: "6m" })).status).toBe(403);
+    expect((await post("/api/billing/checkout", cookie, { planId: firstPlan.id })).status).toBe(403);
   });
 
   it("answers 503 to an unconfirmed 'paid' webhook so the provider retries", async () => {
     const cookie = await signInWithConsent(uniqueEmail("lag"));
-    const { paymentId } = (await (await post("/api/billing/checkout", cookie, { planId: "6m" })).json()) as {
+    const { paymentId } = (await (await post("/api/billing/checkout", cookie, { planId: firstPlan.id })).json()) as {
       paymentId: string;
     };
     const res = await app.request(fakeProvider().webhook(paymentId, "paid"), undefined, env);
@@ -57,7 +57,7 @@ describe("checkout → webhook → access", () => {
   it("pays, grants access, emails a receipt, and survives webhook replay", async () => {
     const email = uniqueEmail("buyer");
     const cookie = await signInWithConsent(email);
-    const res = await post("/api/billing/checkout", cookie, { planId: "12m" });
+    const res = await post("/api/billing/checkout", cookie, { planId: lastPlan.id });
     expect(res.status).toBe(200);
     const { paymentId, redirectUrl } = await res.json<{ paymentId: string; redirectUrl: string }>();
     expect(redirectUrl).toContain(paymentId);
@@ -78,7 +78,7 @@ describe("checkout → webhook → access", () => {
 
     expect(await (await get(`/api/billing/status?paymentId=${paymentId}`, cookie)).json()).toMatchObject({
       status: "paid",
-      amountIdr: 249000,
+      amountIdr: lastPlan.priceIdr,
     });
     expect(await db.select().from(entitlements).where(eq(entitlements.paymentId, paymentId))).toHaveLength(1);
     expect((await get("/api/example", cookie)).status).toBe(200);
@@ -90,7 +90,7 @@ describe("checkout → webhook → access", () => {
 
   it("hides other users' payments", async () => {
     const owner = await signInWithConsent(uniqueEmail("owner"));
-    const { paymentId } = await (await post("/api/billing/checkout", owner, { planId: "6m" })).json<{
+    const { paymentId } = await (await post("/api/billing/checkout", owner, { planId: firstPlan.id })).json<{
       paymentId: string;
     }>();
     const stranger = await signInWithConsent(uniqueEmail("stranger"));
@@ -102,7 +102,7 @@ describe("cron", () => {
   it("expires stale pending payments and sends each reminder once", async () => {
     const email = uniqueEmail("remind");
     const cookie = await signInWithConsent(email);
-    const { paymentId } = await (await post("/api/billing/checkout", cookie, { planId: "6m" })).json<{
+    const { paymentId } = await (await post("/api/billing/checkout", cookie, { planId: firstPlan.id })).json<{
       paymentId: string;
     }>();
     await post("/api/billing/trial", cookie, {});

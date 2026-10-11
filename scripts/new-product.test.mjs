@@ -4,7 +4,11 @@ import { applyProductConfig, parseSpec, registerProduct, renameWorkers, setD1Ids
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 
-describe("new-product transforms", () => {
+// These transforms rewrite the TEMPLATE's files, and the generator only runs from the template
+// repo. In a product repo (already renamed) there is nothing to rewrite, so skip.
+const isTemplate = read("product.config.ts").includes('slug: "factory-template"');
+
+describe.skipIf(!isTemplate)("new-product transforms", () => {
   const spec = parseSpec(read("specs/catatan-harian.md"));
 
   it("parses name, tagline and plans from the spec", () => {

@@ -1,4 +1,5 @@
 import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
+import { firstPlan, idr } from "./plans";
 
 // Akun page: subscription status after a purchase, language switch, data export, deletion.
 
@@ -21,13 +22,13 @@ test("account: status, history, language, export, delete", async ({ page, reques
 
   // Buy the 6-month plan through the dev payment page.
   await page.goto("/pricing");
-  await page.getByRole("button", { name: "Bayar Rp149.000" }).click();
+  await page.getByRole("button", { name: `Bayar ${idr(firstPlan.priceIdr)}` }).click();
   await expect(page.getByText("Pembayaran berhasil! Akses kamu sudah aktif.")).toBeVisible();
 
   await page.goto("/account");
   await expect(page.getByText(email)).toBeVisible();
   await expect(page.getByText(/^Aktif sampai /)).toBeVisible();
-  await expect(page.getByText("Rp149.000")).toBeVisible();
+  await expect(page.getByText(idr(firstPlan.priceIdr))).toBeVisible();
   await expect(page.getByText("Berhasil")).toBeVisible();
 
   // Language switch applies immediately and is remembered.

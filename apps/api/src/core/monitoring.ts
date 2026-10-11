@@ -10,8 +10,10 @@ type MonitoringEnv = { APP_ENV: string; COMMIT_SHA?: string };
  * bodies and queries by default, so all of it is switched off here and scrubbed again in
  * beforeSend (@factory/core/monitoring). No tracing.
  */
-export function sentryOptions(env: MonitoringEnv): Sentry.CloudflareOptions | undefined {
-  const dsn = config.monitoring.sentryDsn;
+export function sentryOptions(
+  env: MonitoringEnv,
+  dsn: string | null = config.monitoring.sentryDsn,
+): Sentry.CloudflareOptions | undefined {
   if (!dsn || (env.APP_ENV !== "production" && env.APP_ENV !== "preview")) return undefined;
   return {
     dsn,
