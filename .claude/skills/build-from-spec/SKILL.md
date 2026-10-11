@@ -22,6 +22,12 @@ Write `specs/<slug>.plan.md`: one section per core feature (max 3) covering scre
 - **App:** `apps/app/src/features/<feature>/`, plus a route file in `src/app/(app)/`. Use `@factory/ui` components and `useI18n()`. Put the feature's strings in `apps/app/src/features/messages.ts` (both `id` and `en`, feature-prefixed keys), never in `src/core/i18n`. No browser-only APIs outside `*.web.tsx`.
 - **User data (UU PDP):** every product table is exported and deleted with the account. Add it to `apps/api/src/features/user-data.ts` (`exportProductData`, `deleteProductData`), or give it `ON DELETE CASCADE` to `user.id` and still export it.
 - **Site:** landing copy in `apps/site/src/pages/index.astro` (marked PRODUCT-OWNED), SEO pages in `apps/site/src/content/seo/`.
+- **Sell engine (D-033 to D-038), from the spec's "Core loop & funnel":**
+  - Quiz: replace the EXAMPLE in `apps/app/src/features/quiz.ts` (5–8 steps, strings in `features/messages.ts`), or set it to `null`.
+  - The core action's API route uses `requireAccessOrFreeUse` (not `requireAccess`). Set `funnel.coreAction`, `freeUses` and `paywallPlacement` in `product.config.ts`.
+  - When the screen shows its first result, call `reportFirstResult()` and render `<UpgradePrompt />` under it. A 402 renders `<Paywall reason=… />`.
+  - Landers: one file per ad hook in `apps/site/src/content/landers/`, with `hook` equal to the ad's hook word for word. Replace `contoh.md`.
+  - Follow the ad guardrails in `CLAUDE.md`.
 - **Health/nutrition numbers** come only from curated data stored in the product, never from model memory.
 - Replace the home screen (`src/app/(app)/index.tsx`) with the product's main feature, and delete the example feature once a real paid feature exists: `apps/api/src/features/example.ts` and its mount, `apps/app/src/features/example/`, `src/app/(app)/example.tsx`, the `example.*` / `home.openExample` strings. Template tests don't depend on either (D-032).
 

@@ -74,12 +74,18 @@ pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/se
 
 | Command | When |
 |---|---|
+| `/spec-interview [idea]` | Turn an idea into a complete spec, one question at a time; pushes back on more than one core loop |
 | `/new-product <spec> <slug>` | Start a new product repo from a complete spec (`scripts/new-product.mjs`, dry run first) |
 | `/build-from-spec <spec>` | In a product repo: build v1 features (refuses incomplete specs: `scripts/spec-check.mjs`) |
 | `/add-feature <desc>` | One more feature, product-owned folders only |
 | `/add-plan <prices>` | Change plans/prices in `product.config.ts` and verify paywall + site |
 | `/launch-check` | Pre-launch checklist (blueprint Section 11), pass/fail per item |
 | `/sync-template` | Pull template updates into a product repo (`docs/TEMPLATE_SYNC.md`) |
+| `/ad-hooks <spec>` | 10 ad hooks ("Untuk [siapa] yang [masalah], dapatkan [hasil] dalam [waktu]"), five types, guardrail-checked. Not `/hooks`: that is Claude Code's hook settings |
+| `/creative-brief <hook>` | One 9:16 video brief anyone can shoot (scenes S1–S4, CTA, rules, safe zone) |
+| `/ad-test-plan <ads>` | Rp100K/day tests, one ad each, read at 3,000 impressions, kill at 2× target CAC with no sales, target ROAS 1.75 |
+| `/funnel-diagnose <numbers>` | From /admin's funnel: the first bad step and the one layer to fix |
+| `/explain <PR>` | Before accepting a big change: what, screen-to-database path, files, proof, likeliest failure |
 
 ## Where things are
 

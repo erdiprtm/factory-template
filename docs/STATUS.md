@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Sell engine, Module 7: playbooks (branch `feat/sell-playbooks`)
+
+- New skills: `/spec-interview`, `/ad-hooks` (not `/hooks`, which is built in), `/creative-brief`, `/ad-test-plan`, `/funnel-diagnose` and `/explain`.
+- The spec template gained a "Core loop & funnel" section (D-039).
+
+---
+
 ## 2026-10-11: Sell engine, Module 6: unit economics in /admin (branch `feat/unit-economics`)
 
 - Ad spend can be entered by hand or imported from an Ads Manager CSV.
