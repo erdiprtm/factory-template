@@ -4,6 +4,23 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Phase 4 acceptance complete; Phase 8 dummy in progress
+
+- **Phase 4 ✅** on production (`DUITKU_MODE=sandbox`). The human paid twice through Duitku POP:
+  - 6 months by Virtual Account, using the sandbox simulator;
+  - 12 months by ShopeePay QRIS, using the simulator with the merchant order id `pay_…`.
+- Both payments were confirmed through the signed webhook, access was granted, and both receipt emails arrived.
+- Duitku sandbox secrets are set on preview and production (as undeployed versions, activated by the next CI deploy).
+- **Phase 8 dummy** (`erdiprtm/catatan-harian`, public):
+  - `new-product --execute` created the repo, both D1 databases, and the CI secrets. The push to `main` skipped the deploy cleanly.
+  - The first `/sync-template` worked.
+  - Building the notes feature (API, table, screen, E2E acceptance path) found 8 template gaps, fixed in template PRs #20, #22, #23 and #24 (D-027, D-028).
+  - The dummy's first PR (#1) is blocked by a Cloudflare API rate limit (code 10429) on creating its preview Worker. It was retried 3 times and will be retried later.
+- **Follow-ups:**
+  - Retry with backoff around wrangler calls in CI (rate limits).
+  - Move template paywall tests off `/example` and the home screen, so products can replace both.
+  - Upgrade to Workers Paid before the first real launch or the 5th product: Workers Free allows 5 cron triggers per account and 10 ms CPU per request.
+
 ## 2026-10-11: Sentry wired (branch `feat/sentry`, on top of `fix/payments-unavailable`)
 
 - The human created the Sentry org and project (US region, error monitoring only), and the DSN is in `product.config.ts` (D-025).
