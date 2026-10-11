@@ -563,3 +563,13 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - The cron sends `renewal_reminder_sent` (with `kind`) and `entitlement_expired`.
   - The browser no longer sends the payment events, so nothing is counted twice.
 - **Secret.** The `OPENPANEL_CLIENT_SECRET` Worker secret is set on **production only**: previews never send. Without it, server analytics are a no-op.
+
+## D-031: The app bundle no longer ships Zod (2026-10-11)
+
+- **Measured** with a source-map attribution of the web entry bundle (2,031 KB raw / 494 KB gzip). **Zod was 26% (496 KB)**, more than React DOM. It was there only because `product.config.ts` validates itself with `defineProduct` (Zod), and every screen imports the config.
+- **Fix.**
+  - `pnpm theme` (`scripts/gen-theme.mjs`, already the "derived from product.config.ts" generator) also writes `apps/app/src/core/product.generated.json`: the validated config with defaults applied.
+  - `apps/app/metro.config.js` resolves `product.config.ts` to that JSON for the app bundle. TypeScript still type-checks against `product.config.ts`.
+  - `verify` runs `gen-theme --check`, so a stale JSON fails CI.
+- **Result:** entry 1,490 KB raw / 394 KB gzip (−27% / −20%). The rest is framework (Expo Router 429 KB, React Native Web 276 KB, React DOM 175 KB).
+- **Rule:** after any change to `product.config.ts`, run `pnpm theme`. CLAUDE.md is updated.

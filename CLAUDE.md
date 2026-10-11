@@ -24,7 +24,7 @@ pnpm dev              # app (Expo web :8081) + API (wrangler dev :8787) locally
 pnpm verify           # lint + migration safety + typecheck + test + build + e2e: must be green
 pnpm db:generate      # new migration from schema changes (packages/db)
 pnpm db:migrate:local # apply migrations to the local D1;  pnpm db:seed:local loads dev data
-pnpm theme            # regenerate app + site theme CSS after changing brand tokens in product.config.ts
+pnpm theme            # regenerate files derived from product.config.ts (theme CSS + the app's validated config JSON) after ANY config change
 pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/seo/<slug>.md)
 ```
 

@@ -21,11 +21,22 @@ const SINGLETONS = [
   "react-native-worklets",
 ];
 const fromApp = path.join(__dirname, "package.json");
+
+// product.config.ts validates itself with Zod (~500 KB of browser JS, D-031). The app gets the
+// already-validated JSON written by `pnpm theme` (checked in verify) instead; TypeScript still
+// type-checks against product.config.ts.
+const PRODUCT_CONFIG = path.resolve(__dirname, "../../product.config.ts");
+const PRODUCT_JSON = path.join(__dirname, "src/core/product.generated.json");
+
 const upstream = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const singleton = SINGLETONS.some((name) => moduleName === name || moduleName.startsWith(`${name}/`));
   const ctx = singleton ? { ...context, originModulePath: fromApp } : context;
-  return upstream ? upstream(ctx, moduleName, platform) : ctx.resolveRequest(ctx, moduleName, platform);
+  const resolved = upstream ? upstream(ctx, moduleName, platform) : ctx.resolveRequest(ctx, moduleName, platform);
+  if (resolved.type === "sourceFile" && resolved.filePath === PRODUCT_CONFIG) {
+    return { type: "sourceFile", filePath: PRODUCT_JSON };
+  }
+  return resolved;
 };
 
 module.exports = withNativeWind(config, {

@@ -1,0 +1,116 @@
+{
+  "slug": "factory-template",
+  "name": "Factory Template",
+  "tagline": "Template untuk membangun produk web dengan cepat.",
+  "locale": {
+    "default": "id",
+    "supported": [
+      "id",
+      "en"
+    ]
+  },
+  "domain": {
+    "app": null,
+    "site": null
+  },
+  "brand": {
+    "tokens": {
+      "colors": {
+        "light": {
+          "background": "#ffffff",
+          "foreground": "#0f172a",
+          "card": "#ffffff",
+          "cardForeground": "#0f172a",
+          "popover": "#ffffff",
+          "popoverForeground": "#0f172a",
+          "primary": "#2563eb",
+          "primaryForeground": "#ffffff",
+          "secondary": "#f1f5f9",
+          "secondaryForeground": "#0f172a",
+          "muted": "#f1f5f9",
+          "mutedForeground": "#475569",
+          "accent": "#e0e7ff",
+          "accentForeground": "#1e3a8a",
+          "destructive": "#dc2626",
+          "destructiveForeground": "#ffffff",
+          "border": "#e2e8f0",
+          "input": "#cbd5e1",
+          "ring": "#2563eb"
+        },
+        "dark": {
+          "background": "#0b1120",
+          "foreground": "#e2e8f0",
+          "card": "#111827",
+          "cardForeground": "#e2e8f0",
+          "popover": "#111827",
+          "popoverForeground": "#e2e8f0",
+          "primary": "#60a5fa",
+          "primaryForeground": "#0b1120",
+          "secondary": "#1e293b",
+          "secondaryForeground": "#e2e8f0",
+          "muted": "#1e293b",
+          "mutedForeground": "#94a3b8",
+          "accent": "#1e3a8a",
+          "accentForeground": "#e0e7ff",
+          "destructive": "#ef4444",
+          "destructiveForeground": "#ffffff",
+          "border": "#1e293b",
+          "input": "#334155",
+          "ring": "#60a5fa"
+        }
+      },
+      "radius": "0.75rem",
+      "fontFamily": {
+        "sans": "Inter, system-ui, sans-serif"
+      }
+    },
+    "logo": "/logo.svg",
+    "favicon": "/favicon.svg"
+  },
+  "trial": {
+    "enabled": true,
+    "days": 7
+  },
+  "plans": [
+    {
+      "id": "6m",
+      "label": "6 bulan",
+      "months": 6,
+      "priceIdr": 149000
+    },
+    {
+      "id": "12m",
+      "label": "12 bulan",
+      "months": 12,
+      "priceIdr": 249000,
+      "highlight": true
+    }
+  ],
+  "payments": {
+    "provider": "duitku",
+    "methods": [
+      "QRIS",
+      "DANA",
+      "SHOPEEPAY",
+      "OVO",
+      "VIRTUAL_ACCOUNT"
+    ]
+  },
+  "legal": {
+    "companyName": "PT Contoh Studio",
+    "contactEmail": "halo@example.com",
+    "sensitiveDataConsent": false,
+    "reviewed": false,
+    "productDataDescription": "Tidak ada data tambahan selain data akun dan langganan.",
+    "refundPolicy": "Karena akses diberikan segera setelah pembayaran, pembayaran tidak dapat dikembalikan, kecuali terjadi kesalahan tagihan atau layanan tidak dapat dipakai karena kesalahan kami. Hubungi kami untuk pengajuan."
+  },
+  "admin": {
+    "emails": []
+  },
+  "analytics": {
+    "openpanelClientId": "30b591cb-a810-42a6-a9cc-97f12a263446"
+  },
+  "monitoring": {
+    "sentryDsn": "https://b5f9d8f1ce9efa50576995836b63637d@o4512236547801088.ingest.us.sentry.io/4512236556124160"
+  }
+}
