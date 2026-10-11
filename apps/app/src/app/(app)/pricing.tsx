@@ -1,7 +1,8 @@
 import { Badge, Button, Card, CardDescription, CardHeader, CardTitle, ErrorText, Screen, Text } from "@factory/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Platform, View } from "react-native";
 import product from "../../../../../product.config";
+import { track } from "../../core/analytics";
 import { api } from "../../core/api";
 import { useMe, useRefreshMe } from "../../core/auth/use-me";
 import { openCheckout } from "../../core/billing/open-checkout";
@@ -14,6 +15,9 @@ export default function Pricing() {
   const refresh = useRefreshMe();
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === "web") track("pricing_view", { surface: "app" });
+  }, []);
 
   // Store rules: no web prices or checkout inside native builds (Section 6b).
   if (Platform.OS !== "web") {
@@ -27,6 +31,7 @@ export default function Pricing() {
   async function buy(planId: string) {
     setBusy(true);
     setMessage(null);
+    track("checkout_started", { plan: planId });
     const res = await api.api.billing.checkout.$post({ json: { planId } });
     if (!res.ok) {
       setBusy(false);
@@ -41,6 +46,7 @@ export default function Pricing() {
     setBusy(false);
     if (res.status === 409) return setMessage(t("pricing.trialUsed"));
     if (!res.ok) return setMessage(t("pricing.error"));
+    track("trial_started", { days: product.trial.days });
     await refresh();
   }
 

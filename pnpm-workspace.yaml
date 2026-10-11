@@ -34,6 +34,7 @@ catalog:
   drizzle-kit: 0.31.11
   drizzle-orm: 0.45.3
   hono: 4.13.9
+  "@openpanel/web": 1.4.1
   turbo: 2.11.4
   typescript: 6.0.3
   vitest: 4.1.11

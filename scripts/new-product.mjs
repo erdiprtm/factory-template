@@ -41,6 +41,8 @@ export function applyProductConfig(text, { slug, name, tagline, plans }) {
       /name: "[^"]*",\n(\s*)tagline: "[^"]*"/,
       `name: ${JSON.stringify(name)},\n$1tagline: ${JSON.stringify(tagline)}`,
     );
+  // Each product gets its own OpenPanel project: never send its events into the template's.
+  out = out.replace(/openpanelClientId: "[^"]*"/, "openpanelClientId: null");
   if (plans.length > 0) {
     const lines = plans
       .map((p, i) => {

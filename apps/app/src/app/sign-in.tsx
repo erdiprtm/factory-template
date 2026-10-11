@@ -3,6 +3,7 @@ import { Redirect } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import product from "../../../../product.config";
+import { track } from "../core/analytics";
 import { authClient } from "../core/auth/client";
 import { useMe } from "../core/auth/use-me";
 import { useI18n } from "../core/i18n";
@@ -22,6 +23,7 @@ export default function SignIn() {
     const value = email.trim();
     if (!EMAIL.test(value)) return setState("invalid");
     setState("sending");
+    track("signup_started", { method: "magic_link" });
     const { error } = await authClient.signIn.magicLink({ email: value, callbackURL: "/" });
     setState(error ? "error" : "sent");
   }

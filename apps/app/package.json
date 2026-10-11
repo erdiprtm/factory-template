@@ -13,7 +13,9 @@
   "dependencies": {
     "@expo/metro-runtime": "57.0.16",
     "@factory/config": "workspace:*",
+    "@factory/core": "workspace:*",
     "@factory/ui": "workspace:*",
+    "@openpanel/web": "catalog:",
     "@rn-primitives/portal": "1.5.3",
     "@tanstack/react-query": "5.104.0",
     "better-auth": "catalog:",

@@ -19,6 +19,7 @@ import { useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 import product from "../../../../../product.config";
 import { canDownload, downloadJson } from "../../core/account/download";
+import { resetAnalytics, track } from "../../core/analytics";
 import { api } from "../../core/api";
 import { apiBaseUrl } from "../../core/api-base";
 import { authClient } from "../../core/auth/client";
@@ -74,6 +75,7 @@ export default function Account() {
           variant="outline"
           onPress={async () => {
             await authClient.signOut();
+            resetAnalytics();
             await refreshMe();
             router.replace("/sign-in");
           }}
@@ -211,6 +213,8 @@ function Privacy() {
     const res = await api.api.account.delete.$post({ json: { confirm } });
     setBusy(false);
     if (!res.ok) return setError(t("account.deleteError"));
+    track("account_deleted");
+    resetAnalytics();
     await refreshMe();
     router.replace("/sign-in");
   }

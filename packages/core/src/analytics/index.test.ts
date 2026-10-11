@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createAnalytics, isValidEvent, scrubProps } from "./index";
+import { createAnalytics, isValidEvent, openPanelProvider, scrubProps } from "./index";
 
 describe("analytics", () => {
   it("accepts standard and feature_ events only", () => {
@@ -22,5 +22,15 @@ describe("analytics", () => {
     a.track("not_an_event" as never);
     expect(track).toHaveBeenCalledTimes(1);
     expect(track).toHaveBeenCalledWith("checkout_started", { plan: "6m" });
+  });
+});
+
+describe("openPanelProvider", () => {
+  it("forwards valid events with scrubbed properties, drops unknown ones", () => {
+    const sent: [string, unknown][] = [];
+    const analytics = createAnalytics(openPanelProvider({ track: (n, p) => sent.push([n, p]) }));
+    analytics.track("checkout_started", { plan: "6m", email: "budi@example.com" });
+    analytics.track("not_a_standard_event" as never);
+    expect(sent).toEqual([["checkout_started", { plan: "6m" }]]);
   });
 });
