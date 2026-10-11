@@ -24,7 +24,8 @@ function TopBar() {
   const { t } = useI18n();
   const router = useRouter();
   const path = usePathname();
-  const tab = (href: "/" | "/account", label: string) => {
+  const me = useMe();
+  const tab = (href: "/" | "/account" | "/admin", label: string) => {
     const active = href === "/" ? path === "/" : path.startsWith(href);
     return (
       <Pressable
@@ -43,6 +44,7 @@ function TopBar() {
       <View className="flex-row">
         {tab("/", t("nav.home"))}
         {tab("/account", t("nav.account"))}
+        {me.data?.isAdmin ? tab("/admin", t("nav.admin")) : null}
       </View>
     </View>
   );

@@ -1,5 +1,6 @@
 import { config } from "@factory/config/product";
 import { deleteUserData, exportUserData, subscriptionSummary } from "@factory/core/account";
+import { isAdminEmail } from "@factory/core/admin";
 import { handleWebhook, paymentStatus, startCheckout } from "@factory/core/billing";
 import { missingConsents, recordConsents, requiredConsents } from "@factory/core/consents";
 import { capturedDevEmails, emailProvider } from "@factory/core/email";
@@ -11,6 +12,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
+import { adminRoutes } from "./core/admin";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
 import { fakeProvider, getProvider, type PaymentEnv } from "./core/payments";
@@ -22,6 +24,8 @@ import { exampleFeature } from "./features/example";
 export type Bindings = AuthEnv &
   PaymentEnv & {
     COMMIT_SHA: string;
+    /** Extra admins on top of product.config.ts admin.emails (comma-separated). */
+    ADMIN_EMAILS?: string;
     CF_VERSION_METADATA: { id: string; tag: string; timestamp: string };
   };
 
@@ -124,13 +128,14 @@ const routes = app
   .get("/me", async (c) => {
     const user = c.get("user");
     const providers = { google: Boolean(c.env.GOOGLE_CLIENT_ID && c.env.GOOGLE_CLIENT_SECRET) };
-    if (!user) return c.json({ user: null, access: false, missingConsents: [] as string[], providers });
+    if (!user) return c.json({ user: null, access: false, missingConsents: [] as string[], providers, isAdmin: false });
     const required = requiredConsents(config.legal);
     return c.json({
       user: { id: user.id, email: user.email, name: user.name },
       access: await hasAccess(db(c.env), user.id),
       missingConsents: (await missingConsents(db(c.env), user.id, required)) as string[],
       providers,
+      isAdmin: isAdminEmail(user.email, config.admin.emails, c.env.ADMIN_EMAILS),
     });
   })
   .use("/consents", sessionMiddleware, requireSession)
@@ -223,6 +228,7 @@ const routes = app
     }
     return c.json({ ok: true as const });
   })
+  .route("/admin", adminRoutes)
   // PRODUCT-OWNED features mount below. The example shows the requireAccess pattern.
   .route("/example", exampleFeature);
 
