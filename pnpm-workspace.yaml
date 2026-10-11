@@ -35,6 +35,9 @@ catalog:
   drizzle-orm: 0.45.3
   hono: 4.13.9
   "@openpanel/web": 1.4.1
+  # Sentry SDKs move in lockstep: keep these on the same version (D-025).
+  "@sentry/browser": 11.0.0
+  "@sentry/cloudflare": 11.0.0
   turbo: 2.11.4
   typescript: 6.0.3
   vitest: 4.1.11

@@ -471,3 +471,26 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
 
 - **Native:** a no-op with the same API (`analytics.ts`). Phase 10 adds `@openpanel/react-native`.
 - **Not wired yet:** `renewal_reminder_sent` and `entitlement_expired` happen on the server (cron), and sending them needs the client secret as a Worker secret. Follow-up.
+
+## D-025: Sentry error monitoring (2026-10-11)
+
+- **SDKs:** `@sentry/cloudflare` and `@sentry/browser` **11.0.0**, the newest ≥ 14 days old. They ship in lockstep and are pinned together in the catalog. With v11:
+  - `sendDefaultPii` is gone (replaced by `dataCollection`).
+  - `honoIntegration` is gone.
+  - **Everything is collected by default:** user info, cookies, headers, bodies and query strings.
+- **DSN** lives in `product.config.ts` `monitoring.sentryDsn`. It is public and can only submit events. `/new-product` resets it to `null`, like the OpenPanel client ID. The auth token is never stored.
+- **Privacy, enforced twice:**
+  - Every init sets `dataCollection` with all personal-data collectors off (`PRIVATE_DATA_COLLECTION`).
+  - `beforeSend` and `beforeBreadcrumb` run `@factory/core/monitoring` scrubbers on top. The user is reduced to an opaque id. Request data is reduced to method plus URL without query or fragment (this covers magic-link tokens and payment ids). Extra data and request contexts are dropped. Emails, Indonesian phone numbers and `token=` / `secret=`-style pairs inside messages are redacted.
+  - No tracing, no replay. The browser drops `BrowserSession`, which sends the IP.
+- **Worker:**
+  - `withSentry` wraps `{ fetch, scheduled }`. It reports only from `production` and `preview`; dev and tests get no client.
+  - `app.onError` reports errors that Hono catches and answers a generic `{ error: "internal_error" }` 500, so internals never reach clients.
+  - Needs `compatibility_flags: ["nodejs_compat"]`, because the SDK uses AsyncLocalStorage.
+  - The bundle is 3.4 MB raw / 601 KiB gzip, under the Workers free-plan limit.
+- **Web app:**
+  - Reports only when `/api/health` says production or preview. One shared request (`deploy-env.web.ts`) serves both analytics and monitoring.
+  - Sentry is a lazy chunk (~1.1 MB raw; Metro doesn't tree-shake) loaded after `load` plus idle, so it never competes with the first screen. The entry bundle grew by 3 KB.
+  - Errors in the first seconds after load aren't reported.
+  - The root `ErrorBoundary` reports render errors.
+- **Native and site:** native is a no-op until Phase 10 (`@sentry/react-native`). The static site has no Sentry: it has very little JS.

@@ -99,6 +99,9 @@ export const productSchema = z.object({
   // OpenPanel (FACTORY_BLUEPRINT.md Section 9). The client ID is public (it ships to browsers);
   // its secret never goes here. Unset = analytics off. Events are sent from production only.
   analytics: z.object({ openpanelClientId: z.uuid().nullable().default(null) }).default({ openpanelClientId: null }),
+  // Sentry DSN (public: browsers carry it; it can only submit events). Unset = monitoring off.
+  // Errors are reported from production and preview only, with PII scrubbed (@factory/core/monitoring).
+  monitoring: z.object({ sentryDsn: z.url().nullable().default(null) }).default({ sentryDsn: null }),
 });
 
 export type ProductConfigInput = z.input<typeof productSchema>;

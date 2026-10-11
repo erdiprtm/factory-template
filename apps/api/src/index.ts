@@ -17,6 +17,7 @@ import { z } from "zod";
 import { adminRoutes } from "./core/admin";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
+import { captureError, withMonitoring } from "./core/monitoring";
 import { configuredProvider, fakeProvider, type PaymentEnv } from "./core/payments";
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
@@ -262,9 +263,17 @@ const routes = app
 
 export type AppType = typeof routes;
 
-export default {
+// Errors Hono catches (thrown in routes) are reported here; withSentry covers the rest
+// (uncaught fetch/scheduled errors). Clients get a generic JSON error, never internals.
+app.onError((err, c) => {
+  captureError(err);
+  console.error("unhandled", err instanceof Error ? err.message : err);
+  return c.json({ error: "internal_error" as const }, 500);
+});
+
+export default withMonitoring({
   fetch: app.fetch,
   async scheduled(_controller: unknown, env: Bindings, ctx: { waitUntil(p: Promise<unknown>): void }) {
     ctx.waitUntil(runScheduled(env));
   },
-};
+});

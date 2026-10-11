@@ -26,6 +26,7 @@ import { authClient } from "../../core/auth/client";
 import { useRefreshMe } from "../../core/auth/use-me";
 import { formatDate, formatIdr } from "../../core/format";
 import { type Locale, type MessageKey, useI18n } from "../../core/i18n";
+import { setMonitoringUser } from "../../core/monitoring";
 import { type ThemePreference, useThemePreference } from "../../core/theme";
 
 export default function Account() {
@@ -76,6 +77,7 @@ export default function Account() {
           onPress={async () => {
             await authClient.signOut();
             resetAnalytics();
+            setMonitoringUser(null);
             await refreshMe();
             router.replace("/sign-in");
           }}
@@ -215,6 +217,7 @@ function Privacy() {
     if (!res.ok) return setError(t("account.deleteError"));
     track("account_deleted");
     resetAnalytics();
+    setMonitoringUser(null);
     await refreshMe();
     router.replace("/sign-in");
   }

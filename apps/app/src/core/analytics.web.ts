@@ -11,7 +11,7 @@ import {
 } from "@factory/core/analytics";
 import { OpenPanel } from "@openpanel/web";
 import product from "../../../../product.config";
-import { apiBaseUrl } from "./api-base";
+import { deployInfo } from "./deploy-env";
 
 let analytics = createAnalytics(noopAnalytics);
 let op: OpenPanel | null = null;
@@ -23,12 +23,7 @@ let queue: [AnalyticsEvent, EventProps | undefined][] = [];
 export function initAnalytics(): Promise<void> {
   ready ??= (async () => {
     const clientId = product.analytics.openpanelClientId;
-    const env = clientId
-      ? await fetch(`${apiBaseUrl()}/api/health`)
-          .then((r) => r.json() as Promise<{ env?: string }>)
-          .then((b) => b.env)
-          .catch(() => undefined)
-      : undefined;
+    const env = clientId ? (await deployInfo()).env : undefined;
     if (clientId && env === "production") {
       op = new OpenPanel({ clientId, trackScreenViews: true });
       analytics = createAnalytics(openPanelProvider(op));

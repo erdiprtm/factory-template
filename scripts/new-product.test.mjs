@@ -27,6 +27,7 @@ describe("new-product transforms", () => {
     // The template's OpenPanel client must not carry over into a product.
     expect(read("product.config.ts")).toMatch(/openpanelClientId: "[0-9a-f-]{36}"/);
     expect(out).toContain("openpanelClientId: null");
+    expect(out).toContain("sentryDsn: null");
   });
 
   it("renames Workers, databases and hosts in wrangler configs", () => {

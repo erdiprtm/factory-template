@@ -17,6 +17,7 @@
     "@factory/ui": "workspace:*",
     "@openpanel/web": "catalog:",
     "@rn-primitives/portal": "1.5.3",
+    "@sentry/browser": "catalog:",
     "@tanstack/react-query": "5.104.0",
     "better-auth": "catalog:",
     "expo": "57.0.25",
