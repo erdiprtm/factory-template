@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Sell engine, Module 3: landers (branch `feat/landers`)
+
+- `/l/<slug>/` landers come from one Markdown file each. The headline is the ad's hook, word for word, and one CTA leads to the quiz, with price framing per week (D-035).
+- The example lander is `/l/contoh/`.
+
+---
+
 ## 2026-10-11: Sell engine, Module 2: Meta Pixel + Conversions API (branch `feat/meta-capi`)
 
 - A consent banner with an "iklan/marketing" toggle (site and app). The choice is recorded in `consents` and can be withdrawn from Akun.

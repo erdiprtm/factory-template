@@ -68,4 +68,16 @@ describe("built site", () => {
   it("non-production builds never send analytics (no OpenPanel client ID in the HTML)", () => {
     expect(page("index.html")).not.toContain("data-op-client");
   });
+
+  it("ad landers: hook as the headline, one way forward to the quiz, noindex, not in the sitemap", () => {
+    const html = page("l/contoh/index.html");
+    const hook = "Untuk kamu yang sibuk, dapatkan rencana harian yang jelas dalam 2 menit";
+    expect(html).toContain(`<h1 class="text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">${hook}</h1>`);
+    expect(html).toContain('<meta name="robots" content="noindex"');
+    expect(html).toContain('data-page-event="lp_view"');
+    expect(html).toMatch(/href="[^"]+\/quiz" data-event="cta_tap"/);
+    expect(html).not.toContain(`href="/harga/"`); // no nav: the CTA is the only way forward
+    expect(html).toContain("/minggu");
+    expect(page("sitemap-0.xml")).not.toContain("/l/");
+  });
 });

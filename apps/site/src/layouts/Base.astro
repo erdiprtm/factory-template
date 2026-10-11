@@ -10,9 +10,11 @@ interface Props {
   jsonLd?: unknown[];
   /** Standard analytics event fired on load (Section 9), e.g. "pricing_view"; landers send "lp_view". */
   event?: "site_view" | "pricing_view" | "lp_view";
+  /** Ad landers: logo-only header (one way forward: the CTA) and kept out of search. */
+  minimal?: boolean;
 }
 
-const { title, description, og = "home", jsonLd = [], event = "site_view" } = Astro.props;
+const { title, description, og = "home", jsonLd = [], event = "site_view", minimal = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(`/og/${og}.png`, Astro.site);
 const fullTitle = title === product.name ? title : `${title} | ${product.name}`;
@@ -27,6 +29,7 @@ const year = new Date().getFullYear();
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {minimal && <meta name="robots" content="noindex" />}
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="icon" href={product.brand.favicon} type="image/svg+xml" />
     <meta name="theme-color" content={product.brand.tokens.colors.light.primary} />
@@ -49,11 +52,15 @@ const year = new Date().getFullYear();
     <header class="border-b border-border">
       <nav class="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4" aria-label="Utama">
         <a href="/" class="text-lg font-bold">{product.name}</a>
-        <div class="flex items-center gap-1 text-sm sm:gap-4">
-          <a href="/harga/" class="rounded-md px-2 py-2 text-muted-foreground hover:text-foreground">Harga</a>
-          <a href="/#faq" class="hidden rounded-md px-2 py-2 text-muted-foreground hover:text-foreground sm:inline">FAQ</a>
-          <a href={`${appUrl}/sign-in`} data-event="signup_started" class="rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground hover:opacity-90">Masuk</a>
-        </div>
+        {
+          !minimal && (
+            <div class="flex items-center gap-1 text-sm sm:gap-4">
+              <a href="/harga/" class="rounded-md px-2 py-2 text-muted-foreground hover:text-foreground">Harga</a>
+              <a href="/#faq" class="hidden rounded-md px-2 py-2 text-muted-foreground hover:text-foreground sm:inline">FAQ</a>
+              <a href={`${appUrl}/sign-in`} data-event="signup_started" class="rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground hover:opacity-90">Masuk</a>
+            </div>
+          )
+        }
       </nav>
     </header>
     <main id="main" class="flex-1">

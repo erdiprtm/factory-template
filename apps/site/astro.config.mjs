@@ -28,7 +28,8 @@ export default defineConfig({
       scriptDirective: { resources: ["'self'", "https://connect.facebook.net"] },
     },
   },
-  integrations: [sitemap({ filter: (page) => !page.includes("/og/") })],
+  // Ad landers (/l/…) are noindex: only reachable from ads, so they stay out of the sitemap too.
+  integrations: [sitemap({ filter: (page) => !page.includes("/og/") && !page.includes("/l/") })],
   // Never inline scripts into HTML: the CSP allows script files from self only.
   vite: { plugins: [tailwindcss()], build: { assetsInlineLimit: 0 } },
 });
