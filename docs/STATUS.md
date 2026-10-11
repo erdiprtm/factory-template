@@ -4,6 +4,15 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Phase 1 acceptance complete: Expo Go on a real iPhone ✅
+
+- The sign-in screen renders natively with the product tokens. Sending a magic link reached the local API over LAN (`EXPO_PUBLIC_API_URL`).
+- The test found that native styling was broken (duplicate css-interop instance), fixed by Metro singletons (D-023, on `feat/phase-9-hardening`).
+- Signing in on native needs `@better-auth/expo`, which is Phase 10 by design.
+- **Next:** open the Phase 2 PR and merge the stack in order.
+
+---
+
 ## 2026-10-11: Phase 9 hardening plus the DOKU adapter (branch `feat/phase-9-hardening`, stacked on Phase 8); not merged
 
 - **Security headers** on the API (Hono `secureHeaders`), the app HTML (`_headers`) and the site (Astro hash CSP plus `_headers`). There are no inline scripts on the site. Checked in a real browser: zero CSP violations. E2E asserts the app's headers (D-021).

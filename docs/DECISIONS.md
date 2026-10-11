@@ -442,3 +442,10 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
   - This applies to every provider. Before this change, an unconfirmed "paid" callback was acknowledged and dropped.
 - **Notification URL** is set per channel in the DOKU Back Office, not per request (SETUP_HUMAN step 3b). Sandbox notifications go to the fixed preview Worker.
 - `payment_method_types` is omitted: the checkout shows the channels enabled in the dashboard, as with Duitku (D-017). DOKU's channel names weren't confirmed against our method ids.
+
+## D-023: Metro resolves React Native packages as singletons (2026-10-11)
+
+- **Found in the Phase 1 Expo Go test.** Native screens rendered completely unstyled; web was fine.
+- **Cause:** pnpm gave `packages/ui` its own `nativewind` and `react-native-css-interop` copies, because its devDependencies resolve a different peer set (for example reanimated 4.7.0 instead of 4.5.1). The second css-interop instance keeps its own style store. `global.css` injected the styles into the app's copy, but `packages/ui`'s JSX read the other copy. Web uses real CSS, so it never showed there.
+- **Fix:** `apps/app/metro.config.js` resolves `react`, `react-native`, `nativewind`, `react-native-css-interop`, reanimated, worklets, safe-area-context and svg from `apps/app` for every importer. Checked on a real iPhone: styles, tokens and the API call over LAN all work.
+- Any new shared package with native peers must be added to `SINGLETONS`.
