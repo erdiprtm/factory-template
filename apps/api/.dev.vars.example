@@ -1,7 +1,7 @@
 # Local secrets for `wrangler dev`. Copy this file to `.dev.vars` (gitignored) and fill it in.
 # The human fills real values; agents never read the real file.
 # Deployed Workers get the same keys as Wrangler secrets (top level = production, --env preview = preview):
-#   pnpm exec wrangler secret put <NAME>            and    pnpm exec wrangler secret put <NAME> --env preview
+#   pnpm exec wrangler versions secret put <NAME>            and    pnpm exec wrangler versions secret put <NAME> --env preview
 
 # Session signing key, >= 32 random chars. Different per environment.
 # Local dev works without it (a fixed dev-only key is used when APP_ENV=development).

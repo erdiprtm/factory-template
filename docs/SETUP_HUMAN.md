@@ -197,10 +197,10 @@ Sumber: <https://developers.cloudflare.com/workers/platform/limits/>, <https://d
 6. **Metode pembayaran:** halaman bayar Duitku menampilkan **semua channel yang aktif di proyek**. Aktifkan di dashboard proyek: QRIS, DANA, ShopeePay, OVO, dan Virtual Account.
 7. **Simpan ke Cloudflare** (jalankan di folder `~/ASF/apps/api`; tempel nilainya saat diminta, isinya tidak tampil di layar). Setiap perintah dijalankan dua kali, untuk preview dan produksi:
    ```bash
-   pnpm exec wrangler secret put DUITKU_MERCHANT_CODE --env preview
+   pnpm exec wrangler versions secret put DUITKU_MERCHANT_CODE --env preview
    ```
    ```bash
-   pnpm exec wrangler secret put DUITKU_API_KEY --env preview
+   pnpm exec wrangler versions secret put DUITKU_API_KEY --env preview
    ```
    Lalu ulangi kedua perintah **tanpa** `--env preview` untuk produksi. Mode tetap **sandbox** sampai kamu sendiri memutuskan pindah ke produksi.
 8. **Cara mensimulasikan bayar di sandbox:** pilih **Virtual Account** di halaman bayar, salin nomor VA-nya, lalu buka <https://sandbox.duitku.com/payment/demo/demosuccesstransaction.aspx> dan masukkan nomor VA tersebut. Untuk QRIS ShopeePay ada aplikasi Shopee *staging* (link di dokumentasi Duitku). DANA/OVO sandbox tidak punya simulator resmi.
@@ -225,10 +225,10 @@ Template mendukung DOKU Checkout sebagai penyedia kedua. Langkah ini **hanya** p
 4. **Metode pembayaran:** halaman DOKU Checkout menampilkan semua channel yang aktif di akun. Aktifkan yang dipakai produk (QRIS, e-wallet, Virtual Account).
 5. **Simpan ke Cloudflare** (di folder `~/ASF/apps/api`; tempel nilainya saat diminta):
    ```bash
-   pnpm exec wrangler secret put DOKU_CLIENT_ID --env preview
+   pnpm exec wrangler versions secret put DOKU_CLIENT_ID --env preview
    ```
    ```bash
-   pnpm exec wrangler secret put DOKU_SECRET_KEY --env preview
+   pnpm exec wrangler versions secret put DOKU_SECRET_KEY --env preview
    ```
    Lalu ulangi **tanpa** `--env preview` untuk produksi. Mode tetap **sandbox** (`DOKU_MODE`) sampai kamu sendiri memutuskan pindah.
 6. **Simulasi bayar:** pilih Virtual Account di halaman DOKU, lalu ikuti petunjuk simulasi pembayaran sandbox di dokumentasi DOKU (agen belum memverifikasi letak menunya; kabari kalau tampilannya beda).
@@ -299,6 +299,14 @@ Email dipakai untuk magic link login, struk pembayaran, dan pengingat perpanjang
    - **Tanpa domain sendiri**, Resend hanya bisa mengirim email **ke alamat email akun Resend kamu sendiri**. Ini cukup untuk mencoba magic link di preview (login pakai email yang sama dengan akun Resend).
    - **Sebelum launch**, kamu perlu domain sendiri: **Domains → Add Domain** → tambahkan record DNS yang diminta → tunggu status *Verified*.
 4. Paket gratis: 3.000 email/bulan, maksimal 100 email/hari.
+5. **Simpan ke Cloudflare** (di folder `~/ASF/apps/api`; tempel key-nya saat diminta):
+   ```bash
+   pnpm exec wrangler versions secret put RESEND_API_KEY --env preview
+   ```
+   ```bash
+   pnpm exec wrangler versions secret put RESEND_API_KEY
+   ```
+   Perintah ini **tidak men-deploy apa pun**; secret ikut aktif di deploy CI berikutnya. Kalau wrangler menyarankan `wrangler versions deploy`, **jangan** jalankan (deploy hanya lewat CI).
 
 Sumber: <https://resend.com/pricing>, <https://resend.com/docs/knowledge-base/403-error-resend-dev-domain>
 
