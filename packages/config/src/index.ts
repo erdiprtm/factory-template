@@ -96,6 +96,9 @@ export const productSchema = z.object({
       ),
   }),
   admin: z.object({ emails: z.array(z.email()) }),
+  // OpenPanel (FACTORY_BLUEPRINT.md Section 9). The client ID is public (it ships to browsers);
+  // its secret never goes here. Unset = analytics off. Events are sent from production only.
+  analytics: z.object({ openpanelClientId: z.uuid().nullable().default(null) }).default({ openpanelClientId: null }),
 });
 
 export type ProductConfigInput = z.input<typeof productSchema>;

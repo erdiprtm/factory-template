@@ -4,9 +4,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import Head from "expo-router/head";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import product from "../../../../product.config";
+import { initAnalytics } from "../core/analytics";
 import { I18nProvider } from "../core/i18n";
 import { useRestoreTheme, useThemePreference } from "../core/theme";
 
@@ -15,6 +16,9 @@ export { ErrorBoundary } from "expo-router";
 export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient());
   useRestoreTheme();
+  useEffect(() => {
+    void initAnalytics();
+  }, []);
   const { colorScheme } = useThemePreference();
   return (
     <I18nProvider>

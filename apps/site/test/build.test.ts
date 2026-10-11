@@ -64,4 +64,8 @@ describe("built site", () => {
     expect(headers).toContain("frame-ancestors 'none'");
     expect(headers).toContain("X-Content-Type-Options: nosniff");
   });
+
+  it("non-production builds never send analytics (no OpenPanel client ID in the HTML)", () => {
+    expect(page("index.html")).not.toContain("data-op-client");
+  });
 });

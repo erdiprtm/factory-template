@@ -449,3 +449,25 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
 - **Cause:** pnpm gave `packages/ui` its own `nativewind` and `react-native-css-interop` copies, because its devDependencies resolve a different peer set (for example reanimated 4.7.0 instead of 4.5.1). The second css-interop instance keeps its own style store. `global.css` injected the styles into the app's copy, but `packages/ui`'s JSX read the other copy. Web uses real CSS, so it never showed there.
 - **Fix:** `apps/app/metro.config.js` resolves `react`, `react-native`, `nativewind`, `react-native-css-interop`, reanimated, worklets, safe-area-context and svg from `apps/app` for every importer. Checked on a real iPhone: styles, tokens and the API call over LAN all work.
 - Any new shared package with native peers must be added to `SINGLETONS`.
+
+## D-024: OpenPanel analytics wired (2026-10-11)
+
+- **Package:** `@openpanel/web` 1.4.1, in the catalog, published 2026-05-07.
+  - It sends a POST to `https://api.openpanel.dev/track`, allowed by our CSP `connect-src https:`.
+  - It uses no cookies or localStorage; the vendor states it is cookieless.
+  - The OpenPanel server checks the request Origin against the client's allowed domains. These are set to the production site and app hosts, without a preview wildcard.
+- **Client ID** lives in `product.config.ts` `analytics.openpanelClientId`. It is public: browsers carry it. The client secret and the MCP token are never stored in the repo. `/new-product` resets the ID to `null`, so each product gets its own project.
+- **Production only.**
+  - The site sets `data-op-client` only in a `PUBLIC_APP_ENV=production` build; a build test asserts it is absent otherwise.
+  - The app sends nothing until `/api/health` reports `env: "production"`. Events tracked before that are queued.
+  - Previews, local dev and E2E therefore never reach OpenPanel.
+- **Every event goes through `@factory/core/analytics`** (`createAnalytics(openPanelProvider(op))`): only standard names or `feature_*`, with PII scrubbed. Users are identified by their opaque user id only, never email or name, and `clear()` runs on sign-out and on account deletion.
+- **Events wired:**
+
+  | Where | Events |
+  |---|---|
+  | Site | `site_view`, `pricing_view`, `signup_started` and plan clicks (`data-event`), outgoing links |
+  | App | screen views (SPA history), `signup_started`, `signup_completed` (consent accepted), `pricing_view`, `trial_started`, `paywall_shown`, `checkout_started`, `payment_paid` / `payment_failed` (return page), `account_deleted` |
+
+- **Native:** a no-op with the same API (`analytics.ts`). Phase 10 adds `@openpanel/react-native`.
+- **Not wired yet:** `renewal_reminder_sent` and `entitlement_expired` happen on the server (cron), and sending them needs the client secret as a Worker secret. Follow-up.

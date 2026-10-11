@@ -64,3 +64,15 @@ export function createAnalytics(provider: AnalyticsProvider, opts: { dev?: boole
 
 /** Used when no analytics is configured (local dev, tests, products before Phase 7 setup). */
 export const noopAnalytics: AnalyticsProvider = { track() {} };
+
+/** The part of an OpenPanel client (`@openpanel/web` `OpenPanel`) this adapter uses. */
+export type OpenPanelLike = { track(name: string, properties?: Record<string, unknown>): unknown };
+
+/** AnalyticsProvider over OpenPanel. Wrap it with createAnalytics so names are checked and PII scrubbed. */
+export function openPanelProvider(op: OpenPanelLike): AnalyticsProvider {
+  return {
+    track(event, props) {
+      void op.track(event, props);
+    },
+  };
+}

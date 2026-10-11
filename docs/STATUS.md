@@ -4,6 +4,15 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: OpenPanel analytics wired (branch `feat/openpanel`, on top of Phase 9)
+
+- The human created the OpenPanel project (allowed domains: production site and app). Its client ID is in `product.config.ts` (D-024).
+- Standard events from the site and the web app, production only, with PII scrubbed and opaque-id identify.
+- `pnpm verify` green: 191 unit/integration tests plus 8 E2E. App bundle +1 KB.
+- After it deploys: confirm events in the OpenPanel dashboard (launch-check item 9).
+
+---
+
 ## 2026-10-11: Phase 1 acceptance complete: Expo Go on a real iPhone ✅
 
 - The sign-in screen renders natively with the product tokens. Sending a magic link reached the local API over LAN (`EXPO_PUBLIC_API_URL`).

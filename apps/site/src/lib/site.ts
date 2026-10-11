@@ -13,6 +13,9 @@ export const appUrl: string =
 /** "production" only on the production build; previews and local show the legal TEMPLATE banner. */
 export const isProduction = import.meta.env.PUBLIC_APP_ENV === "production";
 
+/** OpenPanel client ID, only on production builds: previews and dev send nothing. */
+export const analyticsClientId = (isProduction && product.analytics.openpanelClientId) || undefined;
+
 /** Legal pages show the TEMPLATE banner until a lawyer reviewed them AND it's a production build. */
 export const showLegalBanner = !(isProduction && product.legal.reviewed);
 

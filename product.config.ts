@@ -71,4 +71,6 @@ export default defineProduct({
   },
   legal: { companyName: "PT Contoh Studio", contactEmail: "halo@example.com", sensitiveDataConsent: false },
   admin: { emails: [] },
+  // Template's own OpenPanel project. /new-product clears it: each product gets its own project.
+  analytics: { openpanelClientId: "30b591cb-a810-42a6-a9cc-97f12a263446" },
 });

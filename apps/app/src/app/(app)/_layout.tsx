@@ -1,7 +1,9 @@
 import { Loading, Text } from "@factory/ui";
 import { Redirect, Stack, usePathname, useRouter } from "expo-router";
+import { useEffect } from "react";
 import { Pressable, View } from "react-native";
 import product from "../../../../../product.config";
+import { identify } from "../../core/analytics";
 import { useMe } from "../../core/auth/use-me";
 import { useI18n } from "../../core/i18n";
 
@@ -9,6 +11,10 @@ import { useI18n } from "../../core/i18n";
 export default function ProtectedLayout() {
   const me = useMe();
   const { t } = useI18n();
+  const userId = me.data?.user?.id;
+  useEffect(() => {
+    if (userId) identify(userId);
+  }, [userId]);
   if (me.isPending) return <Loading label={t("common.loading")} />;
   if (!me.data?.user) return <Redirect href="/sign-in" />;
   if (me.data.missingConsents.length > 0) return <Redirect href="/consent" />;

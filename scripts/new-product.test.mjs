@@ -24,6 +24,9 @@ describe("new-product transforms", () => {
     expect(out).toContain('{ id: "12m", label: "12 bulan", months: 12, priceIdr: 79000, highlight: true },');
     expect(out).toContain("primaryForeground"); // brand tokens untouched
     expect(out).not.toContain("factory-template");
+    // The template's OpenPanel client must not carry over into a product.
+    expect(read("product.config.ts")).toMatch(/openpanelClientId: "[0-9a-f-]{36}"/);
+    expect(out).toContain("openpanelClientId: null");
   });
 
   it("renames Workers, databases and hosts in wrangler configs", () => {

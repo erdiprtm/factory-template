@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator } from "react-native";
+import { track } from "../../../core/analytics";
 import { api } from "../../../core/api";
 import { useRefreshMe } from "../../../core/auth/use-me";
 import { useI18n } from "../../../core/i18n";
@@ -37,7 +38,9 @@ export default function BillingReturn() {
   const state = status.data?.status;
   useEffect(() => {
     if (state === "paid") refreshMe();
-  }, [state, refreshMe]);
+    if (state === "paid") track("payment_paid", { plan: status.data?.planId ?? null });
+    if (state === "failed" || state === "expired") track("payment_failed", { status: state });
+  }, [state, refreshMe, status.data?.planId]);
 
   let text = t("billing.return.checking");
   if (state === "paid") text = t("billing.return.paid");
