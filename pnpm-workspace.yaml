@@ -25,6 +25,8 @@ catalog:
   "@biomejs/biome": 2.5.14
   "@cloudflare/vitest-plugin": 1.2.8
   "@types/node": 26.6.3
+  drizzle-kit: 0.31.11
+  drizzle-orm: 0.45.3
   hono: 4.13.9
   turbo: 2.11.4
   typescript: 6.0.3

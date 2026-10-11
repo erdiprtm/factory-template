@@ -4,6 +4,18 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Phase 2 (database) built on branch `feat/phase-2-db`; not merged yet
+
+Phase 1 acceptance is complete except the human's Expo Go phone test. Per Operating rule 1, Phase 2 is prepared on a branch and its PR opens after that test.
+
+- **Rollback drill passed** (PR #5 fixed the post-rollback check path; run 38111041768). The deploy went out, the smoke test failed on purpose, auto-rollback ran, the live version was verified as the target `93739ba3…`, and incident #6 was opened, then closed as a drill. The first drill (run 38110730393) had found the path bug; the rollback itself had worked.
+- **`packages/db`:** Drizzle schema for the 5 core tables, the first migration `20261011041937_core_tables.sql`, a dev seed, and a README covering how products add tables. D1 databases were created (prod + preview) and bound in `wrangler.jsonc`.
+- **`packages/core/entitlements`:** access check, trial-once, extend-never-overlap, idempotent payment grant, admin grant (D-015).
+- **`pnpm verify` green:** 92 tests (api 10 incl. 8 on real local D1, core 6, config 5, scripts 71). Local migrate and seed work.
+- **When merged:** CI migrates the preview D1 on the PR, and `deploy.yml` takes the first real Time Travel bookmark and migrates production. This is the first real exercise of the D1 steps.
+
+---
+
 ## 2026-10-11: Phase 1 checkpoint done; first PR through the pipeline
 
 - Public repo https://github.com/erdiprtm/factory-template created. `scripts/setup-github.sh` applied: squash-only, auto-merge, delete-branch-on-merge, `PRODUCTION_URL`, and the `main` ruleset (active; works on the free plan because the repo is public).

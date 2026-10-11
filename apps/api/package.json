@@ -11,13 +11,18 @@
     "build": "wrangler deploy --dry-run --outdir dist",
     "types": "wrangler types",
     "typecheck": "wrangler types --check && tsc --noEmit -p .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:seed:local": "wrangler d1 execute DB --local --file ../../packages/db/seed/dev.sql"
   },
   "dependencies": {
     "hono": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "catalog:",
+    "@factory/core": "workspace:*",
+    "@factory/db": "workspace:*",
+    "drizzle-orm": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wrangler": "catalog:"
