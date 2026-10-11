@@ -1,4 +1,4 @@
-import { Button, CenteredScreen, ErrorText, Input, Loading, Text } from "@factory/ui";
+import { Button, CenteredScreen, ErrorText, Input, Text } from "@factory/ui";
 import { Redirect } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
@@ -16,7 +16,8 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "invalid" | "error">("idle");
 
-  if (me.isPending) return <Loading label={t("common.loading")} />;
+  // Render the form at once (no spinner while /api/me loads: it was the page's LCP); a signed-in
+  // visitor is redirected as soon as the answer arrives.
   if (me.data?.user) return <Redirect href="/" />;
 
   async function sendLink() {
