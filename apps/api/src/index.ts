@@ -11,10 +11,11 @@ import {
   saveAttribution,
 } from "@factory/core/attribution";
 import { handleWebhook, paymentStatus, startCheckout } from "@factory/core/billing";
-import { missingConsents, recordConsents, requiredConsents } from "@factory/core/consents";
+import { missingConsents, recordConsents, requiredConsents, revokeConsent } from "@factory/core/consents";
 import { capturedDevEmails, emailProvider } from "@factory/core/email";
 import { receiptEmail } from "@factory/core/email/templates";
 import { grantTrial, hasAccess } from "@factory/core/entitlements";
+import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
 import { payments, schema } from "@factory/db";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -27,6 +28,13 @@ import { adminRoutes } from "./core/admin";
 import { type AnalyticsEnv, serverAnalytics } from "./core/analytics";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
+import {
+  capiOptions,
+  hasMarketingConsent,
+  type MarketingEnv,
+  marketingTrackingOn,
+  sendPaymentConversion,
+} from "./core/marketing";
 import { captureError, withMonitoring } from "./core/monitoring";
 import { configuredProvider, fakeProvider, type PaymentEnv } from "./core/payments";
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
@@ -39,6 +47,7 @@ import { deleteProductData, exportProductData } from "./features/user-data";
 export type Bindings = AuthEnv &
   PaymentEnv &
   AnalyticsEnv &
+  MarketingEnv &
   RateLimitEnv & {
     COMMIT_SHA: string;
     /** Extra admins on top of product.config.ts admin.emails (comma-separated). */
@@ -96,12 +105,23 @@ app.post("/api/webhooks/:provider", rateLimit("WEBHOOK_LIMITER", clientIp), asyn
   if (outcome.kind === "retry") return c.json({ error: "not_confirmed_yet" as const }, 503);
   if (outcome.kind === "processed") {
     // Source of truth for payment analytics: the browser may be gone by the time this lands.
-    const { id, userId, planId, amountIdr, status, utmCampaign, utmSource } = outcome.payment;
+    const { id, userId, planId, amountIdr, status, utmCampaign, utmSource, paidAt } = outcome.payment;
     if (outcome.entitlement) {
-      const event = await paidEventKind(db(c.env), { id, userId });
+      const event = await paidEventKind(db(c.env), { id, userId, paidAt });
       await recordServerEvent(db(c.env), { event, userId, valueIdr: amountIdr, utmCampaign, utmSource });
       const props = { plan: planId, amount_idr: amountIdr, utm_campaign: utmCampaign };
       await background(c, serverAnalytics(c.env).track(event, props, userId));
+      // Meta CAPI (D-034): only after the provider confirmed, only with marketing consent.
+      const capi = capiOptions(c.env);
+      const owner = capi
+        ? await db(c.env).select({ email: schema.user.email }).from(schema.user).where(eq(schema.user.id, userId)).get()
+        : undefined;
+      if (capi && owner) {
+        await background(
+          c,
+          sendPaymentConversion(db(c.env), capi, { event, payment: outcome.payment, email: owner.email }),
+        );
+      }
     } else if (status !== "paid") {
       await background(c, serverAnalytics(c.env).track("payment_failed", { plan: planId, status }, userId));
     }
@@ -198,7 +218,13 @@ const touchBody = z.object({
   fbclid: z.string().max(500).optional(),
 });
 const consentBody = z.object({ accept: z.array(z.enum(["terms", "privacy", "sensitive_data", "marketing"])) });
-const checkoutBody = z.object({ planId: z.string().max(64) });
+// fbp/fbc: the Pixel's cookies, sent by the web app so the server event matches the browser's.
+const checkoutBody = z.object({
+  planId: z.string().max(64),
+  fbp: z.string().max(600).optional(),
+  fbc: z.string().max(600).optional(),
+});
+const marketingBody = z.object({ granted: z.boolean() });
 const paymentIdQuery = z.object({ paymentId: z.string().regex(/^pay_[0-9a-f]{32}$/) });
 const deleteBody = z.object({ confirm: z.literal("HAPUS") });
 
@@ -216,7 +242,15 @@ const routes = app
   .get("/me", async (c) => {
     const user = c.get("user");
     const providers = { google: Boolean(c.env.GOOGLE_CLIENT_ID && c.env.GOOGLE_CLIENT_SECRET) };
-    if (!user) return c.json({ user: null, access: false, missingConsents: [] as string[], providers, isAdmin: false });
+    if (!user)
+      return c.json({
+        user: null,
+        access: false,
+        missingConsents: [] as string[],
+        providers,
+        isAdmin: false,
+        marketingConsent: false,
+      });
     const required = requiredConsents(config.legal);
     return c.json({
       user: { id: user.id, email: user.email, name: user.name },
@@ -224,9 +258,11 @@ const routes = app
       missingConsents: (await missingConsents(db(c.env), user.id, required)) as string[],
       providers,
       isAdmin: isAdminEmail(user.email, config.admin.emails, c.env.ADMIN_EMAILS),
+      marketingConsent: await hasMarketingConsent(db(c.env), user.id),
     });
   })
   .use("/consents", sessionMiddleware, requireSession)
+  .use("/consents/*", sessionMiddleware, requireSession)
   .post("/consents", async (c) => {
     const parsed = consentBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
@@ -235,6 +271,15 @@ const routes = app
     if (missingRequired.length > 0) return c.json({ error: "consent_required" as const, missingRequired }, 400);
     await recordConsents(db(c.env), c.get("user").id, parsed.data.accept);
     return c.json({ ok: true as const });
+  })
+  // The "iklan/marketing" choice (UU PDP): grant or withdraw at any time. Recorded in consents.
+  .post("/consents/marketing", async (c) => {
+    const parsed = marketingBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
+    const userId = c.get("user").id;
+    if (parsed.data.granted) await recordConsents(db(c.env), userId, ["marketing"]);
+    else await revokeConsent(db(c.env), userId, "marketing");
+    return c.json({ ok: true as const, marketingConsent: parsed.data.granted });
   })
   // Attaches the device's first-touch attribution to the user, once (first touch wins).
   .use("/attribution", sessionMiddleware, requireSession)
@@ -265,21 +310,39 @@ const routes = app
     // No sandbox credentials yet (e.g. a fresh product): a clear 503, not a 500.
     const provider = configuredProvider(c.env);
     if (!provider) return c.json({ error: "payments_unavailable" as const }, 503);
+    const origin = new URL(c.req.url).origin;
     const { paymentId, redirectUrl } = await startCheckout(db(c.env), provider, {
       user: { id: user.id, name: user.name, email: user.email },
       plan,
       methods: config.payments.methods,
-      origin: new URL(c.req.url).origin,
+      origin,
       attribution: paymentAttribution(await attributionFor(db(c.env), user.id)),
     });
+    // Browser context for the Meta Conversions API, kept only with marketing consent (D-034).
+    if (marketingTrackingOn(c.env) && (await hasMarketingConsent(db(c.env), user.id))) {
+      const cookies = readFbCookies(c.req.header("cookie") ?? "");
+      await saveCheckoutContext(db(c.env), paymentId, {
+        fbp: cleanFbId(parsed.data?.fbp) ?? cookies.fbp,
+        fbc: cleanFbId(parsed.data?.fbc) ?? cookies.fbc,
+        clientIp: c.req.header("cf-connecting-ip"),
+        userAgent: c.req.header("user-agent"),
+        sourceUrl: `${origin}/pricing`,
+      });
+    }
     return c.json({ paymentId, redirectUrl });
   })
   .get("/billing/status", async (c) => {
     const query = paymentIdQuery.safeParse(c.req.query());
     if (!query.success) return c.json({ error: "not_found" as const }, 404);
-    const row = await paymentStatus(db(c.env), c.get("user").id, query.data.paymentId);
+    const userId = c.get("user").id;
+    const row = await paymentStatus(db(c.env), userId, query.data.paymentId);
     if (!row) return c.json({ error: "not_found" as const }, 404);
-    return c.json({ status: row.status, planId: row.planId, amountIdr: row.amountIdr });
+    // The browser Pixel sends the same event (and event id) as the server's CAPI, deduplicated.
+    const event =
+      row.status === "paid"
+        ? await paidEventKind(db(c.env), { id: query.data.paymentId, userId, paidAt: row.paidAt })
+        : null;
+    return c.json({ status: row.status, planId: row.planId, amountIdr: row.amountIdr, event });
   })
   .get("/billing/history", async (c) => {
     const rows = await db(c.env)

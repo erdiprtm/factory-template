@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-import { analyticsClientId, appUrl, product } from "../lib/site";
+import { analyticsClientId, appUrl, metaPixelId, product } from "../lib/site";
 
 interface Props {
   title: string;
@@ -44,7 +44,7 @@ const year = new Date().getFullYear();
     <!-- Apply dark mode before paint (follows the device; no flash). -->
     <script is:inline src="/theme.js"></script>
   </head>
-  <body class="flex min-h-screen flex-col" data-page-event={event} data-op-client={analyticsClientId} data-app-url={appUrl}>
+  <body class="flex min-h-screen flex-col" data-page-event={event} data-op-client={analyticsClientId} data-app-url={appUrl} data-meta-pixel={metaPixelId}>
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded-md focus:bg-background focus:p-2">Langsung ke konten</a>
     <header class="border-b border-border">
       <nav class="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4" aria-label="Utama">
@@ -69,6 +69,23 @@ const year = new Date().getFullYear();
         </nav>
       </div>
     </footer>
+    {
+      metaPixelId && (
+        <div id="consent-banner" hidden role="region" aria-label="Privasi & iklan" class="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card p-4 shadow-lg">
+          <div class="mx-auto flex max-w-5xl flex-col gap-3 text-sm">
+            <p class="font-semibold">Privasi & iklan</p>
+            <p class="text-muted-foreground">
+              Kami memakai analitik anonim untuk memperbaiki layanan. Dengan izinmu, kami juga memakai Meta Pixel untuk mengukur iklan kami di Facebook dan Instagram. Pilihan ini bisa diubah kapan saja. <a href="/privasi/" class="underline">Kebijakan Privasi</a>
+            </p>
+            <label class="flex min-h-11 items-center gap-3">
+              <input id="consent-ads" type="checkbox" class="h-5 w-5" />
+              <span>Izinkan pelacakan iklan (Meta)</span>
+            </label>
+            <button id="consent-save" type="button" class="min-h-11 self-start rounded-lg bg-primary px-5 font-semibold text-primary-foreground">Simpan pilihan</button>
+          </div>
+        </div>
+      )
+    }
     <script>
       // Standard events (Section 9) to OpenPanel. Bundled by Astro into a file (CSP: script-src 'self').
       // data-op-client is set only on production builds with a client ID; otherwise this is a no-op.
@@ -80,9 +97,18 @@ const year = new Date().getFullYear();
         type StandardEvent,
       } from "@factory/core/analytics";
       import { parseTouch, resolveTouch, withTouch } from "@factory/core/attribution/touch";
+      import {
+        choiceToParam,
+        loadPixel,
+        MARKETING_KEY,
+        MARKETING_PARAM,
+        type MarketingChoice,
+        parseChoice,
+        pixelTrack,
+      } from "@factory/core/meta/events";
       import { OpenPanel } from "@openpanel/web";
 
-      const { opClient: clientId, appUrl = "" } = document.body.dataset;
+      const { opClient: clientId, appUrl = "", metaPixel } = document.body.dataset;
       const analytics = createAnalytics(
         clientId ? openPanelProvider(new OpenPanel({ clientId, trackOutgoingLinks: true })) : noopAnalytics,
       );
@@ -97,8 +123,41 @@ const year = new Date().getFullYear();
       try {
         window.localStorage.setItem("factory.touch", JSON.stringify(touch));
       } catch {}
-      for (const a of document.querySelectorAll("a[href]")) {
-        if (a instanceof HTMLAnchorElement && appUrl && a.href.startsWith(appUrl)) a.href = withTouch(a.href, touch);
+      // Marketing consent (UU PDP, D-034): no choice = no Pixel. The choice rides along into the app.
+      const readChoice = (): MarketingChoice | null => {
+        try {
+          return parseChoice(JSON.parse(window.localStorage.getItem(MARKETING_KEY) ?? "null")?.choice);
+        } catch {
+          return null;
+        }
+      };
+      let choice = metaPixel ? readChoice() : null;
+      const decorateLinks = () => {
+        for (const a of document.querySelectorAll("a[href]")) {
+          if (!(a instanceof HTMLAnchorElement) || !appUrl || !a.href.startsWith(appUrl)) continue;
+          const url = new URL(withTouch(a.href, touch));
+          if (choice) url.searchParams.set(MARKETING_PARAM, choiceToParam(choice));
+          a.href = url.toString();
+        }
+      };
+      decorateLinks();
+      if (metaPixel && choice === "granted") loadPixel(metaPixel);
+      const banner = document.getElementById("consent-banner");
+      if (metaPixel && banner && !choice) {
+        banner.hidden = false;
+        document.getElementById("consent-save")?.addEventListener("click", () => {
+          const ads = document.getElementById("consent-ads");
+          choice = ads instanceof HTMLInputElement && ads.checked ? "granted" : "denied";
+          try {
+            window.localStorage.setItem(MARKETING_KEY, JSON.stringify({ choice, synced: false }));
+          } catch {}
+          banner.hidden = true;
+          decorateLinks();
+          if (choice === "granted") {
+            loadPixel(metaPixel);
+            pixelTrack(document.body.dataset.pageEvent ?? "");
+          }
+        });
       }
 
       // Funnel steps are also stored first-party by the app's API. sendBeacon with text/plain is
@@ -118,6 +177,7 @@ const year = new Date().getFullYear();
       const track = (event: string, props?: Record<string, string>) => {
         analytics.track(event as StandardEvent, props);
         funnel(event);
+        pixelTrack(event); // no-op unless the Pixel loaded (consent)
       };
 
       track(document.body.dataset.pageEvent ?? "site_view");

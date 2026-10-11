@@ -164,3 +164,24 @@ export const funnelEvents = sqliteTable(
     index("funnel_events_user_idx").on(t.userId),
   ],
 );
+
+/**
+ * Browser context saved at checkout for the Meta Conversions API (D-034): the webhook has no
+ * browser, and Meta needs the buyer's user agent (plus fbp/fbc/IP for matching). Written only with
+ * marketing consent, deleted once the event is sent, and after 7 days at the latest.
+ */
+export const paymentTracking = sqliteTable(
+  "payment_tracking",
+  {
+    paymentId: text("payment_id")
+      .primaryKey()
+      .references(() => payments.id),
+    fbp: text("fbp"),
+    fbc: text("fbc"),
+    clientIp: text("client_ip"),
+    userAgent: text("user_agent"),
+    sourceUrl: text("source_url").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (t) => [index("payment_tracking_created_idx").on(t.createdAt)],
+);

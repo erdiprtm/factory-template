@@ -13,6 +13,7 @@ import { OpenPanel } from "@openpanel/web";
 import product from "../../../../product.config";
 import { trackFunnel } from "./attribution";
 import { deployInfo } from "./deploy-env";
+import { metaTrack } from "./marketing";
 
 let analytics = createAnalytics(noopAnalytics);
 let op: OpenPanel | null = null;
@@ -39,6 +40,9 @@ export function initAnalytics(): Promise<void> {
 export function track(event: AnalyticsEvent, props?: EventProps): void {
   // Funnel steps are also stored first-party, in every environment (each has its own D1).
   trackFunnel(event, typeof props?.step === "number" ? props.step : undefined);
+  // Mapped events to the Meta Pixel, only if consented. Purchases go with their event id instead
+  // (billing/return), so the Pixel and the server's CAPI event deduplicate.
+  if (event !== "purchase" && event !== "renewal") metaTrack(event);
   if (!flushed) {
     queue.push([event, props]);
     return;

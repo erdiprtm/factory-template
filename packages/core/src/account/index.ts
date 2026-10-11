@@ -1,4 +1,14 @@
-import { account, consents, entitlements, payments, remindersSent, session, user, verification } from "@factory/db";
+import {
+  account,
+  consents,
+  entitlements,
+  payments,
+  paymentTracking,
+  remindersSent,
+  session,
+  user,
+  verification,
+} from "@factory/db";
 import { desc, eq, inArray } from "drizzle-orm";
 import { deleteAttribution, exportAttribution } from "../attribution";
 import type { Db } from "../entitlements";
@@ -112,6 +122,10 @@ export async function deleteUserData(db: Db, userId: string): Promise<void> {
   }
   await db.delete(remindersSent).where(eq(remindersSent.userId, userId));
   await db.delete(entitlements).where(eq(entitlements.userId, userId));
+  const paymentIds = (await db.select({ id: payments.id }).from(payments).where(eq(payments.userId, userId))).map(
+    (r) => r.id,
+  );
+  if (paymentIds.length > 0) await db.delete(paymentTracking).where(inArray(paymentTracking.paymentId, paymentIds));
   await db
     .update(payments)
     .set({ userId: `deleted:${crypto.randomUUID()}`, rawPayload: null, fbclid: null })

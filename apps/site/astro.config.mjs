@@ -24,6 +24,8 @@ export default defineConfig({
         "font-src 'self'",
         "form-action 'self'",
       ],
+      // The Meta Pixel (D-034): loaded only with marketing consent, on products with a Pixel ID.
+      scriptDirective: { resources: ["'self'", "https://connect.facebook.net"] },
     },
   },
   integrations: [sitemap({ filter: (page) => !page.includes("/og/") })],

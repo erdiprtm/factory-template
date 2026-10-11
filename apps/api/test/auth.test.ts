@@ -99,6 +99,7 @@ describe("consents endpoint", () => {
       missingConsents: [],
       providers: { google: false },
       isAdmin: false,
+      marketingConsent: false,
     });
   });
 });

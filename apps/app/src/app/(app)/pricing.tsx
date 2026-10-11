@@ -8,6 +8,7 @@ import { useMe, useRefreshMe } from "../../core/auth/use-me";
 import { openCheckout } from "../../core/billing/open-checkout";
 import { formatIdr } from "../../core/format";
 import { useI18n } from "../../core/i18n";
+import { fbIds } from "../../core/marketing";
 
 export default function Pricing() {
   const { t } = useI18n();
@@ -32,7 +33,7 @@ export default function Pricing() {
     setBusy(true);
     setMessage(null);
     track("checkout_start", { plan: planId });
-    const res = await api.api.billing.checkout.$post({ json: { planId } });
+    const res = await api.api.billing.checkout.$post({ json: { planId, ...fbIds() } });
     if (!res.ok) {
       setBusy(false);
       return setMessage(t(res.status === 503 ? "pricing.unavailable" : "pricing.error"));

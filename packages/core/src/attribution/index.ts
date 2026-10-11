@@ -104,12 +104,23 @@ export async function recordServerEvent(
   });
 }
 
-/** A confirmed payment is the user's "purchase" if it's their first paid one, otherwise a "renewal". */
-export async function paidEventKind(db: Db, payment: { id: string; userId: string }): Promise<"purchase" | "renewal"> {
+/** A confirmed payment is the user's "purchase" if no paid one came before it, otherwise a "renewal". */
+export async function paidEventKind(
+  db: Db,
+  payment: { id: string; userId: string; paidAt: Date | null },
+): Promise<"purchase" | "renewal"> {
+  const paidAt = payment.paidAt ?? new Date();
   const earlier = await db
     .select({ id: payments.id })
     .from(payments)
-    .where(and(eq(payments.userId, payment.userId), eq(payments.status, "paid"), ne(payments.id, payment.id)))
+    .where(
+      and(
+        eq(payments.userId, payment.userId),
+        eq(payments.status, "paid"),
+        ne(payments.id, payment.id),
+        lt(payments.paidAt, paidAt),
+      ),
+    )
     .limit(1);
   return earlier.length > 0 ? "renewal" : "purchase";
 }

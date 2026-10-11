@@ -27,6 +27,7 @@ Kebijakan ini menjelaskan bagaimana **{{companyName}}** ("kami") memproses data 
 | Keamanan dan pencegahan penipuan | Kepentingan yang sah |
 | Analitik anonim untuk perbaikan layanan | Kepentingan yang sah |
 | Mengukur efektivitas iklan kami (sumber kunjungan) | Kepentingan yang sah |
+| Pelacakan iklan oleh Meta (Pixel dan Conversions API), jika produk memakainya | Persetujuan (pilihan "iklan", bisa ditarik kapan saja) |
 | Pencatatan keuangan | Kewajiban hukum |
 | Pemrosesan data sensitif (jika produk memerlukannya) | Persetujuan eksplisit |
 
@@ -39,6 +40,7 @@ Kami memakai penyedia layanan berikut sebagai pemroses data. Sebagian dari merek
 - **Resend:** pengiriman email.
 - **Google:** login dengan akun Google (jika kamu memilihnya).
 - **Layanan analitik dan pemantauan error:** tanpa data pribadi.
+- **Meta Platforms (Facebook/Instagram), hanya jika kamu mengizinkan pelacakan iklan:** halaman yang dibuka dan pembelian (paket dan nilai), alamat email dan ID akun dalam bentuk acak (hash SHA-256), ID cookie Meta (`_fbp`, `_fbc`), alamat IP dan jenis browser saat pembayaran. Data teknis pembayaran untuk Meta dihapus setelah terkirim, paling lambat 7 hari. Tanpa izin, tidak ada data yang dikirim ke Meta.
 
 Kami **tidak menjual** data pribadi kamu.
 

@@ -77,4 +77,6 @@ export default defineProduct({
   monitoring: {
     sentryDsn: "https://b5f9d8f1ce9efa50576995836b63637d@o4512236547801088.ingest.us.sentry.io/4512236556124160",
   },
+  // Meta Pixel ID (Events Manager). null = no Pixel, no Conversions API, no consent banner (D-034).
+  marketing: { metaPixelId: null },
 });

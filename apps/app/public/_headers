@@ -1,8 +1,9 @@
 # Security headers for the app's web export (Workers static assets). /api/* responses get theirs
 # from the Worker (apps/api/src/index.ts). React Native Web injects styles at runtime, so
-# style-src needs 'unsafe-inline'; scripts are bundle files only.
+# style-src needs 'unsafe-inline'; scripts are bundle files only, plus the Meta Pixel, which loads
+# only with marketing consent on products that set metaPixelId (D-034).
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

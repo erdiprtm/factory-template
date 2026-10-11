@@ -10,6 +10,8 @@ import product from "../../../../product.config";
 import { initAnalytics } from "../core/analytics";
 import { currentTouch } from "../core/attribution";
 import { I18nProvider } from "../core/i18n";
+import { initMarketing } from "../core/marketing";
+import { MarketingBanner } from "../core/marketing-banner";
 import { captureError, initMonitoring } from "../core/monitoring";
 import { useRestoreTheme, useThemePreference } from "../core/theme";
 
@@ -28,6 +30,7 @@ export default function RootLayout() {
   useEffect(() => {
     void initMonitoring();
     void initAnalytics();
+    void initMarketing();
   }, []);
   const { colorScheme } = useThemePreference();
   return (
@@ -39,6 +42,7 @@ export default function RootLayout() {
         </Head>
         <View className="flex-1 bg-background">
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "transparent" } }} />
+          <MarketingBanner />
         </View>
         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
         <PortalHost />

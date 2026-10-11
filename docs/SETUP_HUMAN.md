@@ -354,6 +354,29 @@ Catatan: Cloudflare sedang mengganti model izin Workers (sejak 15 Sep 2026). Kal
 
 ---
 
+## 10. Meta (Facebook/Instagram Ads) — Pixel + Conversions API (per produk, saat mau pasang iklan)
+
+Tanpa langkah ini produk tetap jalan: tidak ada Pixel, tidak ada banner izin iklan, dan tidak ada data yang dikirim ke Meta.
+
+1. **Akun bisnis.** Buka <https://business.facebook.com> lalu buat **Business Portfolio** (nama usaha, email kerja). Lengkapi info bisnis (nama legal, alamat) kalau diminta.
+2. **Akun iklan.** Pengaturan bisnis → **Akun → Akun iklan → Tambah → Buat akun iklan baru**. Pilih mata uang **IDR** dan zona waktu **Asia/Jakarta**; keduanya tidak bisa diubah nanti. Tambahkan metode pembayaran di **Penagihan**.
+3. **Pixel (dataset).** Buka **Events Manager** → **Hubungkan sumber data → Web** → beri nama (misalnya nama produk) → buat. Salin **ID Pixel/Dataset** (angka saja). ID ini **publik** dan aman dikirim ke chat. Agent memasukkannya ke `product.config.ts` → `marketing.metaPixelId`.
+4. **Token Conversions API.** Di Events Manager, pilih dataset tadi → **Pengaturan** → bagian **Conversions API** → **Buat token akses**. Token hanya muncul sekali. **Jangan kirim ke chat.** Simpan ke Worker **produksi**: jalankan perintah ini di folder `apps/api` repo produk, lalu tempel token saat diminta:
+   ```bash
+   pnpm exec wrangler versions secret put META_CAPI_TOKEN --env=""
+   ```
+5. **Mode tes (untuk uji coba).** Events Manager → dataset → **Uji peristiwa (Test events)** → salin kodenya (misalnya `TEST12345`). Simpan sementara:
+   ```bash
+   pnpm exec wrangler versions secret put META_TEST_EVENT_CODE --env=""
+   ```
+   Setelah tes selesai, **kosongkan** lagi: jalankan perintah yang sama lalu tekan Enter tanpa isi. Kalau tidak, event asli ikut ditandai sebagai tes.
+6. **Domain.** Saat produk sudah punya domain sendiri: Pengaturan bisnis → **Keamanan merek → Domain** → tambahkan dan verifikasi domain (lewat meta-tag atau DNS). Domain `workers.dev` tidak bisa diverifikasi.
+7. Secret baru aktif pada rilis produksi berikutnya lewat CI, sama seperti secret lain.
+
+Aturan iklan: ikuti **Meta Advertising Standards** dan pagar di `CLAUDE.md`. Artinya tidak ada foto sebelum/sesudah tubuh, tidak ada klaim turun berat badan atau klaim medis, dan landing page harus mengulang janji iklan persis.
+
+---
+
 ## Ringkasan: yang perlu disimpan di password manager
 
 | Dari | Nilai | Dipakai di fase |

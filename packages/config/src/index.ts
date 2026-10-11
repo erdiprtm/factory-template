@@ -102,6 +102,17 @@ export const productSchema = z.object({
   // Sentry DSN (public: browsers carry it; it can only submit events). Unset = monitoring off.
   // Errors are reported from production and preview only, with PII scrubbed (@factory/core/monitoring).
   monitoring: z.object({ sentryDsn: z.url().nullable().default(null) }).default({ sentryDsn: null }),
+  // Meta Pixel ID (public: browsers carry it). Unset = no Pixel, no Conversions API, no marketing
+  // consent banner. The CAPI access token is a Worker secret (META_CAPI_TOKEN), never here. D-034.
+  marketing: z
+    .object({
+      metaPixelId: z
+        .string()
+        .regex(/^\d{10,20}$/, "a Meta Pixel ID (digits)")
+        .nullable()
+        .default(null),
+    })
+    .default({ metaPixelId: null }),
 });
 
 export type ProductConfigInput = z.input<typeof productSchema>;
