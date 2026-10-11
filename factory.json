@@ -2,19 +2,19 @@
   "$comment": "Portfolio registry. One entry per product. status: idea | building | live | killed. Updated by /new-product and /launch-check; reviewed on reviewDate.",
   "products": [
     {
-      "slug": "example",
-      "name": "Example Product",
-      "repo": "erdiprtm/example",
-      "status": "idea",
-      "spec": "specs/example.md",
+      "slug": "myna-health",
+      "name": "Myna Health",
+      "repo": "erdiprtm/myna-health",
+      "status": "building",
+      "spec": "specs/myna-health.md",
       "launchDate": null,
       "reviewDate": null,
-      "metricTargets": {
-        "day30": "50 trial starts, 10 paid",
-        "day60": "30 paid"
-      },
-      "killCriteria": "Fewer than 20 paying users by day 60",
-      "urls": { "app": null, "site": null }
+      "metricTargets": {},
+      "killCriteria": "not a standalone paid product; if Duitku KYC is rejected twice, revisit the site content with Erdi.",
+      "urls": {
+        "app": "https://myna-health.erdiprtm.workers.dev",
+        "site": "https://myna-health-site.erdiprtm.workers.dev"
+      }
     }
   ]
 }
