@@ -1,0 +1,15 @@
+[
+  {
+    "name": "health",
+    "path": "/api/health",
+    "status": [200],
+    "json": { "status": "ok" },
+    "commitField": "commit"
+  },
+  {
+    "name": "app shell",
+    "path": "/",
+    "status": [200],
+    "contentType": "text/html"
+  }
+]

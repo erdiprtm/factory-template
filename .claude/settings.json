@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(pnpm *)",
+      "Bash(node *)",
+      "Bash(wrangler *)",
+      "Bash(npx wrangler *)"
+    ],
+    "ask": [
+      "Bash(git reset --hard*)",
+      "Bash(git clean *)",
+      "Bash(git branch -D *)",
+      "Bash(git stash drop*)",
+      "Bash(git stash clear*)",
+      "Bash(pnpm dlx *)",
+      "Bash(gh repo create*)",
+      "Bash(gh repo edit*)",
+      "Bash(gh secret set*)",
+      "Bash(gh variable set*)",
+      "Bash(gh api *rulesets*)",
+      "Bash(gh api *protection*)",
+      "Bash(gh auth refresh*)",
+      "Bash(gh extension install*)",
+      "Bash(*wrangler secret *)",
+      "Bash(*wrangler versions secret *)",
+      "Bash(*wrangler rollback*)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git push * +*)",
+      "Bash(git push origin main)",
+      "Bash(git push origin main *)",
+      "Bash(git push origin HEAD:main*)",
+      "Bash(git push * --delete main*)",
+      "Bash(git push * :main*)",
+      "Bash(git rebase *)",
+      "Bash(git filter-branch *)",
+      "Bash(git filter-repo *)",
+      "Bash(gh repo delete*)",
+      "Bash(gh repo archive*)",
+      "Bash(gh repo rename*)",
+      "Bash(gh repo edit *--visibility*)",
+      "Bash(gh api *DELETE*)",
+      "Bash(gh pr merge *--admin*)",
+      "Bash(gh auth token*)",
+      "Bash(gh auth logout*)",
+      "Bash(gh auth status *--show-token*)",
+      "Bash(gh secret delete*)",
+      "Bash(gh variable delete*)",
+      "Bash(gh workflow disable*)",
+      "Bash(*wrangler deploy)",
+      "Bash(*wrangler deploy *)",
+      "Bash(*wrangler versions deploy)",
+      "Bash(*wrangler versions deploy *)",
+      "Bash(*wrangler delete)",
+      "Bash(*wrangler delete *)",
+      "Bash(*wrangler * delete*)",
+      "Bash(*wrangler d1 execute *--remote*)",
+      "Bash(*wrangler d1 migrations apply *--remote*)",
+      "Bash(*wrangler d1 time-travel restore*)",
+      "Bash(pnpm deploy*)",
+      "Bash(pnpm run deploy*)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf ~/)",
+      "Read(.dev.vars)",
+      "Read(.dev.vars.*)",
+      "Read(!.dev.vars.example)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(!.env.example)",
+      "Read(~/Library/Preferences/.wrangler/**)",
+      "Read(~/.wrangler/**)",
+      "Read(~/.config/gh/hosts.yml)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-destructive.sh",
+            "timeout": 10,
+            "onFailure": "block",
+            "statusMessage": "Checking command against destructive-action guard"
+          }
+        ]
+      }
+    ]
+  }
+}

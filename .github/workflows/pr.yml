@@ -1,0 +1,107 @@
+# Pull requests: quality gates + isolated preview deploy + smoke test.
+# `verify` and `preview` are the required status checks on main (scripts/setup-github.sh),
+# so a PR the agent opened with `gh pr merge --auto --squash` merges itself once both pass.
+name: PR
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Migration safety (expand/contract)
+        run: node scripts/check-migrations.mjs --base "origin/${{ github.base_ref }}"
+      - run: pnpm verify
+
+  preview:
+    name: preview
+    needs: verify
+    # Fork PRs get no secrets; they stop at `verify`.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      COMMIT_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # Previews run on a separate Worker (`<slug>-preview`) with its own D1 database,
+      # never on the production Worker, so PR code can't touch production data.
+      - name: Bootstrap the preview Worker on first use
+        working-directory: apps/api
+        run: |
+          pnpm exec wrangler deployments status --env preview >/dev/null 2>&1 \
+            || pnpm exec wrangler deploy --env preview --var "COMMIT_SHA:bootstrap"
+      - name: Apply migrations to the preview database
+        if: hashFiles('packages/db/migrations/*.sql') != ''  # D1 arrives in Phase 2
+        working-directory: apps/api
+        run: pnpm exec wrangler d1 migrations apply DB --remote --env preview
+      - name: Upload preview version
+        id: upload
+        working-directory: apps/api
+        run: |
+          set -o pipefail
+          pnpm exec wrangler versions upload --env preview \
+            --preview-alias "pr-${PR_NUMBER}" \
+            --message "PR #${PR_NUMBER} @ ${COMMIT_SHA}" \
+            --var "COMMIT_SHA:${COMMIT_SHA}" | tee upload.log
+          url=$(grep -oE "https://pr-${PR_NUMBER}-[a-z0-9.-]+\.workers\.dev" upload.log | head -n 1)
+          if [ -z "$url" ]; then
+            echo "::error::No preview alias URL found in the wrangler output"
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Smoke test the preview
+        id: smoke
+        run: node scripts/smoke-test.mjs "${{ steps.upload.outputs.url }}" --expect-commit "$COMMIT_SHA"
+      - name: Comment the preview URL on the PR
+        if: always() && steps.upload.outputs.url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.upload.outputs.url }}
+          SMOKE: ${{ steps.smoke.outcome }}
+        run: |
+          marker='<!-- factory-preview -->'
+          body="${marker}
+          **Preview:** ${URL}
+          Commit \`${COMMIT_SHA}\` · smoke test: **${SMOKE}**"
+          id=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"${marker}\")) | .id" | head -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${id}" -f body="$body" >/dev/null
+          else
+            gh pr comment "$PR_NUMBER" --body "$body"
+          fi
