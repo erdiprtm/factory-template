@@ -494,3 +494,19 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
   - Errors in the first seconds after load aren't reported. The idle wait has a 3 s timeout: hidden tabs never go idle, which the preview check caught.
   - The root `ErrorBoundary` reports render errors.
 - **Native and site:** native is a no-op until Phase 10 (`@sentry/react-native`). The static site has no Sentry: it has very little JS.
+
+## D-026: App performance: Sentry loads on the first error; sign-in renders at once (2026-10-11)
+
+- **Lighthouse on production (mobile):**
+  - Site 98–100 on every category.
+  - App `/sign-in`: performance **61–62**, LCP 6.3 s.
+  - The app's SEO score of 63 is expected, because the app is `noindex` behind login and SEO targets apply to the site.
+- **Two causes:**
+  - The lazy Sentry chunk (257 KB gzip) still loaded inside the measurement window, after load plus idle plus a 3 s timeout.
+  - The sign-in screen showed a spinner until `/api/me` answered, so LCP waited for all the JS plus an API round trip.
+- **Fixes:**
+  - **Sentry loads on the first error.** Tiny `error` / `unhandledrejection` listeners run from startup and buffer up to 10 errors; the first one fetches the SDK, then Sentry's own handlers take over. Sessions without errors download nothing, and no breadcrumbs from before the error exist (also better for privacy). Supersedes the idle-loading in D-025.
+  - **Sign-in renders immediately.** A signed-in visitor is redirected when `/api/me` answers.
+- **Result** (local Worker in production mode, three runs): performance **79 / 80 / 81**, LCP 3.8–4.1 s, TBT 300–350 ms. The Sentry chunk is not requested.
+- **Remaining cost:** the 2 MB (494 KB gzip) entry bundle. Expo Router `asyncRoutes` made it larger (D-019), so splitting needs a different approach.
+  - Follow-up: audit the heaviest modules (better-auth client, zod, react-query, i18n) and lazy-load per route where Metro allows.
