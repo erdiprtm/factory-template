@@ -605,3 +605,37 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - The export includes the attribution and the funnel events.
   - Erasure deletes both (by user and by the device's `anonId`), and clears `fbclid` from the de-identified payment rows. The campaign name stays, so ad reporting keeps its totals.
 - **Browser-safe split.** `@factory/core/attribution/touch` has no database imports, so the site and app bundles don't pull in Drizzle. `@factory/core/attribution` adds the D1 functions.
+
+## D-034: Sell engine, Module 2: Meta Pixel and Conversions API, behind marketing consent (2026-10-11)
+
+- **Off by default.** `product.config.ts` `marketing.metaPixelId` (public) turns it on. The CAPI token is a Worker secret (`META_CAPI_TOKEN`); `META_TEST_EVENT_CODE` is set only while testing in Events Manager. Like OpenPanel, the Pixel and CAPI run on production only.
+- **UU PDP consent first.** With a Pixel ID, the site and the app show a banner with an "Izinkan pelacakan iklan (Meta)" toggle that starts off. No choice counts as no.
+  - No consent means no Pixel script and no CAPI. Analytics stays first-party (OpenPanel plus D1 funnel events, D-033).
+  - The site's choice rides into the app in the CTA link (`mc=1|0`), so the visitor isn't asked twice.
+  - After sign-in the app records the choice once in `consents` (`marketing`, `POST /api/consents/marketing`). From then on the account's value wins, and the Akun page has a toggle to withdraw it.
+- **Browser Pixel** for top-of-funnel events:
+
+  | Funnel event | Meta event |
+  |---|---|
+  | `lp_view` | ViewContent |
+  | `quiz_complete` | Lead |
+  | `signup_completed` | CompleteRegistration |
+  | `trial_started` | StartTrial |
+  | `checkout_start` | InitiateCheckout |
+
+  Other funnel steps stay first-party. Meta's base code runs as a function (`loadPixel`), not an inline script, because the CSP allows script files only. `https://connect.facebook.net` is allowed in `script-src` on the site and the app, and it is loaded only after consent.
+- **Server CAPI for money events.**
+  - `purchase` maps to Purchase. `renewal` maps to a custom "Renewal" event, so campaigns optimizing for Purchase learn only from new buyers.
+  - Both are sent from the webhook after the provider confirmed the payment, never from the browser alone.
+  - The payload follows Meta's docs (read 2026-10-11, Graph API v25.0):
+    - `action_source: website`, `event_time` in seconds, and `custom_data` `{ value: <integer IDR>, currency: "IDR" }`;
+    - `em` and `external_id` are the SHA-256 of the trimmed, lowercased email and of the user id;
+    - `fbp`, `fbc`, `client_ip_address` and `client_user_agent` are sent unhashed.
+- **Deduplication.** The return page fires the same event through the Pixel with `eventID` = the payment id, which is also the CAPI `event_id`. `GET /api/billing/status` says whether it was a purchase or a renewal; a purchase is a paid payment with no earlier paid one.
+- **`fbc`** is the Pixel's `_fbc` cookie when present. Otherwise it is built from the stored first-touch `fbclid` and first-visit time (`fb.1.<ms>.<fbclid>`, case kept).
+- **Checkout context.** The webhook has no browser, but Meta requires `client_user_agent` for website events. So checkout saves `payment_tracking` (user agent, IP, fbp/fbc, source URL), and only when CAPI is configured and the buyer has marketing consent.
+  - The row is deleted when the event is sent, or by the cron after 7 days (CAPI accepts events up to 7 days old).
+  - If consent was withdrawn before the webhook, nothing is sent and the row is dropped.
+  - Account deletion removes it.
+- **Failures never break payments.** `sendCapi` never throws, and it runs in `waitUntil`.
+- **Docs.** The privacy template lists Meta as a processor, with consent as the legal basis. `SETUP_HUMAN.md` step 10 covers the Business portfolio, ad account, Pixel, token, test code and domain.

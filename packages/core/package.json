@@ -14,7 +14,9 @@
     "./admin": "./src/admin/index.ts",
     "./attribution": "./src/attribution/index.ts",
     "./attribution/touch": "./src/attribution/touch.ts",
-    "./monitoring": "./src/monitoring/index.ts"
+    "./monitoring": "./src/monitoring/index.ts",
+    "./meta": "./src/meta/index.ts",
+    "./meta/events": "./src/meta/events.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",

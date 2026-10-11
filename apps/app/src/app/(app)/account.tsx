@@ -5,6 +5,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Checkbox,
   cn,
   ErrorText,
   Input,
@@ -23,9 +24,10 @@ import { resetAnalytics, track } from "../../core/analytics";
 import { api } from "../../core/api";
 import { apiBaseUrl } from "../../core/api-base";
 import { authClient } from "../../core/auth/client";
-import { useRefreshMe } from "../../core/auth/use-me";
+import { useMe, useRefreshMe } from "../../core/auth/use-me";
 import { formatDate, formatIdr } from "../../core/format";
 import { type Locale, type MessageKey, useI18n } from "../../core/i18n";
+import { setMarketingChoice } from "../../core/marketing";
 import { setMonitoringUser } from "../../core/monitoring";
 import { type ThemePreference, useThemePreference } from "../../core/theme";
 
@@ -226,6 +228,7 @@ function Privacy() {
     <Card>
       <CardTitle>{t("account.privacy")}</CardTitle>
       <CardContent>
+        {product.marketing.metaPixelId ? <MarketingToggle /> : null}
         <Text variant="muted">{canDownload ? t("account.exportHint") : t("account.exportNative")}</Text>
         {canDownload ? (
           <Button variant="outline" onPress={exportData}>
@@ -248,5 +251,32 @@ function Privacy() {
         {error ? <ErrorText>{error}</ErrorText> : null}
       </CardContent>
     </Card>
+  );
+}
+
+/** UU PDP: the "iklan/marketing" consent can be given or withdrawn at any time (D-034). */
+function MarketingToggle() {
+  const { t } = useI18n();
+  const me = useMe();
+  const refreshMe = useRefreshMe();
+  const [failed, setFailed] = useState(false);
+  async function change(granted: boolean) {
+    setFailed(false);
+    const res = await api.api.consents.marketing.$post({ json: { granted } });
+    if (!res.ok) return setFailed(true);
+    setMarketingChoice(granted ? "granted" : "denied", true);
+    await refreshMe();
+  }
+  return (
+    <View className="gap-1">
+      <Checkbox
+        label={t("marketing.banner.toggle")}
+        checked={Boolean(me.data?.marketingConsent)}
+        onCheckedChange={change}
+      />
+      <Text variant="muted">{t("account.marketingHint")}</Text>
+      {failed ? <ErrorText>{t("common.error")}</ErrorText> : null}
+      <Separator />
+    </View>
   );
 }

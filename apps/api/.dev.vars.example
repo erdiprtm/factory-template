@@ -35,3 +35,9 @@ DOKU_SECRET_KEY=
 # OpenPanel client secret (SETUP_HUMAN step 5). Production only: server-side events (payment
 # results from the webhook, renewal reminders from the cron). Not needed locally.
 OPENPANEL_CLIENT_SECRET=
+
+# Meta Conversions API (SETUP_HUMAN step 10), only for products with marketing.metaPixelId.
+# Production only, and sent only for buyers who allowed ad tracking. Not needed locally.
+META_CAPI_TOKEN=
+# Events Manager > Test events code, ONLY while testing (remove it afterwards).
+META_TEST_EVENT_CODE=

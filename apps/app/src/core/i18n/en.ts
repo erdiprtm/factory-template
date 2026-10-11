@@ -101,4 +101,10 @@ export const en: Messages = {
   "admin.grantDone": "Access granted until",
   "admin.grantNotFound": "User not found.",
   "admin.forbidden": "This page is for admins only.",
+  "marketing.banner.title": "Privacy & ads",
+  "marketing.banner.body":
+    "We use anonymous analytics to improve the service. With your permission, we also use the Meta Pixel to measure our ads on Facebook and Instagram. You can change this anytime under Account.",
+  "marketing.banner.toggle": "Allow ad tracking (Meta)",
+  "marketing.banner.save": "Save choice",
+  "account.marketingHint": "If allowed, visit and purchase data (email only as a hash) is sent to Meta to measure ads.",
 };

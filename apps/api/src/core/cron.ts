@@ -3,6 +3,7 @@ import { purgeFunnelEvents } from "@factory/core/attribution";
 import { dueReminders, expirePendingPayments, markReminderSent } from "@factory/core/billing";
 import { emailProvider } from "@factory/core/email";
 import { reminderEmail } from "@factory/core/email/templates";
+import { purgeCheckoutContexts } from "@factory/core/meta";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
 import type { Bindings } from "../index";
@@ -10,13 +11,14 @@ import { serverAnalytics } from "./analytics";
 
 /**
  * Cron Trigger (wrangler.jsonc triggers.crons): expires stale pending payments and sends
- * renewal reminders (7 days, 1 day, on expiry), and drops funnel events past their retention. Never calls the payment provider: Duitku's
+ * renewal reminders (7 days, 1 day, on expiry), and drops funnel events and checkout tracking context past their retention. Never calls the payment provider: Duitku's
  * status API blocks merchants that poll it.
  */
 export async function runScheduled(env: Bindings, now = new Date()) {
   const db = drizzle(env.DB, { schema });
   const expired = await expirePendingPayments(db, now);
   const purged = await purgeFunnelEvents(db, now);
+  await purgeCheckoutContexts(db, now);
 
   const host = env.AUTH_HOSTS.split(",")[0]?.trim() ?? "";
   const scheme = env.APP_ENV === "development" || env.APP_ENV === "test" ? "http" : "https";

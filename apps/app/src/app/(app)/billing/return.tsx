@@ -6,6 +6,7 @@ import { ActivityIndicator } from "react-native";
 import { api } from "../../../core/api";
 import { useRefreshMe } from "../../../core/auth/use-me";
 import { useI18n } from "../../../core/i18n";
+import { metaTrack } from "../../../core/marketing";
 
 const POLL_MS = 2000;
 const TIMEOUT_MS = 90_000;
@@ -35,10 +36,14 @@ export default function BillingReturn() {
   });
 
   const state = status.data?.status;
+  const event = status.data?.event;
+  const amountIdr = status.data?.amountIdr;
   useEffect(() => {
     if (state === "paid") refreshMe();
     // purchase / renewal / payment_failed are sent by the server when the webhook lands (D-030).
-  }, [state, refreshMe]);
+    // The Pixel gets the same event with the payment id, deduplicated against the CAPI one (D-034).
+    if (state === "paid" && event && paymentId) metaTrack(event, { value: amountIdr, currency: "IDR" }, paymentId);
+  }, [state, event, amountIdr, paymentId, refreshMe]);
 
   let text = t("billing.return.checking");
   if (state === "paid") text = t("billing.return.paid");

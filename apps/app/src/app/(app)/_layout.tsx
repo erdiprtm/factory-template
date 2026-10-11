@@ -7,6 +7,7 @@ import { identify } from "../../core/analytics";
 import { sendTouch } from "../../core/attribution";
 import { useMe } from "../../core/auth/use-me";
 import { useI18n } from "../../core/i18n";
+import { syncMarketingConsent } from "../../core/marketing";
 import { setMonitoringUser } from "../../core/monitoring";
 
 /** Protected area: signed-in users with all required consents. Paid features add requireAccess. */
@@ -14,6 +15,10 @@ export default function ProtectedLayout() {
   const me = useMe();
   const { t } = useI18n();
   const userId = me.data?.user?.id;
+  const marketingConsent = me.data?.marketingConsent ?? false;
+  useEffect(() => {
+    if (userId) void syncMarketingConsent(marketingConsent);
+  }, [userId, marketingConsent]);
   useEffect(() => {
     if (userId) identify(userId);
     if (userId) setMonitoringUser(userId);

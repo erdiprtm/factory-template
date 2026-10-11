@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-11: Sell engine, Module 2: Meta Pixel + Conversions API (branch `feat/meta-capi`)
+
+- A consent banner with an "iklan/marketing" toggle (site and app). The choice is recorded in `consents` and can be withdrawn from Akun.
+- With consent: the Pixel handles top-of-funnel events, and CAPI sends Purchase/Renewal from the webhook, deduplicated by the payment id (D-034).
+- **Human:** when the first product runs ads, set up the Meta Business portfolio, ad account, Pixel ID, CAPI token and test code (`SETUP_HUMAN.md` step 10).
+
+---
+
 ## 2026-10-11: Sell engine, Module 1: funnel events and attribution (branch `feat/funnel-events`)
 
 - The standard funnel events (`lp_view` … `purchase`, `renewal`, `refund`) go to OpenPanel and to a first-party `funnel_events` table (D-033).

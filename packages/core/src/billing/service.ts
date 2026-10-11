@@ -164,7 +164,12 @@ export async function expirePendingPayments(db: Db, now = new Date()): Promise<n
 /** Step 4: the return page polls this. Only the owner may read a payment. */
 export async function paymentStatus(db: Db, userId: string, paymentId: string) {
   const row = await db
-    .select({ status: payments.status, planId: payments.planId, amountIdr: payments.amountIdr })
+    .select({
+      status: payments.status,
+      planId: payments.planId,
+      amountIdr: payments.amountIdr,
+      paidAt: payments.paidAt,
+    })
     .from(payments)
     .where(and(eq(payments.id, paymentId), eq(payments.userId, userId)))
     .get();

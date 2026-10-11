@@ -100,6 +100,13 @@ export const id = {
   "admin.grantDone": "Akses diberikan sampai",
   "admin.grantNotFound": "Pengguna tidak ditemukan.",
   "admin.forbidden": "Halaman ini khusus admin.",
+  "marketing.banner.title": "Privasi & iklan",
+  "marketing.banner.body":
+    "Kami memakai analitik anonim untuk memperbaiki layanan. Dengan izinmu, kami juga memakai Meta Pixel untuk mengukur iklan kami di Facebook dan Instagram. Kamu bisa mengubah pilihan ini kapan saja di menu Akun.",
+  "marketing.banner.toggle": "Izinkan pelacakan iklan (Meta)",
+  "marketing.banner.save": "Simpan pilihan",
+  "account.marketingHint":
+    "Jika diizinkan, data kunjungan dan pembelian (email dalam bentuk acak/hash) dikirim ke Meta untuk mengukur iklan.",
 };
 
 export type Messages = typeof id;
