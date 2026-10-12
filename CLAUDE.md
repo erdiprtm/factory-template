@@ -15,6 +15,7 @@ The full design is in `FACTORY_BLUEPRINT.md`. Progress is in `docs/STATUS.md`, d
 | `apps/app/src/features/**` (incl. `messages.ts` for UI strings), `apps/api/src/features/**` (incl. `user-data.ts` export/delete hooks) | `apps/app/src/core/**`, `apps/api/src/core/**` |
 | `product.config.ts`, `specs/**`, site content in `apps/site` | `packages/**` (core, db, ui, config) |
 | Route files in `apps/app/src/app/**` that only re-export a screen from `src/features/**` | Core route files (`quiz.tsx`, `sign-in.tsx`, `consent.tsx`, `(app)/_layout.tsx`, …) |
+| New `dependencies` in `apps/app` / `apps/api` `package.json` that a feature needs (D-047) | The template's own dependency versions, scripts and other `package.json` fields |
 | `packages/db/src/features/**` (product tables + their migrations) | existing core tables or merged migrations |
 
 ## How to run
@@ -60,7 +61,7 @@ pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/se
 - Never bypass `requireAccess()` for paid features. Never weaken webhook signature verification.
 - `apps/app` code must run on native: no browser-only APIs outside `*.web.tsx`. Native builds never show web prices or web checkout links.
 - Migrations are expand/contract (`scripts/check-migrations.mjs`). Merged migrations are immutable. Destructive changes need `-- migration: contract` and a migration-only PR.
-- Dependencies: latest stable published ≥ 14 days ago (`node scripts/pick-versions.mjs <pkg>`), pinned exactly, recorded in `docs/DECISIONS.md`. Expo-managed packages follow the Expo SDK's versions.
+- Dependencies: latest stable published ≥ 14 days ago (`node scripts/pick-versions.mjs <pkg>`), pinned exactly, recorded in `docs/DECISIONS.md`. Expo-managed packages follow the Expo SDK's versions (`pnpm --filter @factory/app exec expo install <pkg>`). A product may add the dependencies its features need, never change the template's versions.
 - Read current official docs before using an external API or library. Don't rely on memory.
 - Write files that *mention* blocked commands (docs, workflows) with the Write/Edit tools. A Bash heredoc containing them is blocked by the guard hook.
 - Ask the human only for what only a human can do: accounts, credentials, payments, legal, product decisions, and deleting cloud resources.
