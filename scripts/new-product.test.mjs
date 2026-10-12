@@ -1,8 +1,18 @@
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { applyProductConfig, parseSpec, registerProduct, renameWorkers, setD1Ids } from "./new-product.mjs";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
+const root = fileURLToPath(new URL("..", import.meta.url));
+// The repo's Biome with the repo's biome.json, as the product's `biome ci` runs it.
+const biomeFormat = (text, path) =>
+  execFileSync("node_modules/.bin/biome", ["format", `--stdin-file-path=${path}`], {
+    cwd: root,
+    input: text,
+    encoding: "utf8",
+  });
 
 // These transforms rewrite the TEMPLATE's files, and the generator only runs from the template
 // repo. In a product repo (already renamed) there is nothing to rewrite, so skip.
@@ -32,6 +42,23 @@ describe.skipIf(!isTemplate)("new-product transforms", () => {
     expect(read("product.config.ts")).toMatch(/openpanelClientId: "[0-9a-f-]{36}"/);
     expect(out).toContain("openpanelClientId: null");
     expect(out).toContain("sentryDsn: null");
+  });
+
+  it("writes product.config.ts as Biome formats it, for every spec and a long tagline", () => {
+    const specs = readdirSync(new URL("../specs", import.meta.url))
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => parseSpec(read(`specs/${f}`)))
+      .filter((s) => s.name);
+    const long = {
+      name: "Nama Produk yang Cukup Panjang",
+      tagline: `Untuk yang ingin ${"lebih teratur ".repeat(9)}`,
+      plans: [],
+    };
+    for (const s of [...specs, long]) {
+      const out = applyProductConfig(read("product.config.ts"), { slug: "produk-baru", ...s });
+      expect(out).toContain(JSON.stringify(s.tagline));
+      expect(biomeFormat(out, "product.config.ts")).toBe(out);
+    }
   });
 
   it("renames Workers, databases and hosts in wrangler configs", () => {
