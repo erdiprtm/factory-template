@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Product design, layer 2: component variants (D-053)
+
+- Products restyle Button (per variant, size and label), Card, Badge, Input and Text from `apps/app/src/features/theme.ts`; the classes merge last with `cn()`.
+- `cn()` now knows the token utilities, so overrides replace them.
+- Next: layer 3 (slots for core screens) and the Myna Fit template gaps.
+
+---
+
 ## 2026-10-13: Product design, layer 1: fuller design tokens (D-052)
 
 - `brand.tokens` gained radii per element, control height, card shadow, density, heading and body weights, and bundled fonts (expo-font in the app, self-hosted on the site, no Google).

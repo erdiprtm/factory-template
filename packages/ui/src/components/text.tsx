@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 import { Text as RNText, type TextProps } from "react-native";
 import { type TextVariant, textClasses } from "../lib/classes";
 import { cn } from "../lib/utils";
-import { useUiTokens } from "./theme";
+import { useUiTokens, useUiVariants } from "./theme";
 
 export type { TextVariant };
 
@@ -15,7 +15,7 @@ export function Text({ className, variant = "default", ...props }: TextProps & {
   return (
     <RNText
       role={heading ? "heading" : undefined}
-      className={cn(textClasses(useUiTokens(), variant), inherited, className)}
+      className={cn(textClasses(useUiTokens(), variant, useUiVariants()), inherited, className)}
       {...props}
     />
   );

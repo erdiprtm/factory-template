@@ -2,7 +2,7 @@ import { Pressable, type PressableProps } from "react-native";
 import { type ButtonSize, type ButtonVariant, buttonClasses, buttonTextClasses } from "../lib/classes";
 import { cn } from "../lib/utils";
 import { TextClassContext } from "./text";
-import { useUiTokens } from "./theme";
+import { useUiTokens, useUiVariants } from "./theme";
 
 // Reusables-style button, sized and rounded by the product's tokens (D-052). Note: never pass a
 // function to `style` on Pressable — NativeWind 4.2.7 drops styles for function styles on React
@@ -11,14 +11,15 @@ export type ButtonProps = PressableProps & { variant?: ButtonVariant; size?: But
 
 export function Button({ className, variant, size, disabled, ...props }: ButtonProps) {
   const tokens = useUiTokens();
+  const variants = useUiVariants();
   return (
-    <TextClassContext.Provider value={buttonTextClasses(tokens, variant ?? "default")}>
+    <TextClassContext.Provider value={buttonTextClasses(tokens, variant ?? "default", variants)}>
       <Pressable
         role="button"
         accessibilityState={{ disabled: Boolean(disabled) }}
         disabled={disabled}
         className={cn(
-          buttonClasses(tokens, variant ?? "default", size ?? "default"),
+          buttonClasses(tokens, variant ?? "default", size ?? "default", variants),
           disabled && "opacity-50",
           className,
         )}

@@ -2,10 +2,10 @@ import { View, type ViewProps } from "react-native";
 import { cardClasses } from "../lib/classes";
 import { cn } from "../lib/utils";
 import { Text } from "./text";
-import { useUiTokens } from "./theme";
+import { useUiTokens, useUiVariants } from "./theme";
 
 export function Card({ className, ...props }: ViewProps) {
-  return <View className={cn(cardClasses(useUiTokens()), className)} {...props} />;
+  return <View className={cn(cardClasses(useUiTokens(), useUiVariants()), className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: ViewProps) {

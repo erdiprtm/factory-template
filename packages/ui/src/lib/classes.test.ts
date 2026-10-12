@@ -83,3 +83,50 @@ describe("cn knows the token utilities", () => {
     expect(cn("font-sans", "font-heading")).toBe("font-heading");
   });
 });
+
+// D-053: a product restyles components from apps/app/src/features/theme.ts, never packages/ui.
+describe("product variants", () => {
+  const variants = {
+    button: {
+      variant: { default: "rounded-2xl h-14" },
+      size: { sm: "h-11" },
+      text: { default: "font-bold text-lg" },
+    },
+    card: "rounded-3xl border-0 bg-secondary",
+    badge: "rounded-md",
+    input: "h-14 rounded-2xl",
+    text: { h1: "text-4xl font-extrabold" },
+  };
+
+  it("make the primary button rounded-2xl h-14 font-bold", () => {
+    const button = buttonClasses(defaultTokens, "default", "default", variants);
+    expect(button).toContain("rounded-2xl");
+    expect(button).toContain("h-14");
+    expect(button).not.toContain("rounded-button");
+    expect(button).not.toContain("h-control");
+    const label = buttonTextClasses(defaultTokens, "default", variants);
+    expect(label).toContain("font-bold");
+    expect(label).not.toContain("font-semibold");
+  });
+
+  it("apply only to the variant and size they name", () => {
+    expect(buttonClasses(defaultTokens, "outline", "default", variants)).toContain("rounded-button");
+    expect(buttonClasses(defaultTokens, "outline", "sm", variants)).toContain("h-11");
+    expect(buttonTextClasses(defaultTokens, "ghost", variants)).toContain("font-semibold");
+  });
+
+  it("restyle cards, badges, inputs and headings", () => {
+    expect(cardClasses(defaultTokens, variants)).toBe(
+      "w-full gap-4 border-border p-5 rounded-3xl border-0 bg-secondary",
+    );
+    expect(badgeClasses(defaultTokens, variants)).toContain("rounded-md");
+    expect(inputClasses(defaultTokens, variants)).toContain("h-14");
+    expect(textClasses(defaultTokens, "h1", variants)).toBe("tracking-tight text-foreground text-4xl font-extrabold");
+    expect(textClasses(defaultTokens, "h2", variants)).toContain("font-semibold");
+  });
+
+  it("change nothing when empty", () => {
+    expect(buttonClasses(defaultTokens, "default", "default", {})).toBe(buttonClasses(defaultTokens));
+    expect(cardClasses(defaultTokens, {})).toBe(cardClasses(defaultTokens));
+  });
+});
