@@ -11,7 +11,13 @@ import {
   saveAttribution,
 } from "@factory/core/attribution";
 import { handleWebhook, paymentStatus, startCheckout } from "@factory/core/billing";
-import { missingConsents, recordConsents, requiredConsents, revokeConsent } from "@factory/core/consents";
+import {
+  claimAnonymousConsents,
+  missingConsents,
+  recordConsents,
+  requiredConsents,
+  revokeConsent,
+} from "@factory/core/consents";
 import { capturedDevEmails, emailProvider } from "@factory/core/email";
 import { receiptEmail } from "@factory/core/email/templates";
 import { grantTrial, hasAccess } from "@factory/core/entitlements";
@@ -261,23 +267,25 @@ const routes = app
   .get("/me", async (c) => {
     const user = c.get("user");
     const providers = { google: Boolean(c.env.GOOGLE_CLIENT_ID && c.env.GOOGLE_CLIENT_SECRET) };
+    const anonId = anonIdOf(c);
+    const required = requiredConsents(config.legal);
     if (!user)
       return c.json({
         user: null,
         access: false,
-        missingConsents: [] as string[],
+        // With a device id: what this visitor still has to accept before an anonymous use (D-043).
+        missingConsents: (anonId ? await missingConsents(db(c.env), anonKey(anonId), required) : []) as string[],
         providers,
         isAdmin: false,
         marketingConsent: false,
         // A visitor's anonymous free uses (D-042), from the device id the app sends.
         freeUses: {
           limit: config.funnel.anonymousFreeUses,
-          used: anonIdOf(c)
-            ? await freeUsesUsed(db(c.env), anonKey(anonIdOf(c) as string), config.funnel.coreAction)
-            : 0,
+          used: anonId ? await freeUsesUsed(db(c.env), anonKey(anonId), config.funnel.coreAction) : 0,
         },
       });
-    const required = requiredConsents(config.legal);
+    // Consent given on this device before signup counts for the account (D-043).
+    if (anonId) await claimAnonymousConsents(db(c.env), user.id, anonId);
     return c.json({
       user: { id: user.id, email: user.email, name: user.name },
       access: await hasAccess(db(c.env), user.id),
@@ -311,6 +319,20 @@ const routes = app
     if (parsed.data.granted) await recordConsents(db(c.env), userId, ["marketing"]);
     else await revokeConsent(db(c.env), userId, "marketing");
     return c.json({ ok: true as const, marketingConsent: parsed.data.granted });
+  })
+  // Consent before signup (D-043), for "pay for proof": recorded under the device id and moved to the
+  // account at sign-in (/me). Only the required documents; marketing has its own banner.
+  .use("/anonymous-consents", rateLimit("EVENTS_LIMITER", clientIp))
+  .post("/anonymous-consents", async (c) => {
+    const anonId = anonIdOf(c);
+    if (!anonId) return c.json({ error: "device_id_required" as const }, 400);
+    const parsed = consentBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
+    const required = requiredConsents(config.legal);
+    const missingRequired = required.filter((t) => !parsed.data.accept.includes(t));
+    if (missingRequired.length > 0) return c.json({ error: "consent_required" as const, missingRequired }, 400);
+    await recordConsents(db(c.env), anonKey(anonId), required);
+    return c.json({ ok: true as const });
   })
   // Attaches the device's first-touch attribution to the user, once (first touch wins).
   .use("/attribution", sessionMiddleware, requireSession)

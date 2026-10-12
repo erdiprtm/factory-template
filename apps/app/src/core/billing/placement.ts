@@ -7,6 +7,13 @@ import { track } from "../analytics";
 //   after_quota         only once the free uses of the core action run out (402)
 export const paywallPlacement = product.funnel.paywallPlacement;
 
+/**
+ * "Pay for proof" (D-042, D-043): the product's public screen for a visitor's first use, or null
+ * when the first result needs an account. The quiz leads there instead of to sign-in.
+ */
+export const anonymousEntry: string | null =
+  product.funnel.anonymousFreeUses > 0 ? product.funnel.anonymousEntry : null;
+
 let reported = false;
 
 /**
