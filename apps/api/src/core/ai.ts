@@ -38,12 +38,17 @@ const DAY_MS = 86_400_000;
 
 type Env = { Bindings: Bindings; Variables: { user: SessionUser | null } };
 
-type BudgetOptions = { perUserPerDay: number; anonymousPerDay: number };
+type BudgetOptions = { perUserPerDay: number; anonymousPerDay: number } & (
+  | { feature?: never; featurePerUserPerDay?: never }
+  | { feature: string; featurePerUserPerDay: number }
+);
 
 /**
  * Cost cap for AI routes (D-045). Put it BEFORE requireAccessOrFreeUse, so a refused call spends no
  * free use. Use after sessionMiddleware.
- * - each account or device: perUserPerDay calls per 24 h (429 { error: "ai_limit" });
+ * - each account or device: perUserPerDay calls per 24 h, all features together (429 { error: "ai_limit" });
+ * - with `feature` (D-050): also featurePerUserPerDay calls of that feature per 24 h (429 { error: "ai_limit" }).
+ *   `feature` is the same name the route passes to runAi;
  * - all visitors without an account together: anonymousPerDay per 24 h (429 { error: "ai_busy" }).
  * A visitor without a device id passes on to the free-use gate, which answers 401.
  */
@@ -56,16 +61,35 @@ export function aiBudgetGate(o: BudgetOptions) {
     if (!subject) return next();
     const since = new Date(Date.now() - DAY_MS);
     if ((await aiCallsSince(db, subject, since)) >= o.perUserPerDay) return c.json({ error: "ai_limit" as const }, 429);
+    if (o.feature !== undefined && (await aiCallsSince(db, subject, since, o.feature)) >= o.featurePerUserPerDay)
+      return c.json({ error: "ai_limit" as const }, 429);
     if (!user && (await anonymousAiCallsSince(db, since)) >= o.anonymousPerDay)
       return c.json({ error: "ai_busy" as const }, 429);
     await next();
   });
 }
 
+type AiCaps = { perUserPerDay: number; anonymousPerDay: number } | null;
+
+const aiUnavailable = createMiddleware<Env>(async (c) => c.json({ error: "ai_unavailable" as const }, 503));
+
 /** The cap with this product's settings (product.config.ts ai). 503 when the product has no AI. */
-export const requireAiBudget = config.ai
-  ? aiBudgetGate(config.ai)
-  : createMiddleware<Env>(async (c) => c.json({ error: "ai_unavailable" as const }, 503));
+export const requireAiBudget = config.ai ? aiBudgetGate(config.ai) : aiUnavailable;
+
+/**
+ * requireAiBudget plus a cap for one feature (D-050), e.g. photo scans at 20 a day next to cheap
+ * typed-text parsing. ai.perUserPerDay still caps all features together, so set it to their sum.
+ */
+export function requireAiBudgetFor(feature: string, perUserPerDay: number, ai: AiCaps = config.ai) {
+  return ai
+    ? aiBudgetGate({
+        perUserPerDay: ai.perUserPerDay,
+        anonymousPerDay: ai.anonymousPerDay,
+        feature,
+        featurePerUserPerDay: perUserPerDay,
+      })
+    : aiUnavailable;
+}
 
 /**
  * Runs one AI call for the signed-in user or the visitor's device and logs it (after the response,

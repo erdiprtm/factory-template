@@ -3,7 +3,7 @@ import { config } from "@factory/config/product";
 import { mockProvider } from "@factory/core/ai";
 import { capturedEmails } from "@factory/core/email";
 import { freeUseGate, requireAccess, requireAccessOrFreeUse } from "../src/core/access";
-import { aiBudgetGate, runAi } from "../src/core/ai";
+import { aiBudgetGate, requireAiBudgetFor, runAi } from "../src/core/ai";
 import { sessionMiddleware } from "../src/core/session";
 import { app } from "../src/index";
 
@@ -78,24 +78,41 @@ app.post(
 
 // An AI route as products build it (D-045): cost cap first, then the free-use gate, then one call
 // through runAi with the mock provider. At most 2 calls per account or device, 3 for all visitors.
+const aiTestRoute = (path: string, cap: ReturnType<typeof aiBudgetGate>, feature: string) =>
+  app.post(
+    path,
+    sessionMiddleware,
+    cap,
+    freeUseGate({ coreAction: "ai_test", freeUses: 10, anonymousFreeUses: 10, anonymousPerIpPerDay: 100 }),
+    async (c) => {
+      const result = await runAi(
+        c,
+        mockProvider(() => ({ label: "nasi putih" })),
+        feature,
+        {
+          system: "test",
+          text: "test",
+          schema: { name: "t", schema: {} },
+        },
+      );
+      return result.ok ? c.json({ output: result.output }) : c.json({ error: result.error }, 503);
+    },
+  );
 export const AI_ROUTE = "/api/__test/ai";
 export const AI_BUDGET = { perUserPerDay: 2, anonymousPerDay: 3 };
-app.post(
-  AI_ROUTE,
-  sessionMiddleware,
-  aiBudgetGate(AI_BUDGET),
-  freeUseGate({ coreAction: "ai_test", freeUses: 10, anonymousFreeUses: 10, anonymousPerIpPerDay: 100 }),
-  async (c) => {
-    const result = await runAi(
-      c,
-      mockProvider(() => ({ label: "nasi putih" })),
-      "test_scan",
-      {
-        system: "test",
-        text: "test",
-        schema: { name: "t", schema: {} },
-      },
-    );
-    return result.ok ? c.json({ output: result.output }) : c.json({ error: result.error }, 503);
-  },
+aiTestRoute(AI_ROUTE, aiBudgetGate(AI_BUDGET), "test_scan");
+
+// Two features under one daily cap of 3 calls (D-050): photo scans are also capped at 1 on their own,
+// typed text only by the shared cap.
+export const AI_PHOTO_ROUTE = "/api/__test/ai-photo";
+export const AI_TEXT_ROUTE = "/api/__test/ai-text";
+export const AI_FEATURE_CAPS = { perUserPerDay: 3, anonymousPerDay: 1000, photoPerUserPerDay: 1 };
+aiTestRoute(
+  AI_PHOTO_ROUTE,
+  requireAiBudgetFor("test_photo", AI_FEATURE_CAPS.photoPerUserPerDay, AI_FEATURE_CAPS),
+  "test_photo",
 );
+aiTestRoute(AI_TEXT_ROUTE, aiBudgetGate(AI_FEATURE_CAPS), "test_text");
+// The same feature cap in a product without AI (product.config.ts ai: null).
+export const AI_OFF_ROUTE = "/api/__test/ai-off";
+aiTestRoute(AI_OFF_ROUTE, requireAiBudgetFor("test_photo", 1, null), "test_photo");

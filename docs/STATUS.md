@@ -4,6 +4,15 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Follow-ups from creating myna-fit (D-050, D-051)
+
+- **New products pass lint on their first `pnpm verify`.** `/new-product` wrote a long tagline on one line, which `biome ci` rejects. The generator now writes it the way Biome does and runs `biome format` on every file it rewrote. A test checks every spec.
+- **AI caps per feature (D-050).** `requireAiBudgetFor("meal_scan", 20)` caps one feature next to the shared daily cap, so photo scans and cheap text parsing can have different limits.
+- **Local E2E timeouts fixed (D-051).** Another server on :8787 made Playwright's start-up check time out. E2E now starts its own server on :8788, never reuses one, and stops at once if the port is taken.
+- Myna Fit picks these up with `/sync-template`.
+
+---
+
 ## 2026-10-12: Users' files in R2 (D-049)
 
 - Template gap GAP-3 from the Myna Fit migration, the last one.

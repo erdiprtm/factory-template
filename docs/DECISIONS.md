@@ -904,3 +904,30 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - Visitors' unclaimed files are dropped after 90 days by the cron, like their consent and AI log.
 - **Images aren't resized on the server** (Workers have no image library, and Cloudflare Images costs extra). Apps upload the small version they want stored.
 - **Human, once per Cloudflare account:** enable R2 (`SETUP_HUMAN.md` step 2b). After that the agent creates the template's buckets and every product's.
+
+## D-050: AI caps per feature (2026-10-12)
+
+- **Why.** `requireAiBudget` counted all of a user's AI calls together. Myna Fit has photo scans (a vision call, 20 a day in its S&K) and typed meal text (much cheaper). With one cap, either scans weren't limited to 20 or text parsing stopped at 20 too. Found while creating `erdiprtm/myna-fit`.
+- **How.**
+  - `aiCallsSince(db, userId, since, feature?)` counts one feature when given. The existing `(user_id, created_at)` index already narrows to one user's last 24 h, so there is no new index or migration.
+  - `aiBudgetGate` takes an optional `feature` with `featurePerUserPerDay`. The type makes them come together.
+  - `requireAiBudgetFor(feature, perDay)` is `requireAiBudget` plus that feature's cap, and answers 503 for a product without AI.
+- **The shared cap stays.** `ai.perUserPerDay` still caps all features together, so a product sets it to the total it allows (Myna Fit: 20 scans plus the text allowance). The anonymous budget stays global too.
+- **Same answer.** A feature cap answers the same 429 `ai_limit`. The app knows which route it called, so it can say "scan habis hari ini, ketik manual saja".
+- **The name must match** the `feature` the route passes to `runAi`, since the cap counts the log rows `runAi` writes.
+
+## D-051: E2E starts its own server on :8788 (2026-10-12)
+
+- **Problem.** On the Mac, local `pnpm e2e` often stopped with "Timed out waiting 120000ms from config.webServer", while a `wrangler dev` started by hand was Ready in seconds.
+- **Root cause, reproduced.**
+  - Another process held :8787, here another project's dev server answering 404 on `/api/health`.
+  - `wrangler dev --port 8787` still says Ready, because workerd binds 127.0.0.1 and ::1 next to the other process's wildcard socket.
+  - Playwright's health check uses Node's keep-alive agent. Its first poll reached the other server, so every later poll reused that socket and got 404 until the timeout.
+  - With a 404 server on a spare port, real Playwright timed out; with the port free, the same run passed in 3 s. Start-up isn't slow, so a longer timeout wouldn't help.
+  - The log only *looked* cut off after the cron warning: Playwright shows the server's stderr, not its stdout (where "Starting local server" and "Ready" go).
+- **Fix.**
+  - E2E runs its own `wrangler dev` on **:8788**, so it never meets `pnpm dev` on :8787.
+  - `reuseExistingServer: false`: a stale `wrangler dev` has old code or other vars (for example no `ADMIN_EMAILS`), and reusing one silently made E2E fail.
+  - `scripts/port-free.mjs` stops the run within a second, with an `lsof` hint, when anything already listens on :8788.
+  - `DEBUG=pw:webserver pnpm e2e` shows the server's log (`CLAUDE.md`).
+- **Ruled out:** stdin or TTY handling, wrangler's AI-agent notice, telemetry or update checks, and the R2 binding. Started the way Playwright starts it (shell, detached, stdin an open pipe), with all of these present, wrangler was Ready in about 6 s.
