@@ -4,5 +4,5 @@ import type { Touch } from "@factory/core/attribution/touch";
 export function currentTouch(): Touch | null {
   return null;
 }
-export async function sendTouch(): Promise<void> {}
+export async function sendTouch(_userId: string): Promise<void> {}
 export function trackFunnel(_event: string, _step?: number): void {}

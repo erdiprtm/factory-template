@@ -4,6 +4,7 @@ import { dueReminders, expirePendingPayments, markReminderSent } from "@factory/
 import { emailProvider } from "@factory/core/email";
 import { reminderEmail } from "@factory/core/email/templates";
 import { purgeCheckoutContexts } from "@factory/core/meta";
+import { purgeIpUsage } from "@factory/core/quota";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
 import type { Bindings } from "../index";
@@ -19,6 +20,7 @@ export async function runScheduled(env: Bindings, now = new Date()) {
   const expired = await expirePendingPayments(db, now);
   const purged = await purgeFunnelEvents(db, now);
   await purgeCheckoutContexts(db, now);
+  await purgeIpUsage(db, now);
 
   const host = env.AUTH_HOSTS.split(",")[0]?.trim() ?? "";
   const scheme = env.APP_ENV === "development" || env.APP_ENV === "test" ? "http" : "https";

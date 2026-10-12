@@ -28,6 +28,7 @@ Write `specs/<slug>.plan.md`: one section per core feature (max 3) covering scre
   - When the screen shows its first result, call `reportFirstResult()` and render `<UpgradePrompt />` under it. A 402 renders `<Paywall reason=… />`.
   - Landers: one file per ad hook in `apps/site/src/content/landers/`, with `hook` equal to the ad's hook word for word. Replace `contoh.md`.
   - Follow the ad guardrails in `CLAUDE.md`.
+  - "Pay for proof" (the first result BEFORE signup, D-042): set `funnel.anonymousFreeUses` (≤ `freeUses`). Put the core action's route behind `sessionMiddleware` + `requireAccessOrFreeUse` without `requireSession`, and its screen outside the `(app)` group. Store anonymous results with `anonIdOf(c)`, and move them to the account in `claimAnonymousData` (`apps/api/src/features/user-data.ts`). A 401 `sign_up_required` means "save and sign up"; `<UpgradePrompt />` already shows that for visitors.
 - **Health/nutrition numbers** come only from curated data stored in the product, never from model memory.
 - Replace the home screen (`src/app/(app)/index.tsx`) with the product's main feature, and delete the example feature once a real paid feature exists: `apps/api/src/features/example.ts` and its mount, `apps/app/src/features/example/`, `src/app/(app)/example.tsx`, the `example.*` / `home.openExample` strings. Template tests don't depend on either (D-032).
 

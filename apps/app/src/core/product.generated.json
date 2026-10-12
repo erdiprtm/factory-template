@@ -116,6 +116,8 @@
   "funnel": {
     "coreAction": "core",
     "freeUses": 1,
+    "anonymousFreeUses": 0,
+    "anonymousPerIpPerDay": 20,
     "paywallPlacement": "after_first_result"
   },
   "economics": {

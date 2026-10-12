@@ -795,3 +795,20 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   | `esbuild` | drizzle-kit | Fix needs a major bump |
 
   They are re-checked when the upstream packages update.
+
+## D-042: Anonymous free uses: the first result before signup ("pay for proof") (2026-10-12)
+
+- **Why.** Alif Academy's onboarding module (Model B, "Pay for proof") shows one real result before asking for anything. Our free uses (D-037) only worked after sign-in, and the magic-link round trip before the first result is where visitors drop off. Myna Fit's meal scan is the first product that needs this.
+- **Config.** `funnel.anonymousFreeUses` (default 0, so it's off and nothing changes for existing products) must be at most `freeUses`, because the anonymous uses count toward the account's after signup. `funnel.anonymousPerIpPerDay` defaults to 20. It's generous on purpose: mobile carriers in Indonesia put many people behind one IP.
+- **Server-enforced, two keys** (`free_usage`, no new table):
+  - The device's random `anonId` (D-033). The app sends it as `x-anon-id` on every API call. It's random, so it isn't personal data.
+  - The IP per Jakarta day, stored as `ip:` plus a SHA-256 of IP + secret. No raw IP is stored. If the IP cap refuses a request, the device's use is given back.
+  - Private windows and new devices therefore can't farm free scans past the IP cap. The cron drops the IP rows after 2 days.
+- **`freeUseGate(options)`.** `requireAccessOrFreeUse` is this gate with the product's config. Tests use explicit limits (`CORE_ANON`).
+  - A visitor without a session spends an anonymous use; when none is left (or there's no device id) the answer is `401 { error: "sign_up_required" }`.
+  - A signed-in user behaves as before: free uses, then `402 free_uses_used`.
+- **At signup** the app posts the touch (`POST /api/attribution`, now once per device *and account*, so a second account on the same device is attached too).
+  - `claimAnonymousUses` adds the device's uses to the account, capped at `freeUses`, and removes the device row, so signing up can't double the free uses.
+  - The product-owned hook `claimAnonymousData(db, userId, anonId)` moves the visitor's results (e.g. their first meal scan) to the account.
+- **App.** `<UpgradePrompt />` asks a visitor to "Simpan hasil & lanjut". It sets the after-sign-in target to `/pricing`, so the plans come right after the sign-in. `/api/me` reports a visitor's anonymous free uses.
+- **Cost note.** A vision-model scan costs about Rp20 (Myna Fit's own measurement). The IP cap bounds abuse at roughly Rp400 per IP per day at the default.

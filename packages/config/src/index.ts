@@ -106,6 +106,9 @@ export const productSchema = z.object({
   // freeUses: free uses of the core action per user, enforced by the API (requireAccessOrFreeUse).
   // paywallPlacement: when the paywall is offered: right after the quiz and sign-in, under the first
   // result, or only once the free uses run out.
+  // anonymousFreeUses: uses a visitor gets BEFORE signing up ("pay for proof", D-042), counted toward
+  // freeUses once they sign up; 0 = sign-in required. anonymousPerIpPerDay caps them per IP per day
+  // (generous: mobile carriers put many people behind one IP).
   funnel: z
     .object({
       coreAction: z
@@ -113,9 +116,21 @@ export const productSchema = z.object({
         .regex(/^[a-z][a-z0-9_]{1,30}$/)
         .default("core"),
       freeUses: z.int().min(0).max(100).default(1),
+      anonymousFreeUses: z.int().min(0).max(10).default(0),
+      anonymousPerIpPerDay: z.int().min(1).max(1000).default(20),
       paywallPlacement: z.enum(["after_quiz", "after_first_result", "after_quota"]).default("after_first_result"),
     })
-    .default({ coreAction: "core", freeUses: 1, paywallPlacement: "after_first_result" }),
+    .refine((f) => f.anonymousFreeUses <= f.freeUses, {
+      message: "anonymousFreeUses can't exceed freeUses (they count toward them after signup)",
+      path: ["anonymousFreeUses"],
+    })
+    .default({
+      coreAction: "core",
+      freeUses: 1,
+      anonymousFreeUses: 0,
+      anonymousPerIpPerDay: 20,
+      paywallPlacement: "after_first_result",
+    }),
   // /admin unit economics (sell engine Module 6, D-038). paymentFeePercent: the provider's fee on a
   // typical method; adTaxPercent: tax on top of ad spend (Meta charges 11% in Indonesia);
   // targetCacFactor: target CAC = breakeven CAC × this; benchmarks: the minimum conversion from the

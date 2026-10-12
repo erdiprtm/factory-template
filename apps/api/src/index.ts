@@ -17,7 +17,7 @@ import { receiptEmail } from "@factory/core/email/templates";
 import { grantTrial, hasAccess } from "@factory/core/entitlements";
 import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
 import { quizResponsesFor, saveQuizResponse } from "@factory/core/quiz/store";
-import { freeUsesUsed } from "@factory/core/quota";
+import { anonKey, claimAnonymousUses, freeUsesUsed } from "@factory/core/quota";
 import { payments, schema } from "@factory/db";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -26,6 +26,7 @@ import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
+import { anonIdOf } from "./core/access";
 import { adminRoutes } from "./core/admin";
 import { type AnalyticsEnv, serverAnalytics } from "./core/analytics";
 import { type AuthEnv, getAuth } from "./core/auth";
@@ -42,7 +43,7 @@ import { configuredProvider, fakeProvider, type PaymentEnv } from "./core/paymen
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
 import { exampleFeature } from "./features/example";
-import { deleteProductData, exportProductData } from "./features/user-data";
+import { claimAnonymousData, deleteProductData, exportProductData } from "./features/user-data";
 
 // Bindings are typed explicitly (not via worker-configuration.d.ts globals) so the app package
 // can type-check the RPC client against this source without pulling in Worker ambient types.
@@ -269,7 +270,13 @@ const routes = app
         providers,
         isAdmin: false,
         marketingConsent: false,
-        freeUses: { limit: config.funnel.freeUses, used: 0 },
+        // A visitor's anonymous free uses (D-042), from the device id the app sends.
+        freeUses: {
+          limit: config.funnel.anonymousFreeUses,
+          used: anonIdOf(c)
+            ? await freeUsesUsed(db(c.env), anonKey(anonIdOf(c) as string), config.funnel.coreAction)
+            : 0,
+        },
       });
     const required = requiredConsents(config.legal);
     return c.json({
@@ -311,7 +318,16 @@ const routes = app
   .post("/attribution", async (c) => {
     const parsed = touchBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
-    const saved = await saveAttribution(db(c.env), c.get("user").id, parsed.data);
+    const userId = c.get("user").id;
+    const saved = await saveAttribution(db(c.env), userId, parsed.data);
+    // Free uses spent before signing up count toward the account's (D-042).
+    await claimAnonymousUses(db(c.env), {
+      userId,
+      anonId: parsed.data.anonId,
+      action: config.funnel.coreAction,
+      limit: config.funnel.freeUses,
+    });
+    await claimAnonymousData(db(c.env), userId, parsed.data.anonId);
     return c.json({ ok: true as const, saved });
   })
   // Quiz answers from before signup, attached once signed in (a retake replaces them).
