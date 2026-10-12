@@ -6,7 +6,7 @@ export { Checkbox } from "./components/checkbox";
 export { Input } from "./components/input";
 export { Badge, CenteredScreen, ErrorText, Loading, Screen, Separator } from "./components/layout";
 export { Text, TextClassContext, type TextVariant } from "./components/text";
-export { UiThemeProvider, useUiTokens } from "./components/theme";
+export { UiThemeProvider, useUiTokens, useUiVariants } from "./components/theme";
 export {
   type ButtonSize,
   type ButtonVariant,
@@ -19,5 +19,6 @@ export {
   screenClasses,
   textClasses,
   type UiTokens,
+  type UiVariants,
 } from "./lib/classes";
 export { cn } from "./lib/utils";

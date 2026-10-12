@@ -22,6 +22,9 @@ Write `specs/<slug>.plan.md`: one section per core feature (max 3) covering scre
 - **App:** `apps/app/src/features/<feature>/`, plus a route file in `src/app/(app)/`. Use `@factory/ui` components and `useI18n()`. Put the feature's strings in `apps/app/src/features/messages.ts` (both `id` and `en`, feature-prefixed keys), never in `src/core/i18n`. No browser-only APIs outside `*.web.tsx`.
 - **User data (UU PDP):** every product table is exported and deleted with the account. Add it to `apps/api/src/features/user-data.ts` (`exportProductData`, `deleteProductData`), or give it `ON DELETE CASCADE` to `user.id` and still export it.
 - **Site:** landing copy in `apps/site/src/pages/index.astro` (marked PRODUCT-OWNED), SEO pages in `apps/site/src/content/seo/`.
+- **The product's look, without touching `packages/ui` or `core/`:**
+  - Tokens go in `product.config.ts` `brand.tokens` (D-052): colors, `radius` and `radii` per element, `controlHeight`, `shadow`, `density`, `weights`, and bundled `fonts`. Put the font files in `apps/app/assets/fonts/` and `apps/site/public/fonts/`. Then run `pnpm theme`.
+  - Component variants go in `apps/app/src/features/theme.ts` (D-053): class overrides per Button variant/size/label, Card, Badge, Input and Text variant, merged last with `cn()`.
 - **Sell engine (D-033 to D-038), from the spec's "Core loop & funnel":**
   - Quiz: replace the EXAMPLE in `apps/app/src/features/quiz.ts` (5–8 steps, strings in `features/messages.ts`), or set it to `null`.
   - The core action's API route uses `requireAccessOrFreeUse` (not `requireAccess`). Set `funnel.coreAction`, `freeUses` and `paywallPlacement` in `product.config.ts`.

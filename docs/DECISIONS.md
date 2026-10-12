@@ -957,3 +957,20 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - No font: no `useFonts` call, nothing waits, nothing flashes.
 - **Tests.** The schema rejects bad lengths, heights under 44 or fractional, unknown enums, path-like or non-font file names, and families that aren't bundled. `gen-theme` writes the new variables (defaults equal the old values) plus the fonts. A snapshot pins the default classes. `@factory/ui` now has its own Vitest suite.
 - **Sync.** The generated files are regenerated with `pnpm theme` after a sync (`docs/TEMPLATE_SYNC.md`). Font files belong to the product.
+
+## D-053: Products restyle components with variants in features/theme.ts (2026-10-13)
+
+- **Problem.** Tokens (D-052) cover sizes, radii, shadow and fonts. Shapes and styles that aren't tokens still lived only in `packages/ui`, which products may not edit. Example: a primary button that is `rounded-2xl h-14 font-bold` while the outline button stays standard.
+- **Decision.** The product-owned `apps/app/src/features/theme.ts` exports `variants: UiVariants`:
+  - `button`: `base`, per `variant` (default/secondary/outline/ghost/destructive/link), per `size`, and the label (`text`) per variant;
+  - `card`, `badge`, `input`;
+  - `text`, per variant (h1/h2/h3/lead/muted/small/default).
+
+  The root layout passes it to `UiThemeProvider` next to the tokens. Each class function in `@factory/ui` merges the product's classes **last** with `cn()`, so a product class replaces the default it conflicts with and adds the rest. The template's file is empty.
+- **`cn()` knows the token utilities.** `tailwind-merge` is extended with the radius names (`card`, `button`, `input`, `chip`, `sheet`) and the `control` size. Without that, `rounded-2xl` wouldn't replace `rounded-button`: both classes would stay and CSS order would decide. This is also part of D-052's PR.
+- **Tailwind sees the product's classes.** `features/theme.ts` sits under `apps/app/src/**`, which the content scan already covers, so its classes compile on web and native.
+- **Tests (`@factory/ui`).**
+  - A product makes the primary button `rounded-2xl h-14` with a `font-bold` label, without touching `packages/ui`.
+  - Overrides apply only to the variant and size they name.
+  - Cards, badges, inputs and headings restyle.
+  - Empty variants change nothing.

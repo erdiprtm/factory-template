@@ -16,6 +16,7 @@ import { initMarketing } from "../core/marketing";
 import { MarketingBanner } from "../core/marketing-banner";
 import { captureError, initMonitoring } from "../core/monitoring";
 import { useRestoreTheme, useThemePreference } from "../core/theme";
+import { variants } from "../features/theme";
 
 /** Expo Router's error screen, plus a report: render errors are caught here, not by window.onerror. */
 export function ErrorBoundary(props: ErrorBoundaryProps) {
@@ -38,7 +39,7 @@ export default function RootLayout() {
   const fontsReady = useAppFonts();
   if (!fontsReady) return <View className="flex-1 bg-background" />;
   return (
-    <UiThemeProvider tokens={uiTokens}>
+    <UiThemeProvider tokens={uiTokens} variants={variants}>
       <I18nProvider>
         <QueryClientProvider client={queryClient}>
           <Head>

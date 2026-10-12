@@ -2,7 +2,7 @@ import { ActivityIndicator, ScrollView, View, type ViewProps } from "react-nativ
 import { badgeClasses, screenClasses } from "../lib/classes";
 import { cn } from "../lib/utils";
 import { Text } from "./text";
-import { useUiTokens } from "./theme";
+import { useUiTokens, useUiVariants } from "./theme";
 
 /** Mobile-first page: scrolls, centered column capped for wide screens. */
 export function Screen({ className, children, ...props }: ViewProps) {
@@ -28,7 +28,7 @@ export function Loading({ label }: { label: string }) {
 }
 
 export function Badge({ className, ...props }: React.ComponentProps<typeof Text>) {
-  return <Text className={cn(badgeClasses(useUiTokens()), className)} {...props} />;
+  return <Text className={cn(badgeClasses(useUiTokens(), useUiVariants()), className)} {...props} />;
 }
 
 export function Separator({ className }: { className?: string }) {
