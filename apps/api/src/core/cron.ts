@@ -8,13 +8,15 @@ import { purgeCheckoutContexts } from "@factory/core/meta";
 import { purgeIpUsage } from "@factory/core/quota";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
+import { runProductScheduled } from "../features/scheduled";
 import type { Bindings } from "../index";
 import { serverAnalytics } from "./analytics";
+import { captureError } from "./monitoring";
 
 /**
  * Cron Trigger (wrangler.jsonc triggers.crons): expires stale pending payments and sends
  * renewal reminders (7 days, 1 day, on expiry), and drops funnel events and checkout tracking context past their retention. Never calls the payment provider: Duitku's
- * status API blocks merchants that poll it.
+ * status API blocks merchants that poll it. Then runs the product's own jobs (features/scheduled.ts).
  */
 export async function runScheduled(env: Bindings, now = new Date()) {
   const db = drizzle(env.DB, { schema });
@@ -40,5 +42,13 @@ export async function runScheduled(env: Bindings, now = new Date()) {
     await analytics.track("renewal_reminder_sent", { kind: r.kind }, r.userId);
     if (r.kind === "expired") await analytics.track("entitlement_expired", {}, r.userId);
   }
-  return { expired, remindersSent: sent, funnelEventsPurged: purged };
+  // The product's jobs (features/scheduled.ts, D-046) run last; their failure never undoes core's.
+  let product: Record<string, number> = {};
+  try {
+    product = await runProductScheduled(env, now);
+  } catch (err) {
+    console.error("product scheduled jobs failed", err);
+    captureError(err);
+  }
+  return { expired, remindersSent: sent, funnelEventsPurged: purged, product };
 }

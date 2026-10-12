@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Product scheduled jobs and product dependencies (D-046, D-047)
+
+- Template gaps GAP-6 and GAP-7 from the Myna Fit migration.
+- `apps/api/src/features/scheduled.ts` runs the product's own jobs after core's cron; a failure there never stops core's.
+- Products may add the dependencies their features need (`CLAUDE.md`, `docs/TEMPLATE_SYNC.md`).
+
+---
+
 ## 2026-10-12: Upload routes get their own body limit (D-044)
 
 - Template gap GAP-2 from the Myna Fit migration. Products list larger bodies per path in `apps/api/src/features/uploads.ts` (capped at 5 MB); everything else stays at 64 KB.
