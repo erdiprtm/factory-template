@@ -26,3 +26,9 @@ export async function acceptConsents(accept: ("terms" | "privacy" | "sensitive_d
   if (!res.ok) throw new Error(`consents ${res.status}`);
   track("signup_completed");
 }
+
+/** Consent before signup (D-043): recorded for this device, moved to the account at sign-in. */
+export async function acceptAnonymousConsents(accept: ("terms" | "privacy" | "sensitive_data")[]) {
+  const res = await api.api["anonymous-consents"].$post({ json: { accept } });
+  if (!res.ok) throw new Error(`anonymous-consents ${res.status}`);
+}

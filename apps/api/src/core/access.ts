@@ -1,6 +1,7 @@
 import { config } from "@factory/config/product";
+import { type ConsentType, missingConsents, requiredConsents } from "@factory/core/consents";
 import { hasAccess } from "@factory/core/entitlements";
-import { consumeAnonymousFreeUse, consumeFreeUse, ipKey } from "@factory/core/quota";
+import { anonKey, consumeAnonymousFreeUse, consumeFreeUse, ipKey } from "@factory/core/quota";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
 import type { Context } from "hono";
@@ -33,6 +34,8 @@ type FreeUseOptions = {
   freeUses: number;
   anonymousFreeUses: number;
   anonymousPerIpPerDay: number;
+  /** Consents a visitor must have given on this device before an anonymous use (D-043). */
+  consents?: ConsentType[];
 };
 
 /**
@@ -41,6 +44,7 @@ type FreeUseOptions = {
  * - a signed-in user spends one of `freeUses`, then gets 402 { reason: "free_uses_used" };
  * - a visitor without an account spends one of `anonymousFreeUses` (per device, and under the IP's
  *   daily cap), then gets 401 { error: "sign_up_required" }. With anonymousFreeUses 0 it's a plain 401.
+ *   Before that, the device must have given `consents` (403 { error: "consent_required" }, D-043).
  * Responses carry `x-free-uses-left` when a free use was spent. Put it only on the route that
  * performs the core action (one call = one use), never on reads of past results.
  */
@@ -51,6 +55,8 @@ export function freeUseGate(o: FreeUseOptions) {
     if (!user) {
       const anonId = anonIdOf(c);
       if (o.anonymousFreeUses <= 0 || !anonId) return c.json({ error: "unauthorized" as const }, 401);
+      const missing = await missingConsents(db, anonKey(anonId), o.consents ?? []);
+      if (missing.length > 0) return c.json({ error: "consent_required" as const, missing }, 403);
       const ip = await ipKey(c.req.header("cf-connecting-ip") ?? "unknown", c.env.BETTER_AUTH_SECRET ?? "factory");
       const use = await consumeAnonymousFreeUse(db, {
         anonId,
@@ -71,5 +77,5 @@ export function freeUseGate(o: FreeUseOptions) {
   });
 }
 
-/** The gate with this product's settings (product.config.ts funnel). */
-export const requireAccessOrFreeUse = freeUseGate(config.funnel);
+/** The gate with this product's settings (product.config.ts funnel and the consents it requires). */
+export const requireAccessOrFreeUse = freeUseGate({ ...config.funnel, consents: requiredConsents(config.legal) });

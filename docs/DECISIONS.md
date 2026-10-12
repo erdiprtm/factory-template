@@ -812,3 +812,19 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - The product-owned hook `claimAnonymousData(db, userId, anonId)` moves the visitor's results (e.g. their first meal scan) to the account.
 - **App.** `<UpgradePrompt />` asks a visitor to "Simpan hasil & lanjut". It sets the after-sign-in target to `/pricing`, so the plans come right after the sign-in. `/api/me` reports a visitor's anonymous free uses.
 - **Cost note.** A vision-model scan costs about Rp20 (Myna Fit's own measurement). The IP cap bounds abuse at roughly Rp400 per IP per day at the default.
+
+## D-043: Consent before signup and a public entry screen for "pay for proof" (2026-10-12)
+
+- **Why.** D-042 lets a visitor use the core action before signing up, but two pieces were missing. Myna Fit's migration found both (`specs/myna-fit.migration.md`, GAP-4 and GAP-5):
+  - **No consent before processing.** Consents were recorded only for accounts. A health product processes data first (the quiz asks weight, height and age; the scan sends a photo to an AI provider abroad), and UU PDP needs explicit consent before that.
+  - **No public screen.** The quiz always sent a visitor to sign-in, and product screens lived in the session-only `(app)` group.
+- **Consent per device.**
+  - `POST /api/anonymous-consents` records the required documents (terms, privacy, and `sensitive_data` when the product needs it) under `anon:<anonId>`. It reuses the `consents` table and needs no migration (its `user_id` has no foreign key). It's rate-limited per IP like the events beacon.
+  - `freeUseGate` takes `consents`. `requireAccessOrFreeUse` passes the product's required consents, so an anonymous use without them is 403 `{ error: "consent_required", missing }`, checked before a use is spent.
+  - `/api/me` reports a visitor's missing consents (with a device id) and, once signed in, moves the device's consents to the account (`claimAnonymousConsents`). They keep their original time, so the record shows when consent was given, and the account isn't asked again on `/consent`.
+  - Unclaimed visitor consents are dropped after `ANONYMOUS_CONSENT_DAYS` (90) by the cron. Products delete a visitor's unclaimed results by then too.
+- **Public entry.**
+  - `funnel.anonymousEntry` is the app path of the product's public screen (e.g. `/scan`). It's required when `anonymousFreeUses > 0`, and the config refuses it otherwise.
+  - The quiz then shows `<AnonymousConsentGate>` before the questions, and on completion leads a visitor to that screen instead of to sign-in. Without a quiz, `/quiz` redirects there.
+  - The product's route file is a thin re-export outside `(app)`; `CLAUDE.md`'s ownership table now names such files product-owned.
+- **Unchanged for existing products.** `anonymousFreeUses` defaults to 0 and `anonymousEntry` to null, so no gate is shown and the quiz still leads to sign-in.

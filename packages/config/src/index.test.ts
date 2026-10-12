@@ -31,4 +31,13 @@ describe("defineProduct", () => {
   it("rejects slugs that can't be Worker names", () => {
     expect(() => defineProduct({ ...base, slug: "Bad_Slug" })).toThrow(/slug/);
   });
+
+  it("needs a public entry screen when visitors get free uses before signup (D-043)", () => {
+    const funnel = { ...base.funnel, freeUses: 1, anonymousFreeUses: 1 };
+    expect(() => defineProduct({ ...base, funnel: { ...funnel, anonymousEntry: null } })).toThrow(/anonymousEntry/);
+    expect(() => defineProduct({ ...base, funnel: { ...funnel, anonymousEntry: "scan" } })).toThrow(/anonymousEntry/);
+    expect(defineProduct({ ...base, funnel: { ...funnel, anonymousEntry: "/scan" } }).funnel.anonymousEntry).toBe(
+      "/scan",
+    );
+  });
 });

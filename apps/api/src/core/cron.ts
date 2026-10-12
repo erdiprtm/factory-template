@@ -1,6 +1,7 @@
 import { config } from "@factory/config/product";
 import { purgeFunnelEvents } from "@factory/core/attribution";
 import { dueReminders, expirePendingPayments, markReminderSent } from "@factory/core/billing";
+import { purgeAnonymousConsents } from "@factory/core/consents";
 import { emailProvider } from "@factory/core/email";
 import { reminderEmail } from "@factory/core/email/templates";
 import { purgeCheckoutContexts } from "@factory/core/meta";
@@ -21,6 +22,7 @@ export async function runScheduled(env: Bindings, now = new Date()) {
   const purged = await purgeFunnelEvents(db, now);
   await purgeCheckoutContexts(db, now);
   await purgeIpUsage(db, now);
+  await purgeAnonymousConsents(db, now);
 
   const host = env.AUTH_HOSTS.split(",")[0]?.trim() ?? "";
   const scheme = env.APP_ENV === "development" || env.APP_ENV === "test" ? "http" : "https";
