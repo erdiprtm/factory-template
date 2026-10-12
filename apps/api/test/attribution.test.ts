@@ -42,6 +42,9 @@ describe("POST /api/events", () => {
       events: [{ event: "lp_view" }, { event: "quiz_step", step: 2 }],
     });
     expect(res.status).toBe(204);
+    // The site calls this cross-origin (sendBeacon): its empty response may be read cross-origin.
+    expect(res.headers.get("cross-origin-resource-policy")).toBe("cross-origin");
+    expect((await call("/api/health")).headers.get("cross-origin-resource-policy")).toBe("same-origin");
     const rows = await db.select().from(funnelEvents).where(eq(funnelEvents.anonId, anonId));
     expect(rows.map((r) => [r.event, r.step, r.utmCampaign]).sort()).toEqual([
       ["lp_view", null, "c-events"],

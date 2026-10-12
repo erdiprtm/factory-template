@@ -10,6 +10,23 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Sell engine checked in production
+
+- **Lander `/l/contoh/` (Lighthouse 13.5, mobile, simulated slow 4G):**
+
+  | Measure | Result |
+  |---|---|
+  | LCP | 1.5 s (target < 2.5 s) |
+  | CLS | 0 |
+  | TBT | 30 ms |
+  | Performance | 98 |
+  | Accessibility | 100 |
+
+  SEO scores 66 because landers are `noindex` on purpose.
+- **Fixed:** the site → app funnel beacon got `ERR_BLOCKED_BY_RESPONSE.NotSameOrigin` (CORP same-origin on `/api/events`). That route is now `cross-origin`; all others stay `same-origin` (D-033).
+
+---
+
 ## 2026-10-11: Sell engine, Module 8: guardrails (branch `feat/ad-guardrails`)
 
 - `CLAUDE.md` gained an "Ads and landers" section covering Meta Advertising Standards, the health/fitness/food rules, promising only what the product does, lander scent, consent-only tracking and server-only money events (D-040).
