@@ -812,3 +812,14 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - The product-owned hook `claimAnonymousData(db, userId, anonId)` moves the visitor's results (e.g. their first meal scan) to the account.
 - **App.** `<UpgradePrompt />` asks a visitor to "Simpan hasil & lanjut". It sets the after-sign-in target to `/pricing`, so the plans come right after the sign-in. `/api/me` reports a visitor's anonymous free uses.
 - **Cost note.** A vision-model scan costs about Rp20 (Myna Fit's own measurement). The IP cap bounds abuse at roughly Rp400 per IP per day at the default.
+
+## D-044: Upload routes get their own body limit (2026-10-12)
+
+- **Why.** Every `/api/*` route took at most 64 KB, and the only exception (the ad-spend CSV) was hardcoded. A meal photo resized on the device to 1024 px JPEG is about 150–300 KB, so Myna Fit's scan couldn't be built without editing core (`specs/myna-fit.migration.md`, GAP-2).
+- **How.**
+  - `apps/api/src/features/uploads.ts` (product-owned) lists larger limits by exact path, e.g. `{ "/api/scan": 2 * 1024 * 1024 }`.
+  - Core's `apiBodyLimit` applies them and caps any entry at 5 MB. Unlisted paths keep 64 KB, and the CSV import keeps its 1 MB.
+- **Reading the file.**
+  - `readImageUpload(c)` takes one multipart field and decides JPEG, PNG or WebP from the file's first bytes, never from the type the client claims.
+  - Multipart, not base64 JSON: no 33% inflation, and React Native's `FormData` sends files natively.
+  - HEIC is refused; apps convert to JPEG before sending (`expo-image-manipulator`).

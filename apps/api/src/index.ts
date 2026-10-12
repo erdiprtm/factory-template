@@ -22,7 +22,6 @@ import { payments, schema } from "@factory/db";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { type Context, Hono } from "hono";
-import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
@@ -42,7 +41,9 @@ import { captureError, withMonitoring } from "./core/monitoring";
 import { configuredProvider, fakeProvider, type PaymentEnv } from "./core/payments";
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
+import { apiBodyLimit } from "./core/uploads";
 import { exampleFeature } from "./features/example";
+import { uploadLimits } from "./features/uploads";
 import { claimAnonymousData, deleteProductData, exportProductData } from "./features/user-data";
 
 // Bindings are typed explicitly (not via worker-configuration.d.ts globals) so the app package
@@ -83,11 +84,9 @@ const sameOriginHeaders = secureHeaders(apiHeaders);
 // 204 with no body, so cross-origin is safe there; every other route stays same-origin.
 const beaconHeaders = secureHeaders({ ...apiHeaders, crossOriginResourcePolicy: "cross-origin" });
 app.use("/api/*", (c, next) => (c.req.path === "/api/events" ? beaconHeaders(c, next) : sameOriginHeaders(c, next)));
-// No endpoint takes more than a small JSON or form body, except the admin's ad-spend CSV import.
-const tooLarge = (c: Context) => c.json({ error: "body_too_large" as const }, 413);
-const smallBody = bodyLimit({ maxSize: 64 * 1024, onError: tooLarge });
-const csvBody = bodyLimit({ maxSize: 1024 * 1024, onError: tooLarge });
-app.use("/api/*", (c, next) => (c.req.path === "/api/admin/spend/import" ? csvBody(c, next) : smallBody(c, next)));
+// No endpoint takes more than a small JSON or form body, except the admin's ad-spend CSV import and
+// the product's upload routes (features/uploads.ts, D-044).
+app.use("/api/*", apiBodyLimit({ ...uploadLimits, "/api/admin/spend/import": 1024 * 1024 }));
 
 // Only local dev needs CORS: Expo's dev server (:8081) calls wrangler dev (:8787).
 // Deployed, the app and API share one origin.

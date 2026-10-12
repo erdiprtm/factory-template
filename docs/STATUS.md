@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Upload routes get their own body limit (D-044)
+
+- Template gap GAP-2 from the Myna Fit migration. Products list larger bodies per path in `apps/api/src/features/uploads.ts` (capped at 5 MB); everything else stays at 64 KB.
+- `readImageUpload` reads a multipart image and checks its real type from the bytes.
+
+---
+
 ## 2026-10-12: Anonymous free uses ("pay for proof", D-042)
 
 - Visitors can get the first real result before signing up, enforced on the server per device and per IP per day.
