@@ -34,10 +34,14 @@ export function currentTouch(): Touch {
   return touch;
 }
 
-/** Attaches the touch to the signed-in user once per device (the API keeps the first one). */
-export async function sendTouch(): Promise<void> {
+/**
+ * Attaches the touch to the signed-in user once per device and account (the API keeps the first
+ * one, and claims the device's anonymous free uses for the account, D-042).
+ */
+export async function sendTouch(userId: string): Promise<void> {
   const t = currentTouch();
-  if (read(SENT_KEY) === t.anonId) return;
+  const sent = `${t.anonId}:${userId}`;
+  if (read(SENT_KEY) === sent) return;
   try {
     const res = await fetch(`${apiBaseUrl()}/api/attribution`, {
       method: "POST",
@@ -45,7 +49,7 @@ export async function sendTouch(): Promise<void> {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(t),
     });
-    if (res.ok) write(SENT_KEY, t.anonId);
+    if (res.ok) write(SENT_KEY, sent);
   } catch {
     // retried on the next app start
   }

@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Anonymous free uses ("pay for proof", D-042)
+
+- Visitors can get the first real result before signing up, enforced on the server per device and per IP per day.
+- Those uses move to the account at signup, and the product hook `claimAnonymousData` moves the results.
+- It's off by default (`funnel.anonymousFreeUses: 0`). Myna Fit will be the first product to turn it on.
+
+---
+
 ## 2026-10-12: Sell engine acceptance passed ✅
 
 - **The human ran the full flow on production**, with the template as the dummy:

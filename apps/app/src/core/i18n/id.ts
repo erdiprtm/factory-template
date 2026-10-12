@@ -177,6 +177,9 @@ export const id = {
   "admin.refundHint":
     "Refund dilakukan di dashboard penyedia pembayaran. Setelah itu tandai di sini agar akses berakhir dan angka tetap benar.",
   "account.status.refunded": "Dikembalikan",
+  "upgrade.anonTitle": "Hasil kamu siap disimpan",
+  "upgrade.anonBody": "Masuk dengan email untuk menyimpan hasil ini dan membuka rencana lengkap.",
+  "upgrade.anonCta": "Simpan hasil & lanjut",
 };
 
 export type Messages = typeof id;

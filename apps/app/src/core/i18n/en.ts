@@ -178,4 +178,7 @@ export const en: Messages = {
   "admin.refundHint":
     "Refunds are made in the payment provider's dashboard. Then mark them here so access ends and the numbers stay right.",
   "account.status.refunded": "Refunded",
+  "upgrade.anonTitle": "Your result is ready to save",
+  "upgrade.anonBody": "Sign in with your email to save this result and unlock the full plan.",
+  "upgrade.anonCta": "Save result & continue",
 };

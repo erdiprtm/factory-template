@@ -101,7 +101,7 @@ describe("consents endpoint", () => {
       providers: { google: false },
       isAdmin: false,
       marketingConsent: false,
-      freeUses: { limit: config.funnel.freeUses, used: 0 },
+      freeUses: { limit: config.funnel.anonymousFreeUses, used: 0 },
     });
   });
 });

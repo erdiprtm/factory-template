@@ -15,3 +15,11 @@ export async function exportProductData(_db: Db, _userId: string): Promise<Recor
  * (A product table with ON DELETE CASCADE to user.id is also removed by core's delete.)
  */
 export async function deleteProductData(_db: Db, _userId: string): Promise<void> {}
+
+/**
+ * "Pay for proof" (D-042): results a visitor created before signing up (stored with their device
+ * id, `anonIdOf(c)` in src/core/access.ts) move to the new account here. Called once the app
+ * attaches the device to the signed-in user. Example: update meal_scans set user_id = userId
+ * where anon_id = anonId and user_id is null.
+ */
+export async function claimAnonymousData(_db: Db, _userId: string, _anonId: string): Promise<void> {}

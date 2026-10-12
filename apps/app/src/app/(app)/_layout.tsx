@@ -31,7 +31,7 @@ export default function ProtectedLayout() {
   useEffect(() => {
     if (userId) identify(userId);
     if (userId) setMonitoringUser(userId);
-    if (userId) void sendTouch();
+    if (userId) void sendTouch(userId);
     if (userId) void sendQuiz(); // the protected area renders only after consent
   }, [userId]);
   if (me.isPending) return <Loading label={t("common.loading")} />;

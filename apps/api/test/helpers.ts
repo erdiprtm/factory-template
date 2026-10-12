@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { config } from "@factory/config/product";
 import { capturedEmails } from "@factory/core/email";
-import { requireAccess, requireAccessOrFreeUse } from "../src/core/access";
+import { freeUseGate, requireAccess, requireAccessOrFreeUse } from "../src/core/access";
 import { sessionMiddleware } from "../src/core/session";
 import { app } from "../src/index";
 
@@ -56,3 +56,9 @@ app.get(PAID, sessionMiddleware, requireAccess, (c) => c.json({ ok: true as cons
 // The product's core action behind the free quota (D-037), test-only like PAID.
 export const CORE = "/api/__test/core";
 app.post(CORE, sessionMiddleware, requireAccessOrFreeUse, (c) => c.json({ ok: true as const }));
+
+// The same gate with anonymous free uses on (D-042), whatever this product's config says:
+// 1 use before signup, 2 in total, at most 2 anonymous uses per IP per day.
+export const CORE_ANON = "/api/__test/core-anon";
+export const ANON_LIMITS = { coreAction: "core_anon_test", freeUses: 2, anonymousFreeUses: 1, anonymousPerIpPerDay: 2 };
+app.post(CORE_ANON, sessionMiddleware, freeUseGate(ANON_LIMITS), (c) => c.json({ ok: true as const }));
