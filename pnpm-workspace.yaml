@@ -21,6 +21,8 @@ overrides:
   react-native-worklets: 0.10.1
   # Security patch for satori's opentype.js (GHSA-px8p-9vwx-vf98), same minor (D-021).
   fflate: 0.7.5
+  # Security patch (GHSA-wq5f-xc86-pv6w) for Astro's image build and miniflare, same minor (D-021).
+  sharp: 0.35.5
 
 # One version per dependency across the workspace; packages reference these as "catalog:".
 # Picked with `node scripts/pick-versions.mjs` (docs/DECISIONS.md D-012).

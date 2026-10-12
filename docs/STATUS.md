@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: `sharp` 0.35.5 security override (D-041)
+
+- The remaining audit items are dev/build tooling. Three patches become eligible on 2026-10-14, 16 and 18.
+
+---
+
 ## 2026-10-12: Sell engine checked in production
 
 - **Lander `/l/contoh/` (Lighthouse 13.5, mobile, simulated slow 4G):**
