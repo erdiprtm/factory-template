@@ -74,3 +74,12 @@ describe("tokens change the classes", () => {
     expect(screenClasses(custom)).toContain("py-6");
   });
 });
+
+describe("cn knows the token utilities", () => {
+  it("lets a later class replace a token default", async () => {
+    const { cn } = await import("./utils");
+    expect(cn("rounded-button h-control px-5", "rounded-2xl h-14")).toBe("px-5 rounded-2xl h-14");
+    expect(cn("rounded-card", "rounded-none")).toBe("rounded-none");
+    expect(cn("font-sans", "font-heading")).toBe("font-heading");
+  });
+});
