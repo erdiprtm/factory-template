@@ -5,6 +5,14 @@ const { hairlineWidth } = require("nativewind/theme");
 
 const token = (name) => `hsl(var(--${name}) / <alpha-value>)`;
 
+// Bundled fonts (D-052): font-sans / font-heading name the families loaded by expo-font. Without
+// bundled fonts nothing changes (the platform's default font).
+const brand = require("./src/core/product.generated.json").brand.tokens;
+const fontFamily =
+  brand.fonts.length > 0
+    ? { sans: [brand.fontFamily.sans], heading: [brand.fontFamily.heading ?? brand.fontFamily.sans] }
+    : {};
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: "class",
@@ -30,7 +38,16 @@ module.exports = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        // Per element (D-052): generated from brand.tokens.radii, defaulting to --radius.
+        card: "var(--radius-card)",
+        button: "var(--radius-button)",
+        input: "var(--radius-input)",
+        chip: "var(--radius-chip)",
+        sheet: "var(--radius-sheet)",
       },
+      height: { control: "var(--control-height)" },
+      minHeight: { control: "var(--control-height)" },
+      fontFamily,
       borderWidth: { hairline: hairlineWidth() },
     },
   },

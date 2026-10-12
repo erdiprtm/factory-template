@@ -36,6 +36,8 @@ Never rebase or force-push. The `main` ruleset forbids it, and merges keep the h
 | `packages/db/migrations/meta/*` | Regenerate | Take the template's version, then `pnpm db:generate` rebuilds the snapshot including product tables |
 | `apps/*/package.json` `dependencies` / `devDependencies` | Both (D-047) | Keep the template's versions for the packages it lists, plus the product's own additions (recorded in the product's `docs/DECISIONS.md`). Scripts and every other field: template |
 | `pnpm-lock.yaml` | Regenerate | Take either side, then `pnpm install` |
+| `apps/app/global.css`, `apps/site/src/styles/tokens.css`, `apps/app/src/core/product.generated.json`, `apps/app/src/core/fonts.generated.ts` | Regenerate | Take either side, then `pnpm theme`: they are generated from the product's `product.config.ts` |
+| `apps/app/assets/fonts/**`, `apps/site/public/fonts/**` | Product | The product's bundled font files (D-052) |
 | `CLAUDE.md` | Template | Keep the product's header section at the top |
 
 ## When the product needs a core change

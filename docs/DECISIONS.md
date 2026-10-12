@@ -931,3 +931,29 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - `scripts/port-free.mjs` stops the run within a second, with an `lsof` hint, when anything already listens on :8788.
   - `DEBUG=pw:webserver pnpm e2e` shows the server's log (`CLAUDE.md`).
 - **Ruled out:** stdin or TTY handling, wrangler's AI-agent notice, telemetry or update checks, and the R2 binding. Started the way Playwright starts it (shell, detached, stdin an open pipe), with all of these present, wrangler was Ready in about 6 s.
+
+## D-052: Products get fuller design tokens (2026-10-13)
+
+- **Problem (from Myna Fit).** Every product needs its own look. A product could only change colors, one radius and a font name, and the font name wasn't even used. Component shapes were fixed, and products may not edit `packages/ui` or `core/`.
+- **The new tokens in `brand.tokens`** are all optional; unset gives exactly today's look.
+
+  | Token | Values | Default |
+  |---|---|---|
+  | `radii` | `card`, `button`, `chip`, `input`, `sheet` (CSS lengths) | Each equals `radius`, except `chip`, which stays a pill |
+  | `controlHeight` | Button and input height in px, 44–72 | 48 (`3rem`), like `h-12` |
+  | `shadow` | Card shadow: `none`, `soft` (`shadow-sm`), `lift` (`shadow-md`) | `none` |
+  | `density` | `compact` (tighter cards and screens) or `regular` | `regular` |
+  | `weights.heading` | `medium` to `extrabold` | h1 bold, h2/h3 semibold |
+  | `weights.body` | `normal` or `medium` | `normal` |
+  | `fonts` | Bundled files (at most 6) | none |
+
+- **How it reaches the components.**
+  - Radii and control height are CSS variables written by `scripts/gen-theme.mjs` (`--radius-card`, `--control-height`, …), with literal values because NativeWind resolves one level of `var()` on native. Tailwind maps them to `rounded-card/button/input/chip/sheet` and `h-control`.
+  - Shadow, density, weights and fonts are classes chosen by pure functions in `@factory/ui` (`lib/classes.ts`), from tokens the root layout passes in `UiThemeProvider`.
+  - Without a provider the components use `defaultTokens`, so nothing changes for anyone who doesn't opt in.
+- **Fonts without Google.** `fonts: [{ family, file, weight }]` names files in `apps/app/assets/fonts/` and `apps/site/public/fonts/` (both product-owned). The schema requires `fontFamily.sans` and `heading` to name listed families once any font is bundled.
+  - App (web and native): `gen-theme` writes `apps/app/src/core/fonts.generated.ts` (static `require`s for Metro), the root layout loads them with `expo-font` (SDK 57's `57.0.4`), and Tailwind's `font-sans` / `font-heading` name those families.
+  - Site: `gen-theme` writes self-hosted `@font-face` rules and `--font-sans` / `--font-heading` into `tokens.css`.
+  - No font: no `useFonts` call, nothing waits, nothing flashes.
+- **Tests.** The schema rejects bad lengths, heights under 44 or fractional, unknown enums, path-like or non-font file names, and families that aren't bundled. `gen-theme` writes the new variables (defaults equal the old values) plus the fonts. A snapshot pins the default classes. `@factory/ui` now has its own Vitest suite.
+- **Sync.** The generated files are regenerated with `pnpm theme` after a sync (`docs/TEMPLATE_SYNC.md`). Font files belong to the product.

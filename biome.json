@@ -19,6 +19,7 @@
       "!!apps/app/global.css",
       "!!apps/site/src/styles/tokens.css",
       "!!apps/app/src/core/product.generated.json",
+      "!!apps/app/src/core/fonts.generated.ts",
       "!!**/*.astro"
     ]
   },
