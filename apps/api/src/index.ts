@@ -327,10 +327,13 @@ const routes = app
   .post("/consents", async (c) => {
     const parsed = consentBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
-    const required = requiredConsents(config.legal);
-    const missingRequired = required.filter((t) => !parsed.data.accept.includes(t));
+    // Complete = what's already recorded plus what's accepted now (the /consent screen sends only
+    // the missing ones, e.g. sensitive_data for an older account).
+    const userId = c.get("user").id;
+    const missing = await missingConsents(db(c.env), userId, requiredConsents(config.legal));
+    const missingRequired = missing.filter((t) => !parsed.data.accept.includes(t));
     if (missingRequired.length > 0) return c.json({ error: "consent_required" as const, missingRequired }, 400);
-    await recordConsents(db(c.env), c.get("user").id, parsed.data.accept);
+    await recordConsents(db(c.env), userId, parsed.data.accept);
     return c.json({ ok: true as const });
   })
   // The "iklan/marketing" choice (UU PDP): grant or withdraw at any time. Recorded in consents.
@@ -351,9 +354,14 @@ const routes = app
     const parsed = consentBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
     const required = requiredConsents(config.legal);
-    const missingRequired = required.filter((t) => !parsed.data.accept.includes(t));
+    const missing = await missingConsents(db(c.env), anonKey(anonId), required);
+    const missingRequired = missing.filter((t) => !parsed.data.accept.includes(t));
     if (missingRequired.length > 0) return c.json({ error: "consent_required" as const, missingRequired }, 400);
-    await recordConsents(db(c.env), anonKey(anonId), required);
+    await recordConsents(
+      db(c.env),
+      anonKey(anonId),
+      required.filter((t) => parsed.data.accept.includes(t)),
+    );
     return c.json({ ok: true as const });
   })
   // Attaches the device's first-touch attribution to the user, once (first touch wins).

@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { config } from "@factory/config/product";
 import { capturedEmails } from "@factory/core/email";
 import { entitlements, payments, remindersSent, schema, user } from "@factory/db";
 import { eq } from "drizzle-orm";
@@ -7,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import { runScheduled } from "../src/core/cron";
 import { configuredProvider, fakeProvider } from "../src/core/payments";
 import { app } from "../src/index";
-import { firstPlan, get, lastPlan, PAID, post, signIn, signInWithConsent } from "./helpers";
+import { firstPlan, get, lastPlan, PAID, post, signIn, signInWithConsent, startTrial } from "./helpers";
 
 // Billing endpoints end to end with the FakeProvider (APP_ENV=test), against real local D1.
 const db = drizzle(env.DB, { schema });
@@ -18,18 +19,25 @@ describe("requireAccess (paid route)", () => {
     expect((await get(PAID, null)).status).toBe(401);
     const cookie = await signInWithConsent(uniqueEmail("gate"));
     expect((await get(PAID, cookie)).status).toBe(402);
-    expect((await post("/api/billing/trial", cookie, {})).status).toBe(200);
+    await startTrial(cookie);
     expect((await get(PAID, cookie)).status).toBe(200);
   });
 });
 
 describe("trial endpoint", () => {
-  it("grants the trial once", async () => {
+  it.skipIf(!config.trial.enabled)("grants the trial once", async () => {
     const cookie = await signInWithConsent(uniqueEmail("trial"));
     expect((await post("/api/billing/trial", cookie, {})).status).toBe(200);
     const again = await post("/api/billing/trial", cookie, {});
     expect(again.status).toBe(409);
     expect(await again.json()).toEqual({ error: "trial_used" });
+  });
+
+  it.skipIf(config.trial.enabled)("is closed when the product has no trial", async () => {
+    const cookie = await signInWithConsent(uniqueEmail("notrial"));
+    const res = await post("/api/billing/trial", cookie, {});
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "trial_disabled" });
   });
 });
 
@@ -105,7 +113,7 @@ describe("cron", () => {
     const { paymentId } = await (await post("/api/billing/checkout", cookie, { planId: firstPlan.id })).json<{
       paymentId: string;
     }>();
-    await post("/api/billing/trial", cookie, {});
+    await startTrial(cookie);
     const u = await db.select().from(user).where(eq(user.email, email)).get();
     const trial = await db
       .select()

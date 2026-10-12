@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { me } from "./support";
+import { me, navItem } from "./support";
 
 // Phase 3 acceptance: magic-link sign-in end to end, with the dev mail capture.
 test("magic link sign-in → consent → home → sign out", async ({ page, request }) => {
@@ -25,12 +25,15 @@ test("magic link sign-in → consent → home → sign out", async ({ page, requ
   await expect(continueButton).toBeDisabled();
   await page.getByLabel("Saya menyetujui Syarat & Ketentuan").click();
   await page.getByLabel("Saya menyetujui Kebijakan Privasi").click();
+  // Products with legal.sensitiveDataConsent (health data) ask a third consent.
+  const sensitive = page.getByLabel("Saya setuju data kesehatan/sensitif saya diproses untuk layanan ini");
+  if (await sensitive.isVisible()) await sensitive.click();
   await continueButton.click();
 
   await expect(page).toHaveURL(/\/$/);
   await expect.poll(async () => (await me(page)).user?.email).toBe(email);
 
-  await page.getByRole("link", { name: "Akun" }).click();
+  await navItem(page, "Akun").click();
   await page.getByRole("button", { name: "Keluar" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
 });

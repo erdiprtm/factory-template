@@ -1010,3 +1010,18 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - no web prices on native.
 
   The template has no React Native render-test setup, so the consent button's disabled state is proven by the shared form's structure plus the pure rule, not by rendering a slot. Template E2E runs with the default (empty) slots.
+
+## D-055: Template gaps found in Myna Fit: consent completion, trial-aware copy, config-following tests (2026-10-13)
+
+- **Consent completion.** `/consent` sends only the documents still missing, for example `sensitive_data` for an account created before a product turned it on. `POST /api/consents` used to demand every required document in the request, so those users were stuck. It now checks the recorded consents **plus** the accepted ones and refuses only if that set is still incomplete (`missingRequired` lists what's left). `POST /api/anonymous-consents` follows the same rule and records only what was accepted.
+- **Trial-aware paywall copy.** `paywall.body` says "Mulai coba gratis". Products without a trial now get `paywall.bodyNoTrial` (`paywallBodyKey(product.trial.enabled)`).
+- **Template tests follow the product's config,** taken from Myna Fit, where they were made generic (D-028 / D-032 lesson):
+  - API `startTrial()`: the trial endpoint when the product has a trial, else a direct trial entitlement.
+  - Consent counts and lists come from `requiredConsents(config.legal)`.
+  - The trial-only tests are skipped without a trial, and a "trial is closed" test replaces them.
+  - E2E: `navItem()` matches a top-bar link or a bottom tab (D-048), and the consent screen ticks every box shown.
+  - The quiz E2E knows "pay for proof".
+  - The access-expiry test buys instead of starting a trial when there's none.
+  - The site test checks the product's first lander instead of `contoh`.
+- **Lander hooks may run to 160 characters** (was 120). Myna Fit's formula hooks need about 124.
+- Not taken now (noted in Myna Fit's STATUS): "spend a free use only on success" (Myna Fit's P-005), persistent native storage (Phase 10), and the `blob:` CSP note.

@@ -23,8 +23,10 @@ export async function signIn(page: Page, request: APIRequestContext, email: stri
   await expect.poll(async () => (await me(page)).user?.email).toBe(email);
   if ((await me(page)).missingConsents.length > 0) {
     await expect(page).toHaveURL(/\/consent$/);
-    await page.getByLabel("Saya menyetujui Syarat & Ketentuan").click();
-    await page.getByLabel("Saya menyetujui Kebijakan Privasi").click();
+    // Only the documents still missing are asked (a reused account may have accepted some), and
+    // products with legal.sensitiveDataConsent (health data) ask a third one.
+    await expect(page.getByRole("checkbox").first()).toBeVisible();
+    for (const box of await page.getByRole("checkbox").all()) await box.click();
     await page.getByRole("button", { name: "Lanjut" }).click();
   }
   await expect(page).toHaveURL(/\/$/);
@@ -34,4 +36,9 @@ export async function signIn(page: Page, request: APIRequestContext, email: stri
 /** Paid access as the API sees it (requireAccess uses the same entitlement check). */
 export async function expectAccess(page: Page, access: boolean): Promise<void> {
   await expect.poll(async () => (await me(page)).access).toBe(access);
+}
+
+/** A nav entry: a link in the top bar, or a tab in the bottom bar products get on phones (D-048). */
+export function navItem(page: Page, name: string) {
+  return page.getByRole("link", { name }).or(page.getByRole("tab", { name }));
 }

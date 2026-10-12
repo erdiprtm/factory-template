@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import product from "../../../product.config";
 
@@ -70,9 +70,16 @@ describe("built site", () => {
   });
 
   it("ad landers: hook as the headline, one way forward to the quiz, noindex, not in the sitemap", () => {
-    const html = page("l/contoh/index.html");
-    const hook = "Untuk kamu yang sibuk, dapatkan rencana harian yang jelas dalam 2 menit";
-    expect(html).toContain(`<h1 class="text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">${hook}</h1>`);
+    // Whichever lander the product ships first (products replace the template's example, D-035).
+    const dir = new URL("../src/content/landers/", import.meta.url);
+    const file = readdirSync(dir)
+      .filter((f) => f.endsWith(".md"))
+      .sort()[0] as string;
+    const hook = readFileSync(new URL(file, dir), "utf8").match(/^hook: "(.*)"$/m)?.[1] ?? "";
+    const html = page(`l/${file.replace(/\.md$/, "")}/index.html`);
+    expect(html).toContain(
+      `<h1 class="text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">${hook.replaceAll("&", "&amp;")}</h1>`,
+    );
     expect(html).toContain('<meta name="robots" content="noindex"');
     expect(html).toContain('data-page-event="lp_view"');
     expect(html).toMatch(/href="[^"]+\/quiz" data-event="cta_tap"/);

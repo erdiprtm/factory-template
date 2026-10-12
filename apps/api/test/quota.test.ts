@@ -4,7 +4,7 @@ import { consumeFreeUse } from "@factory/core/quota";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
-import { CORE, get, post, signInWithConsent } from "./helpers";
+import { CORE, get, post, signInWithConsent, startTrial } from "./helpers";
 
 // Sell engine Module 5 (D-037): the first real result before the paywall, enforced server-side.
 // Limits come from product.config.ts, so this holds in every product repo.
@@ -30,7 +30,7 @@ describe("free uses of the core action", () => {
 
   it("paid access doesn't spend free uses", async () => {
     const cookie = await signInWithConsent(uniqueEmail("quota-trial"));
-    await post("/api/billing/trial", cookie, {});
+    await startTrial(cookie);
     for (let i = 0; i < config.funnel.freeUses + 2; i++) expect((await post(CORE, cookie, {})).status).toBe(200);
     expect((await me(cookie)).freeUses.used).toBe(0);
   });

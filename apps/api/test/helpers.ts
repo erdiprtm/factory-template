@@ -1,7 +1,11 @@
 import { env } from "cloudflare:workers";
 import { config } from "@factory/config/product";
 import { mockProvider } from "@factory/core/ai";
+import { requiredConsents } from "@factory/core/consents";
 import { capturedEmails } from "@factory/core/email";
+import { grantTrial } from "@factory/core/entitlements";
+import { schema } from "@factory/db";
+import { drizzle } from "drizzle-orm/d1";
 import { freeUseGate, requireAccess, requireAccessOrFreeUse } from "../src/core/access";
 import { aiBudgetGate, requireAiBudgetFor, runAi } from "../src/core/ai";
 import { sessionMiddleware } from "../src/core/session";
@@ -31,8 +35,22 @@ export async function signIn(email: string): Promise<string> {
 /** Signed-in user who has accepted the required consents. */
 export async function signInWithConsent(email: string): Promise<string> {
   const cookie = await signIn(email);
-  await post("/api/consents", cookie, { accept: ["terms", "privacy"] });
+  // The product's required documents (sensitive_data too for health products, legal.sensitiveDataConsent).
+  await post("/api/consents", cookie, { accept: requiredConsents(config.legal) });
   return cookie;
+}
+
+/**
+ * Gives the signed-in user a trial entitlement: through the endpoint when the product offers a
+ * trial, else directly in the database (tests that only need "some access" hold in every product).
+ */
+export async function startTrial(cookie: string): Promise<void> {
+  if (config.trial.enabled) {
+    await post("/api/billing/trial", cookie, {});
+    return;
+  }
+  const me = await (await get("/api/me", cookie)).json<{ user: { id: string } }>();
+  await grantTrial(drizzle(env.DB, { schema }), me.user.id, config.trial.days);
 }
 
 export const post = (path: string, cookie: string | null, body: unknown) =>

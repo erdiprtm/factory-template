@@ -2,8 +2,10 @@ import { Button, Card, CardDescription, CardHeader, CardTitle, Screen, Text } fr
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Platform } from "react-native";
+import product from "../../../../../product.config";
 import { track } from "../analytics";
 import { useI18n } from "../i18n";
+import { paywallBodyKey } from "./paywall-copy";
 
 /**
  * Shown when a paid feature returns 402. `reason` is the API's (free_uses_used: the free quota of
@@ -18,7 +20,9 @@ export function Paywall({ reason }: { reason?: string } = {}) {
       <Card>
         <CardHeader>
           <CardTitle>{t(reason === "free_uses_used" ? "paywall.freeUsedTitle" : "paywall.title")}</CardTitle>
-          <CardDescription>{Platform.OS === "web" ? t("paywall.body") : t("pricing.native")}</CardDescription>
+          <CardDescription>
+            {Platform.OS === "web" ? t(paywallBodyKey(product.trial.enabled)) : t("pricing.native")}
+          </CardDescription>
         </CardHeader>
         {Platform.OS === "web" ? (
           <Button onPress={() => router.push("/pricing")}>
