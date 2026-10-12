@@ -865,3 +865,12 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - Visitors' rows move to the account at signup (with the free uses), and unclaimed ones are dropped after 90 days by the cron.
   - An account's rows are in the UU PDP export and are deleted with the account.
 - **Human step:** one OpenAI project per product with a monthly budget limit, and its key as a Wrangler secret (`SETUP_HUMAN.md` step 11).
+
+## D-048: Product navigation: bottom tabs on phones, top bar on wide screens (2026-10-12)
+
+- **Why.** The signed-in shell's top bar was hardcoded to Beranda / Akun / Admin. Myna Fit has four main screens (Beranda, Nutrisi, Gym, Profil) used one-handed at the gym (`specs/myna-fit.migration.md`, GAP-8).
+- **How.** `apps/app/src/features/nav.ts` (product-owned) lists up to 4 tabs: path, label key, optional icon. Core always adds Akun (unless the product links `/account` itself) and Admin for admins.
+  - **Phones and native** (narrower than 768 px): a bottom tab bar with 56 px targets above the home indicator (safe-area inset). Icons are tinted with the theme's real colours, because native SVG can't read CSS variables.
+  - **Wide web:** the top bar with the same tabs.
+  - **Without product tabs:** the template's top bar everywhere, unchanged.
+- **Checked** in the browser with two temporary tabs: the bottom bar at 375 px, switching tabs, content scrolling above the bar, and the top bar at 1280 px. A test checks every product's tab list (`tabProblems`).
