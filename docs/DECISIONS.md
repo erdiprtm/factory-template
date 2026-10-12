@@ -601,6 +601,7 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **Server events.** The webhook records `purchase` or `renewal` (D1 plus OpenPanel, with `utm_campaign`) when it grants access. `payment_failed` is unchanged.
 - **Cost.** One small Worker request plus one D1 write per funnel step. At Rp100K/day of ads that is a few thousand rows a day, well inside the D1 and Workers free limits. The cron deletes funnel events after 400 days. `EVENTS_LIMITER` allows 300 batches per minute per IP, because mobile carriers put many users behind one IP.
 - **The site's beacon** is a `sendBeacon` with a `text/plain` body. That is a "simple" cross-origin request: no CORS preflight and no cookie. The response is never read.
+  - `/api/events` sends `Cross-Origin-Resource-Policy: cross-origin`; every other API route keeps `same-origin`. The first production Lighthouse run (2026-10-12) showed the browser blocking the beacon's empty response (`ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`, a console error). The request itself still reached the API, but that isn't guaranteed in every browser. The response is a 204 with no body, so there's nothing to leak.
 - **UU PDP.**
   - The export includes the attribution and the funnel events.
   - Erasure deletes both (by user and by the device's `anonId`), and clears `fbclid` from the de-identified payment rows. The campaign name stays, so ad reporting keeps its totals.

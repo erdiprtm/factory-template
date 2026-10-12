@@ -71,14 +71,17 @@ async function background(c: Context, work: Promise<unknown>): Promise<void> {
 
 // API responses are JSON only: nothing may be framed, sniffed or loaded as a page resource.
 // The app's HTML gets its headers from apps/app/public/_headers (served by the assets layer).
-app.use(
-  "/api/*",
-  secureHeaders({
-    contentSecurityPolicy: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
-    xFrameOptions: "DENY",
-    strictTransportSecurity: "max-age=31536000; includeSubDomains",
-  }),
-);
+const apiHeaders: NonNullable<Parameters<typeof secureHeaders>[0]> = {
+  contentSecurityPolicy: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
+  xFrameOptions: "DENY",
+  strictTransportSecurity: "max-age=31536000; includeSubDomains",
+};
+const sameOriginHeaders = secureHeaders(apiHeaders);
+// POST /api/events is the one endpoint another origin calls: the site's sendBeacon (D-033). With
+// CORP same-origin the browser blocks its (empty) response and logs a console error. It returns
+// 204 with no body, so cross-origin is safe there; every other route stays same-origin.
+const beaconHeaders = secureHeaders({ ...apiHeaders, crossOriginResourcePolicy: "cross-origin" });
+app.use("/api/*", (c, next) => (c.req.path === "/api/events" ? beaconHeaders(c, next) : sameOriginHeaders(c, next)));
 // No endpoint takes more than a small JSON or form body, except the admin's ad-spend CSV import.
 const tooLarge = (c: Context) => c.json({ error: "body_too_large" as const }, 413);
 const smallBody = bodyLimit({ maxSize: 64 * 1024, onError: tooLarge });
