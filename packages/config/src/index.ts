@@ -194,7 +194,8 @@ export const productSchema = z.object({
   // Worker secret (OPENAI_API_KEY), never here. model: an OpenAI model id with a known price in
   // @factory/core/ai (re-check the pricing page before changing it). tier "fast" = OpenAI Fast mode
   // (twice the price, roughly half the latency). The caps bound cost: perUserPerDay per account or
-  // device per 24 h, anonymousPerDay for all visitors without an account together.
+  // device per 24 h (all features together), anonymousPerDay for all visitors without an account
+  // together. One feature's own cap goes on its route: requireAiBudgetFor (D-050).
   ai: z
     .object({
       provider: z.literal("openai"),

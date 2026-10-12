@@ -13,7 +13,17 @@ import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
 import { aiProvider } from "../src/core/ai";
-import { AI_BUDGET, AI_ROUTE, BASE, call, signInWithConsent } from "./helpers";
+import {
+  AI_BUDGET,
+  AI_FEATURE_CAPS,
+  AI_OFF_ROUTE,
+  AI_PHOTO_ROUTE,
+  AI_ROUTE,
+  AI_TEXT_ROUTE,
+  BASE,
+  call,
+  signInWithConsent,
+} from "./helpers";
 
 // AI calls (D-045): a cost cap per account or device and for all visitors, every call logged.
 const db = drizzle(env.DB, { schema });
@@ -21,8 +31,8 @@ const anon = () => crypto.randomUUID().replaceAll("-", "");
 const ip = () => `192.0.2.${Math.floor(Math.random() * 250)}-${crypto.randomUUID().slice(0, 4)}`;
 const since = () => new Date(Date.now() - 86_400_000);
 
-const scan = (headers: Record<string, string>) =>
-  call(AI_ROUTE, {
+const scan = (headers: Record<string, string>, route = AI_ROUTE) =>
+  call(route, {
     method: "POST",
     headers: { "content-type": "application/json", origin: BASE, "cf-connecting-ip": ip(), ...headers },
     body: "{}",
@@ -59,6 +69,22 @@ describe("AI cost cap", () => {
     expect(await aiCallsSince(db, anonKey(first), since())).toBe(0);
   });
 
+  it("caps one feature on its own while all features share the daily cap (D-050)", async () => {
+    const cookie = await signInWithConsent(`ai-feature-${crypto.randomUUID()}@example.com`);
+    const me = await (await call("/api/me", { headers: { cookie } })).json<{ user: { id: string } }>();
+    expect((await scan({ cookie }, AI_PHOTO_ROUTE)).status).toBe(200);
+    const photoCapped = await scan({ cookie }, AI_PHOTO_ROUTE);
+    expect(photoCapped.status).toBe(429);
+    expect(await photoCapped.json()).toEqual({ error: "ai_limit" });
+    // Typed text still works until the shared cap (3 calls, the photo scan included).
+    expect((await scan({ cookie }, AI_TEXT_ROUTE)).status).toBe(200);
+    expect((await scan({ cookie }, AI_TEXT_ROUTE)).status).toBe(200);
+    expect((await scan({ cookie }, AI_TEXT_ROUTE)).status).toBe(429);
+    expect(await aiCallsSince(db, me.user.id, since(), "test_photo")).toBe(AI_FEATURE_CAPS.photoPerUserPerDay);
+    expect(await aiCallsSince(db, me.user.id, since(), "test_text")).toBe(2);
+    expect(await aiCallsSince(db, me.user.id, since())).toBe(AI_FEATURE_CAPS.perUserPerDay);
+  });
+
   it("drops visitors' rows after the retention period and an account's rows on deletion", async () => {
     const result = await mockProvider(() => ({})).json({ system: "", text: "", schema: { name: "t", schema: {} } });
     const old = anonKey(anon());
@@ -85,5 +111,11 @@ describe("AI provider choice", () => {
     expect(aiProvider({ APP_ENV: "preview" }, mock, ai)?.name).toBe("mock");
     expect(aiProvider({ APP_ENV: "production" }, mock, ai)).toBeNull();
     expect(aiProvider({ APP_ENV: "development", OPENAI_API_KEY: "sk-x" }, mock, null)).toBeNull();
+  });
+
+  it("answers 503 on a feature-capped route when the product has no AI", async () => {
+    const res = await scan({ "x-anon-id": anon() }, AI_OFF_ROUTE);
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "ai_unavailable" });
   });
 });

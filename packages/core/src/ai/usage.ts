@@ -34,12 +34,18 @@ export async function recordAiUsage(
   });
 }
 
-/** AI calls by one account or visitor since a time (all features). */
-export async function aiCallsSince(db: Db, userId: string, since: Date): Promise<number> {
+/** AI calls by one account or visitor since a time: all features, or only `feature` (D-050). */
+export async function aiCallsSince(db: Db, userId: string, since: Date, feature?: string): Promise<number> {
   const row = await db
     .select({ n: sql<number>`count(*)` })
     .from(aiUsage)
-    .where(and(eq(aiUsage.userId, userId), gte(aiUsage.createdAt, since)))
+    .where(
+      and(
+        eq(aiUsage.userId, userId),
+        gte(aiUsage.createdAt, since),
+        feature === undefined ? undefined : eq(aiUsage.feature, feature),
+      ),
+    )
     .get();
   return row?.n ?? 0;
 }

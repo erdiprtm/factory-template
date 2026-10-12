@@ -10,7 +10,8 @@
 //   1. spec-check   2. gh repo create --template   3. product.config.ts + wrangler names/hosts
 //   4. wrangler d1 create <slug>-prod / <slug>-preview, IDs written to wrangler.jsonc;
 //      wrangler r2 bucket create <slug>-files / <slug>-files-preview
-//   5. theme + commit + push   6. scripts/setup-github.sh on the new repo + CI secrets
+//   5. theme + biome format of the rewritten files + commit + push
+//   6. scripts/setup-github.sh on the new repo + CI secrets
 //      (account id, random BETTER_AUTH_SECRET per environment)   7. factory.json entry here
 // The push to main skips the deploy (not configured yet); the first PR merge deploys.
 // Human afterwards: `gh secret set CLOUDFLARE_API_TOKEN --repo <owner>/<slug>` (token is never copied).
@@ -23,6 +24,13 @@ import { fileURLToPath } from "node:url";
 import { checkSpec, sections } from "./spec-check.mjs";
 
 const TEMPLATE_SLUG = "factory-template";
+/** Files whose Worker names and hosts are renamed from the template's (renameWorkers). */
+const RENAMED_FILES = [
+  "apps/api/wrangler.jsonc",
+  "apps/site/wrangler.jsonc",
+  "apps/site/astro.config.mjs",
+  "apps/site/src/lib/site.ts",
+];
 
 /** Extracts what product.config.ts needs from a spec. */
 export function parseSpec(markdown) {
@@ -37,13 +45,19 @@ export function parseSpec(markdown) {
   return { name: title ?? "", tagline: oneLiner, plans };
 }
 
+/** Biome's layout (lineWidth 120) for a string property: the value gets its own line when it doesn't fit. */
+function stringProp(indent, key, value) {
+  const line = `${indent}${key}: ${JSON.stringify(value)},`;
+  return line.length <= 120 ? line : `${indent}${key}:\n${indent}  ${JSON.stringify(value)},`;
+}
+
 /** Rewrites identity fields in product.config.ts. Keeps everything else (tokens, legal…) as-is. */
 export function applyProductConfig(text, { slug, name, tagline, plans }) {
   let out = text
     .replace(/slug: "[^"]*"/, `slug: "${slug}"`)
     .replace(
-      /name: "[^"]*",\n(\s*)tagline: "[^"]*"/,
-      `name: ${JSON.stringify(name)},\n$1tagline: ${JSON.stringify(tagline)}`,
+      /^( *)name:\s*"[^"]*",\n *tagline:\s*"[^"]*",/m,
+      (_, indent) => `${stringProp(indent, "name", name)}\n${stringProp(indent, "tagline", tagline)}`,
     );
   // Each product gets its own OpenPanel project: never send its events into the template's.
   out = out.replace(/openpanelClientId: "[^"]*"/, "openpanelClientId: null");
@@ -129,7 +143,7 @@ function main() {
     `product.config.ts, wrangler.jsonc (api + site): slug/name/hosts → ${a.slug} on ${a.subdomain}.workers.dev`,
     `wrangler d1 create ${a.slug}-prod and ${a.slug}-preview (region apac), ids → apps/api/wrangler.jsonc`,
     `wrangler r2 bucket create ${a.slug}-files and ${a.slug}-files-preview (location apac)`,
-    `pnpm theme, wrangler types, commit "chore: create ${a.slug} from factory template", push`,
+    `pnpm theme, wrangler types, biome format of the rewritten files, commit "chore: create ${a.slug} from factory template", push`,
     `scripts/setup-github.sh ${repo} ${appUrl} ${siteUrl}; gh secret set CLOUDFLARE_ACCOUNT_ID, BETTER_AUTH_SECRET_PRODUCTION / _PREVIEW (random)`,
     `factory.json here: ${a.slug} status "building"`,
     `HUMAN: gh secret set CLOUDFLARE_API_TOKEN --repo ${repo}`,
@@ -145,14 +159,7 @@ function main() {
   const edit = (p, fn) => writeFileSync(inRepo(p), fn(readFileSync(inRepo(p), "utf8")));
 
   edit("product.config.ts", (t) => applyProductConfig(t, { slug: a.slug, ...spec }));
-  for (const p of [
-    "apps/api/wrangler.jsonc",
-    "apps/site/wrangler.jsonc",
-    "apps/site/astro.config.mjs",
-    "apps/site/src/lib/site.ts",
-  ]) {
-    edit(p, (t) => renameWorkers(t, { slug: a.slug, subdomain: a.subdomain }));
-  }
+  for (const p of RENAMED_FILES) edit(p, (t) => renameWorkers(t, { slug: a.slug, subdomain: a.subdomain }));
   writeFileSync(inRepo(`specs/${a.slug}.md`), specText);
 
   const d1 = (name) => {
@@ -176,6 +183,9 @@ function main() {
   run("pnpm", ["theme"], { cwd: a.dir });
   // Worker types embed the Worker/env names, so regenerate them after the rename (else typecheck fails).
   run("pnpm", ["--filter", "@factory/api", "types"], { cwd: a.dir });
+  // A longer name, tagline or slug can push a rewritten line past Biome's width, and the product's
+  // first `pnpm verify` (biome ci) would fail on it.
+  run("pnpm", ["exec", "biome", "format", "--write", "product.config.ts", ...RENAMED_FILES], { cwd: a.dir });
   run("git", ["add", "-A"], { cwd: a.dir });
   run("git", ["commit", "-m", `chore: create ${a.slug} from factory template`], { cwd: a.dir });
   run("git", ["push", "-u", "origin", "HEAD"], { cwd: a.dir });

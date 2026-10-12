@@ -32,7 +32,7 @@ pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/se
 
 - Migrations: see `packages/db/README.md`. Local only: `--local`. Remote databases are migrated **only by CI**.
 - Local sign-in: magic links are printed in the `wrangler dev` log (no email is sent without `RESEND_API_KEY`).
-- E2E needs Chromium once: `pnpm --filter @factory/e2e e2e:install`.
+- E2E needs Chromium once: `pnpm --filter @factory/e2e e2e:install`. It starts its own `wrangler dev` on :8788 (never reuses a running one, so `pnpm dev` can stay up) and stops at once if something else holds that port. `DEBUG=pw:webserver pnpm e2e` shows the server's log.
 - Preview URL: open a PR. CI comments `https://pr-<n>-<slug>-preview.<subdomain>.workers.dev` on it after the smoke test.
 - Native: `pnpm --filter @factory/app start` and scan the QR with Expo Go.
 
