@@ -4,13 +4,21 @@ Progress log, newest entry on top.
 
 ---
 
-## 2026-10-12: Users' files in R2 (D-049), waiting for R2 to be enabled
+## 2026-10-12: Users' files in R2 (D-049)
 
 - Template gap GAP-3 from the Myna Fit migration, the last one.
   - `FILES` R2 bucket per environment, with owners in the core `files` table.
   - `GET /api/files/:id` serves the owner only.
   - A visitor's files move to the account at signup, are deleted with the account, and are dropped after 90 days if unclaimed.
-- **Draft PR until the human enables R2** (`SETUP_HUMAN.md` step 2b): preview and production deploys need the template's buckets (`factory-template-files`, `factory-template-files-preview`), which the agent then creates.
+- The human enabled R2 on the Cloudflare account (`SETUP_HUMAN.md` step 2b). The agent created `factory-template-files`, `factory-template-files-preview`, `myna-fit-files` and `myna-fit-files-preview` (location apac).
+- **All 8 template gaps from the Myna Fit migration are done.**
+
+---
+
+## 2026-10-12: Product navigation (D-048)
+
+- Template gap GAP-8 from the Myna Fit migration. Products list their main screens in `apps/app/src/features/nav.ts`: bottom tabs on phones and native, the top bar on wide web.
+- **Only GAP-3 (R2 storage for meal thumbnails) is left.** It needs R2 enabled on the Cloudflare account (human).
 
 ---
 

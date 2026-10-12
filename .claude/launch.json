@@ -1,0 +1,27 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "myna-site",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "/Users/erdipratama/myna-health/apps/site",
+        "exec",
+        "astro",
+        "dev",
+        "--port",
+        "4321"
+      ],
+      "port": 4321
+    },
+    {
+      "name": "factory-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "dev"
+      ],
+      "port": 8081
+    }
+  ]
+}
