@@ -756,3 +756,16 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 
 - **`/hooks` became `/ad-hooks`.** `/hooks` is a built-in Claude Code command (hook settings), and a skill can't reliably take its name.
 - **The spec template has a "Core loop & funnel" section** (core loop, first 30 seconds, "aha", why users return, quiz, free uses and paywall placement, first hooks). It is optional for `spec-check`, so old specs stay valid, and `/spec-interview` fills it. `/build-from-spec` now covers the sell-engine steps: quiz, `requireAccessOrFreeUse`, `reportFirstResult` with `UpgradePrompt`, and landers.
+
+## D-040: Sell engine, Module 8: ad and lander guardrails in CLAUDE.md (2026-10-11)
+
+- **The new section "Ads and landers"** sits in `CLAUDE.md`, next to the product guardrails, so every agent session in every product repo reads it. It says:
+  - Meta Advertising Standards apply, and the agent reads the current version before writing ad copy.
+  - Health, fitness and food products: no before/after bodies, no weight-loss claims or timelines, no body shaming, no medical claims.
+  - No personal attributes asserted about the viewer.
+  - Promise only what the product does in its first session.
+  - Scent: the lander's `hook` repeats the ad's hook word for word, and they change together.
+  - Tracking only with consent, and only through `@factory/core/meta`.
+  - Money events from the server only.
+- **The playbooks enforce it.** `/ad-hooks`, `/creative-brief` and `/ad-test-plan` check these rules, and the lander schema makes the hook the headline (D-035).
+- **Why in CLAUDE.md, not only in skills:** ads also get written outside the playbooks (a quick landing tweak, a new SEO page, a reply to "bikin caption iklan"), and `CLAUDE.md` is always loaded. Meta rejects or restricts ads and accounts that break these standards, which would stop a product's only acquisition channel.
