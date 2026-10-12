@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Template test Pixel set (sell-engine acceptance)
+
+- `marketing.metaPixelId` is the template's own test dataset. `/new-product` clears it.
+- Production now shows the "iklan" consent banner, and the Pixel loads only after a yes.
+- CAPI stays off until the human sets `META_CAPI_TOKEN` (and `META_TEST_EVENT_CODE` for the test).
+
+---
+
 ## 2026-10-12: `sharp` 0.35.5 security override (D-041)
 
 - The remaining audit items are dev/build tooling. Three patches become eligible on 2026-10-14, 16 and 18.
