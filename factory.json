@@ -15,6 +15,21 @@
         "app": "https://myna-health.erdiprtm.workers.dev",
         "site": "https://myna-health-site.erdiprtm.workers.dev"
       }
+    },
+    {
+      "slug": "myna-fit",
+      "name": "Myna Fit",
+      "repo": "erdiprtm/myna-fit",
+      "status": "building",
+      "spec": "specs/myna-fit.md",
+      "launchDate": null,
+      "reviewDate": null,
+      "metricTargets": {},
+      "killCriteria": "** fewer than 30 paying users, or blended CAC above Rp400.000 (2× target) after at least Rp3.000.000 of ad spend. Then stop the ads and rework the funnel or positioning with Erdi.",
+      "urls": {
+        "app": "https://myna-fit.erdiprtm.workers.dev",
+        "site": "https://myna-fit-site.erdiprtm.workers.dev"
+      }
     }
   ]
 }
