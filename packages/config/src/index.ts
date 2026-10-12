@@ -190,6 +190,21 @@ export const productSchema = z.object({
         purchase: 0.5,
       },
     }),
+  // AI provider for the product's model calls (D-045). null = the product makes none. The key is a
+  // Worker secret (OPENAI_API_KEY), never here. model: an OpenAI model id with a known price in
+  // @factory/core/ai (re-check the pricing page before changing it). tier "fast" = OpenAI Fast mode
+  // (twice the price, roughly half the latency). The caps bound cost: perUserPerDay per account or
+  // device per 24 h, anonymousPerDay for all visitors without an account together.
+  ai: z
+    .object({
+      provider: z.literal("openai"),
+      model: z.string().regex(/^[a-z0-9][a-z0-9.-]{1,60}$/),
+      tier: z.enum(["default", "fast"]).default("default"),
+      perUserPerDay: z.int().min(1).max(1000).default(20),
+      anonymousPerDay: z.int().min(0).max(100000).default(300),
+    })
+    .nullable()
+    .default(null),
   // Meta Pixel ID (public: browsers carry it). Unset = no Pixel, no Conversions API, no marketing
   // consent banner. The CAPI access token is a Worker secret (META_CAPI_TOKEN), never here. D-034.
   marketing: z

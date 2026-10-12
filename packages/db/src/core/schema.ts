@@ -245,3 +245,28 @@ export const adSpend = sqliteTable(
     index("ad_spend_day_idx").on(t.day),
   ],
 );
+
+/**
+ * One row per AI call (D-045): an account, or `anon:<anonId>` for a visitor (D-042). Per-user daily
+ * caps, the global anonymous budget and cost tracking read it. Failed calls are logged too.
+ */
+export const aiUsage = sqliteTable(
+  "ai_usage",
+  {
+    id: id(),
+    userId: text("user_id").notNull(),
+    feature: text("feature").notNull(),
+    model: text("model").notNull(),
+    tier: text("tier").notNull(),
+    ok: integer("ok", { mode: "boolean" }).notNull(),
+    error: text("error"),
+    latencyMs: integer("latency_ms").notNull(),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    cachedInputTokens: integer("cached_input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    // Micro-USD (1e-6 USD) from the provider's list prices; null for a model without a known price.
+    costMicroUsd: integer("cost_micro_usd"),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (t) => [index("ai_usage_user_time_idx").on(t.userId, t.createdAt), index("ai_usage_time_idx").on(t.createdAt)],
+);

@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: AI provider adapter (D-045)
+
+- Template gap GAP-1 from the Myna Fit migration. `@factory/core/ai` calls OpenAI (Responses API, strict JSON, not stored) or a mock, never throwing.
+- Every call is logged in `ai_usage` with its cost. `requireAiBudget` caps calls per account or device and for all visitors per day, before a free use is spent.
+- **Human (per product with AI):** OpenAI project with a budget limit, `OPENAI_API_KEY` secret (`SETUP_HUMAN.md` step 11).
+
+---
+
 ## 2026-10-12: Consent before signup and a public entry screen (D-043)
 
 - Template gaps GAP-4 and GAP-5 from the Myna Fit migration (`specs/myna-fit.migration.md`).

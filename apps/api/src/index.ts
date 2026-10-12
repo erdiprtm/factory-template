@@ -1,6 +1,7 @@
 import { config } from "@factory/config/product";
 import { deleteUserData, exportUserData, subscriptionSummary } from "@factory/core/account";
 import { isAdminEmail } from "@factory/core/admin";
+import { claimAnonymousAiUsage } from "@factory/core/ai/usage";
 import { CLIENT_FUNNEL_EVENTS } from "@factory/core/analytics";
 import {
   attributionFor,
@@ -34,6 +35,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
 import { anonIdOf } from "./core/access";
 import { adminRoutes } from "./core/admin";
+import type { AiEnv } from "./core/ai";
 import { type AnalyticsEnv, serverAnalytics } from "./core/analytics";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
@@ -54,6 +56,7 @@ import { claimAnonymousData, deleteProductData, exportProductData } from "./feat
 // Bindings are typed explicitly (not via worker-configuration.d.ts globals) so the app package
 // can type-check the RPC client against this source without pulling in Worker ambient types.
 export type Bindings = AuthEnv &
+  AiEnv &
   PaymentEnv &
   AnalyticsEnv &
   MarketingEnv &
@@ -349,6 +352,7 @@ const routes = app
       action: config.funnel.coreAction,
       limit: config.funnel.freeUses,
     });
+    await claimAnonymousAiUsage(db(c.env), userId, parsed.data.anonId);
     await claimAnonymousData(db(c.env), userId, parsed.data.anonId);
     return c.json({ ok: true as const, saved });
   })

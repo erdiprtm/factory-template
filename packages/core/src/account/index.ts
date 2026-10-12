@@ -10,6 +10,7 @@ import {
   verification,
 } from "@factory/db";
 import { desc, eq, inArray } from "drizzle-orm";
+import { deleteAiUsage, exportAiUsage } from "../ai/usage";
 import { deleteAttribution, exportAttribution } from "../attribution";
 import type { Db } from "../entitlements";
 import { deleteQuizResponses, quizResponsesFor } from "../quiz/store";
@@ -103,6 +104,7 @@ export async function exportUserData(db: Db, userId: string) {
     payments: paymentRows,
     entitlements: entitlementRows,
     consents: consentRows,
+    aiCalls: await exportAiUsage(db, userId),
     ...(await exportAttribution(db, userId)),
     quizResponses: await quizResponsesFor(db, userId),
   };
@@ -136,6 +138,7 @@ export async function deleteUserData(db: Db, userId: string): Promise<void> {
   await deleteAttribution(db, userId);
   await deleteQuizResponses(db, userId);
   await deleteFreeUsage(db, userId);
+  await deleteAiUsage(db, userId);
   await db.delete(consents).where(eq(consents.userId, userId));
   await db.delete(session).where(eq(session.userId, userId));
   await db.delete(account).where(eq(account.userId, userId));
