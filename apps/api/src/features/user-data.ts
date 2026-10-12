@@ -20,6 +20,7 @@ export async function deleteProductData(_db: Db, _userId: string): Promise<void>
  * "Pay for proof" (D-042): results a visitor created before signing up (stored with their device
  * id, `anonIdOf(c)` in src/core/access.ts) move to the new account here. Called once the app
  * attaches the device to the signed-in user. Example: update meal_scans set user_id = userId
- * where anon_id = anonId and user_id is null.
+ * where anon_id = anonId and user_id is null. Delete results nobody claimed within
+ * ANONYMOUS_CONSENT_DAYS (90, @factory/core/consents): their consent record is dropped then (D-043).
  */
 export async function claimAnonymousData(_db: Db, _userId: string, _anonId: string): Promise<void> {}

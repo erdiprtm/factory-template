@@ -62,3 +62,14 @@ app.post(CORE, sessionMiddleware, requireAccessOrFreeUse, (c) => c.json({ ok: tr
 export const CORE_ANON = "/api/__test/core-anon";
 export const ANON_LIMITS = { coreAction: "core_anon_test", freeUses: 2, anonymousFreeUses: 1, anonymousPerIpPerDay: 2 };
 app.post(CORE_ANON, sessionMiddleware, freeUseGate(ANON_LIMITS), (c) => c.json({ ok: true as const }));
+
+// The same, but a visitor must have consented on the device first (D-043), as a health product
+// with legal.sensitiveDataConsent requires.
+export const CORE_ANON_CONSENT = "/api/__test/core-anon-consent";
+export const ANON_CONSENTS = ["terms", "privacy", "sensitive_data"] as const;
+app.post(
+  CORE_ANON_CONSENT,
+  sessionMiddleware,
+  freeUseGate({ ...ANON_LIMITS, coreAction: "core_anon_consent_test", consents: [...ANON_CONSENTS] }),
+  (c) => c.json({ ok: true as const }),
+);

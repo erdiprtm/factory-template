@@ -109,6 +109,9 @@ export const productSchema = z.object({
   // anonymousFreeUses: uses a visitor gets BEFORE signing up ("pay for proof", D-042), counted toward
   // freeUses once they sign up; 0 = sign-in required. anonymousPerIpPerDay caps them per IP per day
   // (generous: mobile carriers put many people behind one IP).
+  // anonymousEntry: the product's PUBLIC screen for that first use (e.g. "/scan"), outside the signed-in
+  // area. The quiz leads there instead of to sign-in, after the visitor's consent (D-043). Required
+  // when anonymousFreeUses > 0.
   funnel: z
     .object({
       coreAction: z
@@ -118,17 +121,27 @@ export const productSchema = z.object({
       freeUses: z.int().min(0).max(100).default(1),
       anonymousFreeUses: z.int().min(0).max(10).default(0),
       anonymousPerIpPerDay: z.int().min(1).max(1000).default(20),
+      anonymousEntry: z
+        .string()
+        .regex(/^\/[a-z0-9][a-z0-9/-]{0,60}$/, 'an app path like "/scan"')
+        .nullable()
+        .default(null),
       paywallPlacement: z.enum(["after_quiz", "after_first_result", "after_quota"]).default("after_first_result"),
     })
     .refine((f) => f.anonymousFreeUses <= f.freeUses, {
       message: "anonymousFreeUses can't exceed freeUses (they count toward them after signup)",
       path: ["anonymousFreeUses"],
     })
+    .refine((f) => f.anonymousFreeUses === 0 || f.anonymousEntry !== null, {
+      message: "anonymousFreeUses needs anonymousEntry: the public screen where the visitor gets the first result",
+      path: ["anonymousEntry"],
+    })
     .default({
       coreAction: "core",
       freeUses: 1,
       anonymousFreeUses: 0,
       anonymousPerIpPerDay: 20,
+      anonymousEntry: null,
       paywallPlacement: "after_first_result",
     }),
   // /admin unit economics (sell engine Module 6, D-038). paymentFeePercent: the provider's fee on a

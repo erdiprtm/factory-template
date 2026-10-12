@@ -4,6 +4,15 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Consent before signup and a public entry screen (D-043)
+
+- Template gaps GAP-4 and GAP-5 from the Myna Fit migration (`specs/myna-fit.migration.md`).
+- Visitors accept the required documents on the device before the quiz and the first use. The API enforces it, and the consent moves to the account at sign-in.
+- `funnel.anonymousEntry` names the product's public screen; the quiz leads there in the "pay for proof" flow.
+- **Next template gaps for Myna Fit:** GAP-2 (upload body limit), GAP-1 (AI/vision adapter), GAP-3 (R2), GAP-6 (product cron hook), GAP-7 (product app dependencies), GAP-8 (product navigation).
+
+---
+
 ## 2026-10-12: Anonymous free uses ("pay for proof", D-042)
 
 - Visitors can get the first real result before signing up, enforced on the server per device and per IP per day.

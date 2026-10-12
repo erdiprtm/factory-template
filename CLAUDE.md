@@ -14,6 +14,7 @@ The full design is in `FACTORY_BLUEPRINT.md`. Progress is in `docs/STATUS.md`, d
 |---|---|
 | `apps/app/src/features/**` (incl. `messages.ts` for UI strings), `apps/api/src/features/**` (incl. `user-data.ts` export/delete hooks) | `apps/app/src/core/**`, `apps/api/src/core/**` |
 | `product.config.ts`, `specs/**`, site content in `apps/site` | `packages/**` (core, db, ui, config) |
+| Route files in `apps/app/src/app/**` that only re-export a screen from `src/features/**` | Core route files (`quiz.tsx`, `sign-in.tsx`, `consent.tsx`, `(app)/_layout.tsx`, …) |
 | `packages/db/src/features/**` (product tables + their migrations) | existing core tables or merged migrations |
 
 ## How to run

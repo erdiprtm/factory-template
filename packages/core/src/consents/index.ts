@@ -1,6 +1,7 @@
 import { consents, type consentType } from "@factory/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, like, lt } from "drizzle-orm";
 import type { Db } from "../entitlements";
+import { anonKey } from "../quota";
 
 export type ConsentType = (typeof consentType)[number];
 
@@ -51,4 +52,33 @@ export async function revokeConsent(db: Db, userId: string, type: ConsentType, n
     .update(consents)
     .set({ revokedAt: now })
     .where(and(eq(consents.userId, userId), eq(consents.type, type), isNull(consents.revokedAt)));
+}
+
+// ---- Consent before signup (D-043) ----------------------------------------------------------
+// "Pay for proof" (D-042) processes data before the visitor has an account: health products send a
+// photo to an AI provider and ask body data in the quiz. UU PDP needs explicit consent BEFORE that,
+// so it is recorded under the device id (`anon:<anonId>`, like free_usage) and moves to the account
+// at sign-in, keeping its original time as the record of when it was given.
+
+/** Days an unclaimed visitor's consent is kept. Products delete a visitor's results by then too. */
+export const ANONYMOUS_CONSENT_DAYS = 90;
+
+/** Moves a device's consents to the account. Safe to call on every sign-in check. */
+export async function claimAnonymousConsents(db: Db, userId: string, anonId: string): Promise<void> {
+  await db
+    .update(consents)
+    .set({ userId })
+    .where(eq(consents.userId, anonKey(anonId)));
+}
+
+/** Drops visitors' consents that were never claimed by an account (cron). */
+export async function purgeAnonymousConsents(db: Db, now = new Date()): Promise<void> {
+  await db
+    .delete(consents)
+    .where(
+      and(
+        like(consents.userId, "anon:%"),
+        lt(consents.grantedAt, new Date(now.getTime() - ANONYMOUS_CONSENT_DAYS * 86_400_000)),
+      ),
+    );
 }

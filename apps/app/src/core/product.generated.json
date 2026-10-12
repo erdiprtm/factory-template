@@ -118,6 +118,7 @@
     "freeUses": 1,
     "anonymousFreeUses": 0,
     "anonymousPerIpPerDay": 20,
+    "anonymousEntry": null,
     "paywallPlacement": "after_first_result"
   },
   "economics": {
