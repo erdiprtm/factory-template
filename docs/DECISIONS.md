@@ -974,3 +974,39 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - Overrides apply only to the variant and size they name.
   - Cards, badges, inputs and headings restyle.
   - Empty variants change nothing.
+
+## D-054: Display slots for core screens (2026-10-13)
+
+- **Problem.** Tokens and variants (D-052, D-053) restyle components, but core screens keep their layout: the quiz, sign-in, consent, pricing, tab bar and Akun header. Myna Fit wants its quiz as chat bubbles with a stepper for numbers (P-004), and its own headers. Products may not edit `core/` or core route files.
+- **Decision: display slots, logic stays in core.**
+  - `apps/app/src/core/slots.ts` defines `CoreSlots`. The product-owned `apps/app/src/features/slots.tsx` fills it, and the template's is empty.
+  - A core screen renders the slot if it's filled, otherwise its default. A slot only gets finished, display-ready props.
+
+  | Slot | Replaces | Props |
+  |---|---|---|
+  | `quizStep` | One quiz step | `step`, `value`, `onAnswer`, `back`, `progress`, `t` |
+  | `quizSummaryHeader` | The "Rencana kamu siap" header | Display text |
+  | `signInHeader` | The sign-in header | Display text |
+  | `consentHeader` | Header on `/consent` and the pre-signup gate | Display text, plus `where` |
+  | `pricingIntro` | The `/pricing` intro | Display text |
+  | `planCard` | One plan (`/pricing`, UpgradePrompt) | Formatted price, per week, saving, `onBuy`, `busy` |
+  | `tabItem` | One bottom tab's content | `label`, `active`, `Icon`, theme `colors` |
+  | `tabBarClassName` | Extra classes for the bar | (a class string) |
+  | `accountHeader` | The Akun header | Display text, plus product name and logo |
+
+- **Hard rules in code (and tests).**
+  - **Consent (UU PDP).** `/consent` and the pre-signup gate now share `ConsentForm`. The `consentHeader` slot replaces only the title and subtitle. The checkboxes, their legal text and the accept button are core's.
+    - The button is `disabled={!canAccept(needed, checked)}`, and `submit` checks `canAccept` again.
+    - `canAccept` (pure, tested) is false until every required consent is checked, and false for an empty list.
+    - The header slot's props have no submit, checkbox or accept handle; a type-level test pins this.
+  - **Quiz.** `answer()` drops any answer that fails `isValidAnswer` before it's stored, so a custom step can't skip a step or store bad data.
+  - **Prices.** `PlanCards` returns nothing unless `showsWebPrices(Platform.OS)` (web only, tested for every native OS), whatever `planCard` renders. The slot gets prices formatted from `product.config.ts` and a checkout callback; it can't set a price.
+  - **Access.** `requireAccess` and the free-use gate are on the API, and slots run in the app, so a slot can't reach them.
+  - **Tab bar.** Core keeps the press target, `role="tab"`, selection state and navigation; `tabItem` draws the inside only.
+- **Tests.** `apps/app/test/slots.test.tsx` runs in every product repo:
+  - a minimal custom slot set that type-checks;
+  - the consent rule and the shape of the header slot's props;
+  - quiz answer validation;
+  - no web prices on native.
+
+  The template has no React Native render-test setup, so the consent button's disabled state is proven by the shared form's structure plus the pure rule, not by rendering a slot. Template E2E runs with the default (empty) slots.

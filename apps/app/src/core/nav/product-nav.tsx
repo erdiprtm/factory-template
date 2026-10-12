@@ -1,10 +1,11 @@
-import { Text } from "@factory/ui";
+import { cn, Text } from "@factory/ui";
 import { usePathname, useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import product from "../../../../../product.config";
 import { productTabs } from "../../features/nav";
+import { slots } from "../../features/slots";
 import { useMe } from "../auth/use-me";
 import { type MessageKey, useI18n } from "../i18n";
 import { isActiveTab, type NavTab, navTabs } from "./tabs";
@@ -58,10 +59,11 @@ export function BottomNav() {
   const insets = useSafeAreaInsets();
   // Icons need real colors (native SVG can't read CSS variables): the theme tokens themselves.
   const colors = product.brand.tokens.colors[useColorScheme().colorScheme === "dark" ? "dark" : "light"];
+  const TabItem = slots.tabItem;
   return (
     <View
       role="tablist"
-      className="w-full flex-row border-t border-border bg-card"
+      className={cn("w-full flex-row border-t border-border bg-card", slots.tabBarClassName)}
       style={{ paddingBottom: Math.max(insets.bottom, 4) }}
     >
       {useTabs().map((tab) => {
@@ -75,10 +77,16 @@ export function BottomNav() {
             onPress={() => router.push(tab.href as never)}
             className="min-h-14 flex-1 items-center justify-center gap-0.5 pt-1.5"
           >
-            {Icon ? <Icon size={22} color={active ? colors.primary : colors.mutedForeground} /> : null}
-            <Text className={`text-xs ${active ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-              {t(tab.label)}
-            </Text>
+            {TabItem ? (
+              <TabItem label={t(tab.label)} active={active} Icon={Icon} colors={colors} />
+            ) : (
+              <>
+                {Icon ? <Icon size={22} color={active ? colors.primary : colors.mutedForeground} /> : null}
+                <Text className={`text-xs ${active ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+                  {t(tab.label)}
+                </Text>
+              </>
+            )}
           </Pressable>
         );
       })}

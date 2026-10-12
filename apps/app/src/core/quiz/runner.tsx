@@ -10,6 +10,7 @@ import {
 import { Button, Card, CardContent, CardHeader, CardTitle, cn, ErrorText, Input, Screen, Text } from "@factory/ui";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
+import { slots } from "../../features/slots";
 import { track } from "../analytics";
 import { type MessageKey, useI18n } from "../i18n";
 import { loadQuizProgress, saveQuizProgress } from "./storage";
@@ -32,6 +33,8 @@ export function QuizRunner({ quiz, onDone }: { quiz: QuizDefinition<MessageKey>;
   }, [quiz.id]);
 
   function answer(step: QuizStep<MessageKey>, value: QuizAnswer) {
+    // Core validates every answer, including a product slot's (D-054): an invalid one is ignored.
+    if (!isValidAnswer(step, value)) return;
     const next = { ...answers, [step.id]: value };
     const at = quiz.steps.indexOf(step);
     const done = at === quiz.steps.length - 1;
@@ -46,6 +49,22 @@ export function QuizRunner({ quiz, onDone }: { quiz: QuizDefinition<MessageKey>;
     return <Summary quiz={quiz} answers={answers} onBack={() => setIndex(quiz.steps.length - 1)} onDone={onDone} />;
   const step = quiz.steps[index] as QuizStep<MessageKey>;
   const total = quiz.steps.length;
+  const StepSlot = slots.quizStep;
+  if (StepSlot) {
+    return (
+      <Screen className="max-w-xl">
+        <StepSlot
+          key={step.id}
+          step={step}
+          value={answers[step.id]}
+          onAnswer={(v) => answer(step, v)}
+          back={index > 0 ? () => setIndex(index - 1) : undefined}
+          progress={{ step: index + 1, total }}
+          t={t}
+        />
+      </Screen>
+    );
+  }
 
   return (
     <Screen className="max-w-xl">
@@ -189,14 +208,19 @@ function Summary({
 }) {
   const { t } = useI18n();
   const lines = quiz.summary?.(answers) ?? [];
+  const Header = slots.quizSummaryHeader;
   return (
     <Screen className="max-w-xl">
-      <View className="gap-2">
-        <Text variant="h1" role="heading">
-          {t("quiz.summary.title")}
-        </Text>
-        <Text variant="lead">{t("quiz.summary.subtitle")}</Text>
-      </View>
+      {Header ? (
+        <Header title={t("quiz.summary.title")} subtitle={t("quiz.summary.subtitle")} />
+      ) : (
+        <View className="gap-2">
+          <Text variant="h1" role="heading">
+            {t("quiz.summary.title")}
+          </Text>
+          <Text variant="lead">{t("quiz.summary.subtitle")}</Text>
+        </View>
+      )}
       {lines.length > 0 ? (
         <Card>
           <CardContent className="gap-2 pt-6">

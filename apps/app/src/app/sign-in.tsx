@@ -7,6 +7,7 @@ import { track } from "../core/analytics";
 import { authClient } from "../core/auth/client";
 import { useMe } from "../core/auth/use-me";
 import { useI18n } from "../core/i18n";
+import { slots } from "../features/slots";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -29,15 +30,20 @@ export default function SignIn() {
     setState(error ? "error" : "sent");
   }
 
+  const Header = slots.signInHeader;
   return (
     <CenteredScreen>
-      <View className="gap-2">
-        <Text variant="small" className="font-semibold uppercase tracking-wide">
-          {product.name}
-        </Text>
-        <Text variant="h1">{t("auth.signIn.title")}</Text>
-        <Text variant="lead">{t("auth.signIn.subtitle")}</Text>
-      </View>
+      {Header ? (
+        <Header productName={product.name} title={t("auth.signIn.title")} subtitle={t("auth.signIn.subtitle")} />
+      ) : (
+        <View className="gap-2">
+          <Text variant="small" className="font-semibold uppercase tracking-wide">
+            {product.name}
+          </Text>
+          <Text variant="h1">{t("auth.signIn.title")}</Text>
+          <Text variant="lead">{t("auth.signIn.subtitle")}</Text>
+        </View>
+      )}
       {state === "sent" ? (
         <Text accessibilityLiveRegion="polite" className="rounded-lg bg-accent p-4 text-accent-foreground">
           {t("auth.signIn.checkEmail")}

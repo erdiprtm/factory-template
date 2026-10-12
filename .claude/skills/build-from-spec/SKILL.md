@@ -25,6 +25,8 @@ Write `specs/<slug>.plan.md`: one section per core feature (max 3) covering scre
 - **The product's look, without touching `packages/ui` or `core/`:**
   - Tokens go in `product.config.ts` `brand.tokens` (D-052): colors, `radius` and `radii` per element, `controlHeight`, `shadow`, `density`, `weights`, and bundled `fonts`. Put the font files in `apps/app/assets/fonts/` and `apps/site/public/fonts/`. Then run `pnpm theme`.
   - Component variants go in `apps/app/src/features/theme.ts` (D-053): class overrides per Button variant/size/label, Card, Badge, Input and Text variant, merged last with `cn()`.
+  - Core screens' look goes in `apps/app/src/features/slots.tsx` (D-054). The slots are `quizStep` (e.g. chat bubbles with a stepper for numbers), `quizSummaryHeader`, `signInHeader`, `consentHeader`, `pricingIntro`, `planCard`, `tabItem` plus `tabBarClassName`, and `accountHeader`.
+    - A slot gets display-ready props and returns UI only. Never re-implement consent checkboxes, the accept button, prices or access checks in a slot: core keeps them, and the rules can't be bypassed.
 - **Sell engine (D-033 to D-038), from the spec's "Core loop & funnel":**
   - Quiz: replace the EXAMPLE in `apps/app/src/features/quiz.ts` (5–8 steps, strings in `features/messages.ts`), or set it to `null`.
   - The core action's API route uses `requireAccessOrFreeUse` (not `requireAccess`). Set `funnel.coreAction`, `freeUses` and `paywallPlacement` in `product.config.ts`.

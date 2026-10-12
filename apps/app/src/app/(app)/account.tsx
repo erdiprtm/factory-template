@@ -30,6 +30,7 @@ import { type Locale, type MessageKey, useI18n } from "../../core/i18n";
 import { setMarketingChoice } from "../../core/marketing";
 import { setMonitoringUser } from "../../core/monitoring";
 import { type ThemePreference, useThemePreference } from "../../core/theme";
+import { slots } from "../../features/slots";
 
 export default function Account() {
   const { t, locale } = useI18n();
@@ -56,6 +57,7 @@ export default function Account() {
   if (summary.isPending) return <Loading label={t("common.loading")} />;
   if (!summary.data) return <ErrorText className="p-5">{t("common.error")}</ErrorText>;
   const { profile, subscription } = summary.data;
+  const AccountHeader = slots.accountHeader;
 
   let status = t("account.inactive");
   if (subscription.active && subscription.expiresAt) {
@@ -67,7 +69,16 @@ export default function Account() {
 
   return (
     <Screen>
-      <Text variant="h1">{t("account.title")}</Text>
+      {AccountHeader ? (
+        <AccountHeader
+          title={t("account.title")}
+          subtitle={profile.email}
+          productName={product.name}
+          logo={product.brand.logo}
+        />
+      ) : (
+        <Text variant="h1">{t("account.title")}</Text>
+      )}
 
       <Card>
         <CardHeader>
