@@ -866,6 +866,21 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - An account's rows are in the UU PDP export and are deleted with the account.
 - **Human step:** one OpenAI project per product with a monthly budget limit, and its key as a Wrangler secret (`SETUP_HUMAN.md` step 11).
 
+## D-046: The product's own scheduled jobs (2026-10-12)
+
+- **Why.** Products promise retention in their privacy policy (Myna Fit: delete visitors' unclaimed scans, and data 24 months after a plan lapses, with an email first), but only core's cron existed (`specs/myna-fit.migration.md`, GAP-6).
+- **How.** `apps/api/src/features/scheduled.ts` (product-owned) exports `runProductScheduled(env, now)`. Core's cron calls it after its own jobs, every 30 minutes.
+  - A throw is logged and reported to Sentry, and core's results still return.
+  - Daily jobs check `now` themselves. The template's version does nothing.
+
+## D-047: Products may add dependencies (2026-10-12)
+
+- **Why.** Feature code needs packages the template doesn't have; Myna Fit needs `expo-image-picker`, `expo-image-manipulator`, `expo-haptics`, `expo-keep-awake`, `expo-audio` and a chart library. `package.json` ownership was undefined (GAP-7).
+- **Rule.**
+  - A product may add `dependencies` to `apps/app` and `apps/api` for its features, chosen like any dependency: ≥ 14 days old, pinned, recorded in the product's `docs/DECISIONS.md`. Expo-managed packages are added with `expo install`, so they match the Expo SDK.
+  - It never changes the template's versions, scripts or other fields. Those come from the template on every sync.
+- **Sync.** `docs/TEMPLATE_SYNC.md` resolves `package.json` dependency conflicts as "both": the template's versions plus the product's additions. Then `pnpm install` regenerates the lockfile.
+
 ## D-048: Product navigation: bottom tabs on phones, top bar on wide screens (2026-10-12)
 
 - **Why.** The signed-in shell's top bar was hardcoded to Beranda / Akun / Admin. Myna Fit has four main screens (Beranda, Nutrisi, Gym, Profil) used one-handed at the gym (`specs/myna-fit.migration.md`, GAP-8).

@@ -11,6 +11,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Product scheduled jobs and product dependencies (D-046, D-047)
+
+- Template gaps GAP-6 and GAP-7 from the Myna Fit migration.
+- `apps/api/src/features/scheduled.ts` runs the product's own jobs after core's cron; a failure there never stops core's.
+- Products may add the dependencies their features need (`CLAUDE.md`, `docs/TEMPLATE_SYNC.md`).
+
+---
+
 ## 2026-10-12: AI provider adapter (D-045)
 
 - Template gap GAP-1 from the Myna Fit migration. `@factory/core/ai` calls OpenAI (Responses API, strict JSON, not stored) or a mock, never throwing.

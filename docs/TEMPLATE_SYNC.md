@@ -34,6 +34,7 @@ Never rebase or force-push. The `main` ruleset forbids it, and merges keep the h
 | `specs/**`, `factory.json`, site SEO content and landing copy | Product | |
 | `packages/db/migrations/*.sql` | Both | Timestamp prefixes never collide. Keep all files, then `pnpm db:generate` must report no changes |
 | `packages/db/migrations/meta/*` | Regenerate | Take the template's version, then `pnpm db:generate` rebuilds the snapshot including product tables |
+| `apps/*/package.json` `dependencies` / `devDependencies` | Both (D-047) | Keep the template's versions for the packages it lists, plus the product's own additions (recorded in the product's `docs/DECISIONS.md`). Scripts and every other field: template |
 | `pnpm-lock.yaml` | Regenerate | Take either side, then `pnpm install` |
 | `CLAUDE.md` | Template | Keep the product's header section at the top |
 
