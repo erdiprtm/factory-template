@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { config } from "@factory/config/product";
+import { requiredConsents } from "@factory/core/consents";
 import { consents, entitlements, payments, schema, session, user } from "@factory/db";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -56,7 +57,7 @@ describe("data export (right of access)", () => {
     const data = await res.json<Record<string, unknown>>();
     expect(data).toMatchObject({ profile: { email }, product: {} });
     expect((data.payments as unknown[]).length).toBe(1);
-    expect((data.consents as unknown[]).length).toBe(2);
+    expect((data.consents as unknown[]).length).toBe(requiredConsents(config.legal).length);
     const text = JSON.stringify(data);
     expect(text).not.toMatch(/token|password|raw_?payload/i);
   });

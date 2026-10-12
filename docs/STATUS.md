@@ -4,6 +4,19 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Template gaps from Myna Fit (D-055)
+
+- `POST /api/consents` (and the pre-signup one) accept the missing documents when they complete what's recorded.
+- The paywall copy mentions the trial only when there is one.
+- Template API and E2E tests follow the product's config: trial, required consents, nav as links or tabs, the first lander.
+- Lander hooks may be up to 160 characters.
+- **Myna Fit can run `/sync-template` now.** It picks up product design layers 1–3 (D-052 to D-054) and these fixes.
+  - The last template commit already in myna-fit is `0c665ce`, and the histories are unrelated, so the next sync needs `git merge template/main --allow-unrelated-histories`, with `0c665ce` as the manual 3-way base.
+  - After the merge, run `pnpm theme`, which regenerates `global.css`, `tokens.css`, `product.generated.json` and the new `fonts.generated.ts`.
+  - Then move Myna Fit's look into `brand.tokens`, `features/theme.ts` and `features/slots.tsx` (e.g. the chat-bubble quiz step, P-004).
+
+---
+
 ## 2026-10-13: Product design, layer 3: display slots for core screens (D-054)
 
 - `features/slots.tsx` restyles the quiz step (chat bubbles possible), the quiz summary, sign-in, consent and pricing headers, plan cards, the bottom tab items and the Akun header.

@@ -1,11 +1,21 @@
 import { expect, test } from "@playwright/test";
+import product from "../../product.config";
 import { me, signIn } from "./support";
+
+// "Pay for proof" products (D-042/D-043) ask for consent before the quiz and lead to their public
+// entry screen instead of sign-in.
+const anonymousEntry = product.funnel.anonymousFreeUses > 0 ? product.funnel.anonymousEntry : null;
 
 // Sell engine Module 4 (D-036). Product-independent: answers whatever quiz the product defines
 // (first option / lowest number), so it holds in every product repo.
 test("quiz: lander CTA → steps with back → summary → sign-in → answers attached", async ({ page, request }) => {
   await page.goto("/quiz");
   if (page.url().endsWith("/sign-in")) return test.skip(true, "this product has no quiz");
+  if (anonymousEntry) {
+    await expect(page.getByTestId("anon-consent-continue")).toBeVisible();
+    for (const box of await page.getByRole("checkbox").all()) await box.click();
+    await page.getByTestId("anon-consent-continue").click();
+  }
   const summary = page.getByRole("heading", { name: "Rencana kamu siap" });
   const next = page.getByTestId("quiz-next");
   const answerStep = async () => {
@@ -40,7 +50,11 @@ test("quiz: lander CTA → steps with back → summary → sign-in → answers a
   }
   await expect(summary).toBeVisible();
   await page.getByTestId("quiz-done").click();
-  await expect(page).toHaveURL(/\/sign-in$/);
+  if (anonymousEntry) {
+    await expect(page).toHaveURL(new RegExp(`${anonymousEntry}$`));
+  } else {
+    await expect(page).toHaveURL(/\/sign-in$/);
+  }
 
   await signIn(page, request, `e2e-quiz-${Date.now()}@example.com`);
   await expect

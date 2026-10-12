@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { config } from "@factory/config/product";
+import { requiredConsents } from "@factory/core/consents";
 import { capturedEmails } from "@factory/core/email";
 import { describe, expect, it } from "vitest";
 import { app } from "../src/index";
@@ -38,7 +39,7 @@ describe("auth: magic link", () => {
     }>();
     expect(me.user?.email).toMatch(/@example\.com$/);
     expect(me.access).toBe(false);
-    expect(me.missingConsents).toEqual(["terms", "privacy"]);
+    expect(me.missingConsents).toEqual(requiredConsents(config.legal));
   });
 
   it("rejects a reused magic link", async () => {
@@ -86,9 +87,12 @@ describe("consents endpoint", () => {
 
     const partial = await post(["terms"]);
     expect(partial.status).toBe(400);
-    expect(await partial.json()).toMatchObject({ error: "consent_required", missingRequired: ["privacy"] });
+    expect(await partial.json()).toMatchObject({
+      error: "consent_required",
+      missingRequired: requiredConsents(config.legal).filter((t) => t !== "terms"),
+    });
 
-    expect((await post(["terms", "privacy"])).status).toBe(200);
+    expect((await post(requiredConsents(config.legal))).status).toBe(200);
     const me = await (await call("/api/me", { headers: { cookie } })).json<{ missingConsents: string[] }>();
     expect(me.missingConsents).toEqual([]);
   });

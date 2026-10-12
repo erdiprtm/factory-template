@@ -1,8 +1,10 @@
 import { Button, Card, CardDescription, CardHeader, CardTitle, Screen, Text } from "@factory/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import product from "../../../../../product.config";
 import { fetchHealth } from "../../core/api";
 import { useMe } from "../../core/auth/use-me";
+import { paywallBodyKey } from "../../core/billing/paywall-copy";
 import { useI18n } from "../../core/i18n";
 
 // Home: a placeholder for the product's features (src/features).
@@ -25,7 +27,7 @@ export default function Home() {
       <Card>
         <CardHeader>
           <CardTitle>{t("example.title")}</CardTitle>
-          <CardDescription>{t("paywall.body")}</CardDescription>
+          <CardDescription>{t(paywallBodyKey(product.trial.enabled))}</CardDescription>
         </CardHeader>
         <Button onPress={() => router.push("/example")}>
           <Text>{t("home.openExample")}</Text>

@@ -42,6 +42,7 @@ export const en: Messages = {
   "pricing.native": "Your subscription is managed in your account.",
   "paywall.title": "This feature is for subscribers",
   "paywall.body": "Start a free trial or subscribe to unlock this feature.",
+  "paywall.bodyNoTrial": "Subscribe to unlock this feature.",
   "paywall.cta": "See plans",
   "billing.return.checking": "Checking your payment…",
   "billing.return.paid": "Payment successful! Your access is active.",

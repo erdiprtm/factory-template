@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
 import { fakeProvider } from "../src/core/payments";
 import { app } from "../src/index";
-import { firstPlan, get, lastPlan, post, signInWithConsent } from "./helpers";
+import { firstPlan, get, lastPlan, post, signInWithConsent, startTrial } from "./helpers";
 
 // /admin: allowlist + numbers that match the database (Phase 7 acceptance).
 const db = drizzle(env.DB, { schema });
@@ -30,7 +30,7 @@ describe("admin numbers", () => {
   it("match the database", async () => {
     // Some activity: one trial user, one paid user (12m), one admin-granted user.
     const trial = await signInWithConsent(uniqueEmail("t"));
-    await post("/api/billing/trial", trial, {});
+    await startTrial(trial);
     const buyer = await signInWithConsent(uniqueEmail("b"));
     await buy(buyer, lastPlan.id);
     const admin = await signInWithConsent("admin@example.com");

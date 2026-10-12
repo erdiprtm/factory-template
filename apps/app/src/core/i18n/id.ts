@@ -40,6 +40,7 @@ export const id = {
   "pricing.native": "Langganan dikelola di akun kamu.",
   "paywall.title": "Fitur ini untuk pelanggan",
   "paywall.body": "Mulai coba gratis atau berlangganan untuk membuka fitur ini.",
+  "paywall.bodyNoTrial": "Berlangganan untuk membuka fitur ini.",
   "paywall.cta": "Lihat paket",
   "billing.return.checking": "Memeriksa pembayaran…",
   "billing.return.paid": "Pembayaran berhasil! Akses kamu sudah aktif.",

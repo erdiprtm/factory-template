@@ -34,7 +34,8 @@ const landers = defineCollection({
   loader: glob({ base: "./src/content/landers", pattern: "*.md" }),
   schema: ({ image }) =>
     z.object({
-      hook: z.string().min(10).max(120),
+      // Up to 160 characters: some formula hooks run long ("Untuk [siapa] yang [masalah], …").
+      hook: z.string().min(10).max(160),
       sub: z.string().min(20).max(300),
       cta: z.string().min(2).max(40),
       /** Browser tab and share text; landers are noindex, so this isn't for search. */
