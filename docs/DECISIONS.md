@@ -839,3 +839,29 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - `readImageUpload(c)` takes one multipart field and decides JPEG, PNG or WebP from the file's first bytes, never from the type the client claims.
   - Multipart, not base64 JSON: no 33% inflation, and React Native's `FormData` sends files natively.
   - HEIC is refused; apps convert to JPEG before sending (`expo-image-manipulator`).
+
+## D-045: AI provider adapter with cost caps and a usage log (2026-10-12)
+
+- **Why.** Myna Fit's meal scan calls a vision model. The template had no way to call a model, keep its key, cap its cost or log its use (`specs/myna-fit.migration.md`, GAP-1). Building that in the product would put provider code and secrets handling outside core.
+- **Adapter** (`@factory/core/ai`): one call, `json({ system, text, image?, schema, maxOutputTokens })`, returns a parsed JSON answer or a typed failure (`quota`, `rate_limited`, `unavailable`, `bad_request`, `bad_output`, `refused`). It never throws.
+  - **OpenAI** uses the Responses API, read from the current docs on 2026-10-12:
+    - strict `json_schema` output;
+    - the image as a data URL;
+    - `store: false`, so the photo and answer aren't kept as a stored response;
+    - `service_tier: "fast"` for Fast mode (reported back as `priority`).
+  - **The mock** answers from a product function: local dev, tests, E2E and previews, at no cost.
+- **Which provider.** `aiProvider(env, mock)`:
+  - OpenAI when `OPENAI_API_KEY` is set;
+  - the mock without a key in development, test and preview;
+  - **nothing in production without a key**, so the route answers 503 instead of fake results in front of paying users.
+  - `product.config.ts` `ai` holds the model and tier; the `AI_MODEL` var can override the model.
+- **Cost.** List prices per model (standard tier; Fast is exactly twice) live in `OPENAI_PRICES`.
+  - Every call is logged in the new core table `ai_usage` (account or `anon:<anonId>`, feature, model, tier, outcome, latency, tokens, cost in micro-USD). Failed calls are logged too and count toward the caps.
+  - Check: a measured Myna Fit scan (1,680 in / 885 out on gpt-6-luna) costs 611 micro-USD standard and 1,221 Fast, before PPN.
+- **Caps.** `requireAiBudget` (the product's `ai.perUserPerDay` and `ai.anonymousPerDay`) goes **before** `requireAccessOrFreeUse`, so a refused call spends no free use:
+  - 429 `ai_limit` per account or device per 24 h;
+  - 429 `ai_busy` once all visitors together reach the daily budget.
+- **Privacy.**
+  - Visitors' rows move to the account at signup (with the free uses), and unclaimed ones are dropped after 90 days by the cron.
+  - An account's rows are in the UU PDP export and are deleted with the account.
+- **Human step:** one OpenAI project per product with a monthly budget limit, and its key as a Wrangler secret (`SETUP_HUMAN.md` step 11).

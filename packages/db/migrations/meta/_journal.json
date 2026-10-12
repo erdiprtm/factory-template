@@ -50,6 +50,13 @@
       "when": 1791729795825,
       "tag": "20261011144315_ad_spend",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791803200540,
+      "tag": "20261012110640_ai_usage",
+      "breakpoints": true
     }
   ]
 }

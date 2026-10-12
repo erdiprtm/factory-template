@@ -1,7 +1,9 @@
 import { env } from "cloudflare:workers";
 import { config } from "@factory/config/product";
+import { mockProvider } from "@factory/core/ai";
 import { capturedEmails } from "@factory/core/email";
 import { freeUseGate, requireAccess, requireAccessOrFreeUse } from "../src/core/access";
+import { aiBudgetGate, runAi } from "../src/core/ai";
 import { sessionMiddleware } from "../src/core/session";
 import { app } from "../src/index";
 
@@ -72,4 +74,28 @@ app.post(
   sessionMiddleware,
   freeUseGate({ ...ANON_LIMITS, coreAction: "core_anon_consent_test", consents: [...ANON_CONSENTS] }),
   (c) => c.json({ ok: true as const }),
+);
+
+// An AI route as products build it (D-045): cost cap first, then the free-use gate, then one call
+// through runAi with the mock provider. At most 2 calls per account or device, 3 for all visitors.
+export const AI_ROUTE = "/api/__test/ai";
+export const AI_BUDGET = { perUserPerDay: 2, anonymousPerDay: 3 };
+app.post(
+  AI_ROUTE,
+  sessionMiddleware,
+  aiBudgetGate(AI_BUDGET),
+  freeUseGate({ coreAction: "ai_test", freeUses: 10, anonymousFreeUses: 10, anonymousPerIpPerDay: 100 }),
+  async (c) => {
+    const result = await runAi(
+      c,
+      mockProvider(() => ({ label: "nasi putih" })),
+      "test_scan",
+      {
+        system: "test",
+        text: "test",
+        schema: { name: "t", schema: {} },
+      },
+    );
+    return result.ok ? c.json({ output: result.output }) : c.json({ error: result.error }, 503);
+  },
 );

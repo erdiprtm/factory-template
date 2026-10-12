@@ -41,3 +41,9 @@ OPENPANEL_CLIENT_SECRET=
 META_CAPI_TOKEN=
 # Events Manager > Test events code, ONLY while testing (remove it afterwards).
 META_TEST_EVENT_CODE=
+
+# OpenAI (SETUP_HUMAN step 11), only for products with product.config.ts `ai`. Optional locally and on
+# preview: without it the product's mock answers (no cost). Production without it answers 503.
+OPENAI_API_KEY=
+# Optional: try another model without a code change (must have a known price in @factory/core/ai).
+AI_MODEL=

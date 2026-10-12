@@ -381,6 +381,24 @@ Aturan iklan: ikuti **Meta Advertising Standards** dan pagar di `CLAUDE.md`. Art
 
 ---
 
+## 11. OpenAI — model AI (per produk, hanya kalau `product.config.ts` punya `ai`)
+
+Tanpa langkah ini produk tetap jalan di lokal dan preview dengan jawaban **tiruan (mock)**. Di produksi, fitur AI menjawab "sedang tidak tersedia" sampai key dipasang.
+
+1. Buka <https://platform.openai.com> → **Projects** → buat project baru dengan nama produk (misalnya "Myna Fit"). Satu project per produk, supaya biayanya terpisah.
+2. Di project itu: **Limits** → pasang **batas anggaran bulanan** (misalnya US$20), dan nyalakan email peringatan.
+3. **Billing**: isi saldo (prepaid). Kalau saldo habis, OpenAI menolak dengan `insufficient_quota`. Pengguna melihat pesan "coba lagi nanti", dan log mencatatnya sebagai `quota`.
+4. **API keys** → **Create new secret key** (pilih project tadi). Key hanya muncul sekali. **Jangan kirim ke chat.** Simpan ke Worker produksi: jalankan di folder `apps/api` repo produk, lalu tempel key saat diminta:
+   ```bash
+   pnpm exec wrangler versions secret put OPENAI_API_KEY --env=""
+   ```
+   Untuk mencoba model sungguhan di preview (opsional, memakan saldo), jalankan yang sama dengan `--env preview`.
+5. Secret baru aktif pada rilis produksi berikutnya lewat CI.
+
+Biaya per panggilan tercatat di tabel `ai_usage` (micro-USD dari harga resmi). Batas per pengguna per hari dan anggaran harian pengunjung anonim diatur di `product.config.ts` → `ai`.
+
+---
+
 ## Ringkasan: yang perlu disimpan di password manager
 
 | Dari | Nilai | Dipakai di fase |
@@ -390,5 +408,6 @@ Aturan iklan: ikuti **Meta Advertising Standards** dan pagar di `CLAUDE.md`. Art
 | Resend | API Key | 3 |
 | OpenPanel | Client ID | 6–7 |
 | Sentry | DSN web, DSN api | 7 |
+| OpenAI (per produk) | API key (project produk) | saat produk memakai AI |
 
 Nama variabel persisnya akan ada di `.dev.vars.example` saat fasenya tiba.

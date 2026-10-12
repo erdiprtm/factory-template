@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     "./entitlements": "./src/entitlements/index.ts",
+    "./ai": "./src/ai/index.ts",
+    "./ai/usage": "./src/ai/usage.ts",
     "./economics": "./src/economics/index.ts",
     "./economics/metrics": "./src/economics/metrics.ts",
     "./consents": "./src/consents/index.ts",
