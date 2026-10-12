@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Product design, layer 3: display slots for core screens (D-054)
+
+- `features/slots.tsx` restyles the quiz step (chat bubbles possible), the quiz summary, sign-in, consent and pricing headers, plan cards, the bottom tab items and the Akun header.
+- Core keeps consent (one shared form; the accept button is disabled until all are checked), quiz validation, prices from config, no web prices on native, and access.
+- Next: the Myna Fit template gaps (consent API, `paywall.body`, config-following tests, lander hook length).
+
+---
+
 ## 2026-10-13: Product design, layer 2: component variants (D-053)
 
 - Products restyle Button (per variant, size and label), Card, Badge, Input and Text from `apps/app/src/features/theme.ts`; the classes merge last with `cn()`.

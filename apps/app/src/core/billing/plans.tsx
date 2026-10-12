@@ -1,14 +1,16 @@
 import { comparedPlan, highlightedPlan, methodLabel, perWeekIdr, savingVs } from "@factory/core/pricing";
 import { Badge, Button, Card, CardDescription, CardHeader, CardTitle, ErrorText, Text } from "@factory/ui";
 import { useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import product from "../../../../../product.config";
+import { slots } from "../../features/slots";
 import { track } from "../analytics";
 import { api } from "../api";
 import { formatIdr } from "../format";
 import { useI18n } from "../i18n";
 import { fbIds } from "../marketing";
 import { openCheckout } from "./open-checkout";
+import { showsWebPrices } from "./web-prices";
 
 /**
  * The plans from product.config.ts with small-unit framing (D-037): price, "≈ Rp…/minggu", the
@@ -20,6 +22,9 @@ export function PlanCards() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const best = highlightedPlan(product.plans);
+  // Store rules (Section 6b), enforced here too, whatever a product's planCard slot renders.
+  if (!showsWebPrices(Platform.OS)) return null;
+  const PlanSlot = slots.planCard;
 
   async function buy(planId: string) {
     setBusy(true);
@@ -39,6 +44,26 @@ export function PlanCards() {
         const highlighted = plan.id === best?.id;
         const base = highlighted ? comparedPlan(product.plans, plan) : undefined;
         const saving = base ? savingVs(plan, base) : null;
+        if (PlanSlot) {
+          return (
+            <PlanSlot
+              key={plan.id}
+              plan={{ id: plan.id, label: plan.label, months: plan.months }}
+              price={formatIdr(plan.priceIdr)}
+              perWeek={`≈ ${formatIdr(perWeekIdr(plan))}${t("pricing.perWeek")}`}
+              highlighted={highlighted}
+              saving={
+                saving && base
+                  ? `${t("pricing.save")} ${formatIdr(saving.idr)} (${saving.percent}%) ${t("pricing.vs")} ${base.label}`
+                  : null
+              }
+              bestLabel={t("pricing.best")}
+              buyLabel={`${t("pricing.buy")} ${formatIdr(plan.priceIdr)}`}
+              onBuy={() => void buy(plan.id)}
+              busy={busy}
+            />
+          );
+        }
         return (
           <Card key={plan.id} className={highlighted ? "border-2 border-primary" : undefined}>
             <CardHeader>

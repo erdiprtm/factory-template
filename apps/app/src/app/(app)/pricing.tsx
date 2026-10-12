@@ -7,6 +7,7 @@ import { api } from "../../core/api";
 import { useMe, useRefreshMe } from "../../core/auth/use-me";
 import { PlanCards } from "../../core/billing/plans";
 import { useI18n } from "../../core/i18n";
+import { slots } from "../../features/slots";
 
 export default function Pricing() {
   const { t } = useI18n();
@@ -39,12 +40,17 @@ export default function Pricing() {
     await refresh();
   }
 
+  const Intro = slots.pricingIntro;
   return (
     <Screen>
-      <View className="gap-2">
-        <Text variant="h1">{t("pricing.title")}</Text>
-        <Text variant="lead">{t("pricing.subtitle")}</Text>
-      </View>
+      {Intro ? (
+        <Intro title={t("pricing.title")} subtitle={t("pricing.subtitle")} />
+      ) : (
+        <View className="gap-2">
+          <Text variant="h1">{t("pricing.title")}</Text>
+          <Text variant="lead">{t("pricing.subtitle")}</Text>
+        </View>
+      )}
       <PlanCards />
       {product.trial.enabled && !me.data?.access ? (
         <Button variant="ghost" onPress={startTrial} disabled={busy}>
