@@ -7,7 +7,8 @@ import { marketingActive, marketingChoice, onMarketingChange, setMarketingChoice
 /**
  * UU PDP: asks for the "iklan/marketing" choice before any Pixel loads (D-034). Shown only when
  * this build tracks for ads (Pixel ID + production) and the device has no choice yet. The toggle
- * starts off: no choice is the same as no.
+ * starts off: no choice is the same as no. It sits below the screens in the layout (not over them),
+ * so it never covers content such as the Akun page's delete button.
  */
 export function MarketingBanner() {
   const { t } = useI18n();
@@ -20,11 +21,7 @@ export function MarketingBanner() {
   }, []);
   if (!show) return null;
   return (
-    <View
-      role="region"
-      aria-label={t("marketing.banner.title")}
-      className="absolute bottom-0 left-0 right-0 gap-3 border-t border-border bg-card p-4"
-    >
+    <View role="region" aria-label={t("marketing.banner.title")} className="gap-3 border-t border-border bg-card p-4">
       <Text className="font-semibold text-foreground">{t("marketing.banner.title")}</Text>
       <Text variant="muted">{t("marketing.banner.body")}</Text>
       <Checkbox label={t("marketing.banner.toggle")} checked={ads} onCheckedChange={setAds} />
