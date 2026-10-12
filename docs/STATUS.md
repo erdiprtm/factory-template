@@ -12,6 +12,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: AI provider adapter (D-045)
+
+- Template gap GAP-1 from the Myna Fit migration. `@factory/core/ai` calls OpenAI (Responses API, strict JSON, not stored) or a mock, never throwing.
+- Every call is logged in `ai_usage` with its cost. `requireAiBudget` caps calls per account or device and for all visitors per day, before a free use is spent.
+- **Human (per product with AI):** OpenAI project with a budget limit, `OPENAI_API_KEY` secret (`SETUP_HUMAN.md` step 11).
+
+---
+
 ## 2026-10-12: Upload routes get their own body limit (D-044)
 
 - Template gap GAP-2 from the Myna Fit migration. Products list larger bodies per path in `apps/api/src/features/uploads.ts` (capped at 5 MB); everything else stays at 64 KB.

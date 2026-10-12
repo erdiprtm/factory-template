@@ -135,6 +135,7 @@
       "purchase": 0.5
     }
   },
+  "ai": null,
   "marketing": {
     "metaPixelId": "1134506435670666"
   }
