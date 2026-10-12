@@ -7,6 +7,8 @@ Progress log, newest entry on top.
 ## 2026-10-11: Sell engine, Module 8: guardrails (branch `feat/ad-guardrails`)
 
 - `CLAUDE.md` gained an "Ads and landers" section covering Meta Advertising Standards, the health/fitness/food rules, promising only what the product does, lander scent, consent-only tracking and server-only money events (D-040).
+- **All 8 sell-engine modules are on `main`.** The rest of the flow is live in production, and the Meta parts stay off until a Pixel ID is set.
+- **Still pending (human):** the acceptance test with a Meta test Pixel: CAPI Purchase in Events Manager test mode, using the template's production as the dummy (`SETUP_HUMAN.md` step 10).
 
 ---
 
