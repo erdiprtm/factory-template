@@ -829,6 +829,17 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - The product's route file is a thin re-export outside `(app)`; `CLAUDE.md`'s ownership table now names such files product-owned.
 - **Unchanged for existing products.** `anonymousFreeUses` defaults to 0 and `anonymousEntry` to null, so no gate is shown and the quiz still leads to sign-in.
 
+## D-044: Upload routes get their own body limit (2026-10-12)
+
+- **Why.** Every `/api/*` route took at most 64 KB, and the only exception (the ad-spend CSV) was hardcoded. A meal photo resized on the device to 1024 px JPEG is about 150–300 KB, so Myna Fit's scan couldn't be built without editing core (`specs/myna-fit.migration.md`, GAP-2).
+- **How.**
+  - `apps/api/src/features/uploads.ts` (product-owned) lists larger limits by exact path, e.g. `{ "/api/scan": 2 * 1024 * 1024 }`.
+  - Core's `apiBodyLimit` applies them and caps any entry at 5 MB. Unlisted paths keep 64 KB, and the CSV import keeps its 1 MB.
+- **Reading the file.**
+  - `readImageUpload(c)` takes one multipart field and decides JPEG, PNG or WebP from the file's first bytes, never from the type the client claims.
+  - Multipart, not base64 JSON: no 33% inflation, and React Native's `FormData` sends files natively.
+  - HEIC is refused; apps convert to JPEG before sending (`expo-image-manipulator`).
+
 ## D-045: AI provider adapter with cost caps and a usage log (2026-10-12)
 
 - **Why.** Myna Fit's meal scan calls a vision model. The template had no way to call a model, keep its key, cap its cost or log its use (`specs/myna-fit.migration.md`, GAP-1). Building that in the product would put provider code and secrets handling outside core.

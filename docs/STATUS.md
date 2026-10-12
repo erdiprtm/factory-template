@@ -12,6 +12,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Upload routes get their own body limit (D-044)
+
+- Template gap GAP-2 from the Myna Fit migration. Products list larger bodies per path in `apps/api/src/features/uploads.ts` (capped at 5 MB); everything else stays at 64 KB.
+- `readImageUpload` reads a multipart image and checks its real type from the bytes.
+
+---
+
 ## 2026-10-12: Consent before signup and a public entry screen (D-043)
 
 - Template gaps GAP-4 and GAP-5 from the Myna Fit migration (`specs/myna-fit.migration.md`).
