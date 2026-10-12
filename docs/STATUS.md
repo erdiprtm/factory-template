@@ -4,6 +4,29 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Sell engine acceptance passed ✅
+
+- **The human ran the full flow on production**, with the template as the dummy:
+  1. Lander `/l/contoh/` with UTM tags.
+  2. Consent "iklan".
+  3. Quiz, then sign-in.
+  4. Example feature (the first result).
+  5. Paywall.
+  6. Duitku sandbox VA payment.
+- **Meta Events Manager → Test events:** `Purchase`, received from **Server**, **Processed**, event id `pay_3f1b…` (the payment id, for Pixel dedup).
+- **OpenPanel:** the ordered funnel, first result → paywall view → checkout start → purchase.
+- **Checked by the agent on production:**
+  - No Pixel loads before consent. After consent: PageView and ViewContent on the lander, and Lead when the quiz completes.
+  - The site's choice and attribution carry into the app (no second banner).
+  - The funnel beacon logs no console errors.
+- **`/admin` CAC/ROAS for test spend** is covered by `apps/api/test/economics.test.ts`.
+- **Fixes and follow-ups:**
+  - The consent banner sits below the screens and no longer covers page content.
+  - `/launch-check` gained items 14–18: sell engine, Meta Pixel/CAPI, no test code on production, Meta domain verification, ad guardrails.
+  - **Human:** remove `META_TEST_EVENT_CODE` from production (`SETUP_HUMAN.md` step 10.5).
+
+---
+
 ## 2026-10-12: Template test Pixel set (sell-engine acceptance)
 
 - `marketing.metaPixelId` is the template's own test dataset. `/new-product` clears it.

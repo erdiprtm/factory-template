@@ -369,7 +369,11 @@ Tanpa langkah ini produk tetap jalan: tidak ada Pixel, tidak ada banner izin ikl
    ```bash
    pnpm exec wrangler versions secret put META_TEST_EVENT_CODE --env=""
    ```
-   Setelah tes selesai, **kosongkan** lagi: jalankan perintah yang sama lalu tekan Enter tanpa isi. Kalau tidak, event asli ikut ditandai sebagai tes.
+   Setelah tes selesai, **hapus** kode tes itu. Kalau tidak, event asli ikut ditandai sebagai tes. Langkah ini harus kamu jalankan sendiri, karena agent tidak boleh menghapus secret:
+   ```bash
+   pnpm exec wrangler versions secret delete META_TEST_EVENT_CODE --env=""
+   ```
+   Penghapusannya aktif pada rilis produksi berikutnya lewat CI.
 6. **Domain.** Saat produk sudah punya domain sendiri: Pengaturan bisnis → **Keamanan merek → Domain** → tambahkan dan verifikasi domain (lewat meta-tag atau DNS). Domain `workers.dev` tidak bisa diverifikasi.
 7. Secret baru aktif pada rilis produksi berikutnya lewat CI, sama seperti secret lain.
 

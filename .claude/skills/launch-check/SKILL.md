@@ -23,7 +23,12 @@ Check every item and report a table: item, PASS/FAIL/HUMAN, evidence (command ou
 | 11 | Lighthouse: performance ≥ 90 (mobile), accessibility ≥ 90, SEO ≥ 95 | `e2e/node_modules/.bin/lighthouse <url> --form-factor=mobile` on production site and app pages |
 | 12 | `factory.json` entry updated: status `live`, launch date, metric targets, kill criteria, review date | Read the template repo's `factory.json` |
 | 13 | Latest production deploy passed its smoke test; rollback path verified at least once | Latest `deploy.yml` run is green; a `rollback_drill` run exists (`gh run list --workflow deploy.yml --event workflow_dispatch`) |
+| 14 | Sell engine: funnel and offer configured for this product | `features/quiz.ts` is the product's quiz (not `contoh-v1`) or `null`; `funnel.*` is set from the spec; at least one lander in `apps/site/src/content/landers/` (not `contoh.md`) has a `hook` that matches the live ad word for word |
+| 15 | Meta Pixel + Conversions API (only if the product runs Meta ads) | `marketing.metaPixelId` is the **product's own** Pixel, not the template test Pixel `1134506435670666`. HUMAN: `META_CAPI_TOKEN` is set on production. One sandbox purchase shows **Purchase, Received from: Server, Processed** in Events Manager → Test events (set `META_TEST_EVENT_CODE` for the test, then remove it) |
+| 16 | `META_TEST_EVENT_CODE` is **not** set on production | HUMAN: `pnpm exec wrangler versions secret list --env=""` in `apps/api` does not list it. Otherwise real events stay marked as test |
+| 17 | Domain verified in Meta Business settings → Brand safety → Domains | HUMAN, once the product has its own domain |
+| 18 | Ad copy and landers follow CLAUDE.md "Ads and landers" | Read every lander `hook`/`sub` and the live ads: no before/after, weight-loss or medical claims, and no personal attributes. Every ad carries the UTM template `utm_source=meta&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}` |
 
 Also confirm: secrets are only in Wrangler/GitHub secrets (`git grep -nE "re_[A-Za-z0-9]{10}|sk_live|BEGIN PRIVATE"` finds nothing), and `Read(.dev.vars)` stays denied.
 
-For the template repo itself, items 3, 5, 6, 9, 10 and 12 are legitimately product-specific. Mark them N/A (template).
+For the template repo itself, items 3, 5, 6, 9, 10, 12, 14, 15, 17 and 18 are legitimately product-specific. Mark them N/A (template).
