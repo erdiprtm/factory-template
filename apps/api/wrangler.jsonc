@@ -35,6 +35,8 @@
     { "name": "EVENTS_LIMITER", "namespace_id": "1005", "simple": { "limit": 300, "period": 60 } }
   ],
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
+  // Users' files (D-049). Created by /new-product (scripts/new-product.mjs) next to the D1 databases.
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "factory-template-files" }],
   "d1_databases": [
     {
       "binding": "DB",
@@ -59,6 +61,7 @@
         { "name": "EVENTS_LIMITER", "namespace_id": "1006", "simple": { "limit": 300, "period": 60 } }
       ],
       "version_metadata": { "binding": "CF_VERSION_METADATA" },
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "factory-template-files-preview" }],
       "d1_databases": [
         {
           "binding": "DB",

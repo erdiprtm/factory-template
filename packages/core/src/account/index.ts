@@ -2,6 +2,7 @@ import {
   account,
   consents,
   entitlements,
+  files,
   payments,
   paymentTracking,
   remindersSent,
@@ -13,6 +14,7 @@ import { desc, eq, inArray } from "drizzle-orm";
 import { deleteAiUsage, exportAiUsage } from "../ai/usage";
 import { deleteAttribution, exportAttribution } from "../attribution";
 import type { Db } from "../entitlements";
+import { exportFiles } from "../files";
 import { deleteQuizResponses, quizResponsesFor } from "../quiz/store";
 import { deleteFreeUsage } from "../quota";
 
@@ -105,6 +107,7 @@ export async function exportUserData(db: Db, userId: string) {
     entitlements: entitlementRows,
     consents: consentRows,
     aiCalls: await exportAiUsage(db, userId),
+    files: await exportFiles(db, userId),
     ...(await exportAttribution(db, userId)),
     quizResponses: await quizResponsesFor(db, userId),
   };
@@ -139,6 +142,8 @@ export async function deleteUserData(db: Db, userId: string): Promise<void> {
   await deleteQuizResponses(db, userId);
   await deleteFreeUsage(db, userId);
   await deleteAiUsage(db, userId);
+  // The bytes are removed from R2 by the API (deleteUserFiles) before this; drop any rows left.
+  await db.delete(files).where(eq(files.userId, userId));
   await db.delete(consents).where(eq(consents.userId, userId));
   await db.delete(session).where(eq(session.userId, userId));
   await db.delete(account).where(eq(account.userId, userId));

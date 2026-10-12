@@ -880,3 +880,18 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - A product may add `dependencies` to `apps/app` and `apps/api` for its features, chosen like any dependency: ≥ 14 days old, pinned, recorded in the product's `docs/DECISIONS.md`. Expo-managed packages are added with `expo install`, so they match the Expo SDK.
   - It never changes the template's versions, scripts or other fields. Those come from the template on every sync.
 - **Sync.** `docs/TEMPLATE_SYNC.md` resolves `package.json` dependency conflicts as "both": the template's versions plus the product's additions. Then `pnpm install` regenerates the lockfile.
+
+## D-049: Users' files in R2, owned through a core table (2026-10-12)
+
+- **Why.** Myna Fit keeps a 160 px thumbnail per meal. Lovable stored them as data URLs in the row, which would fill D1 (about 15 MB per active user per year; 10 GB per database). The template had no object storage (`specs/myna-fit.migration.md`, GAP-3).
+- **How.**
+  - **Storage:** every product gets an R2 bucket per environment, bound as `FILES` (`<slug>-files`, `<slug>-files-preview`). `/new-product` creates them next to the D1 databases.
+  - **Ownership:** the bytes live under the opaque key `f/<id>`. The core table `files` records the owner (an account or `anon:<anonId>`), feature, type and size.
+  - **Moving to an account:** a visitor's file moves to the account at signup by updating its row. No object is copied.
+  - **Product API:** `saveFile` returns the id the product keeps in its own row; `deleteFile` deletes only for the owner.
+  - **Access:** `GET /api/files/:id` serves the owner only (session or device id). It sends `private, immutable` caching and `nosniff`, and answers 404 for everyone else, so ids aren't confirmed to strangers.
+- **UU PDP.**
+  - The account's files are listed in the export (each downloadable) and deleted from R2 and D1 with the account.
+  - Visitors' unclaimed files are dropped after 90 days by the cron, like their consent and AI log.
+- **Images aren't resized on the server** (Workers have no image library, and Cloudflare Images costs extra). Apps upload the small version they want stored.
+- **Human, once per Cloudflare account:** enable R2 (`SETUP_HUMAN.md` step 2b). After that the agent creates the template's buckets and every product's.

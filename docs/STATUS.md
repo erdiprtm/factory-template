@@ -4,6 +4,16 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Users' files in R2 (D-049), waiting for R2 to be enabled
+
+- Template gap GAP-3 from the Myna Fit migration, the last one.
+  - `FILES` R2 bucket per environment, with owners in the core `files` table.
+  - `GET /api/files/:id` serves the owner only.
+  - A visitor's files move to the account at signup, are deleted with the account, and are dropped after 90 days if unclaimed.
+- **Draft PR until the human enables R2** (`SETUP_HUMAN.md` step 2b): preview and production deploys need the template's buckets (`factory-template-files`, `factory-template-files-preview`), which the agent then creates.
+
+---
+
 ## 2026-10-12: Product scheduled jobs and product dependencies (D-046, D-047)
 
 - Template gaps GAP-6 and GAP-7 from the Myna Fit migration.

@@ -184,6 +184,16 @@ Sumber: <https://developers.cloudflare.com/workers/platform/limits/>, <https://d
 
 ---
 
+## 2b. Cloudflare R2 — penyimpanan file (sekali per akun Cloudflare)
+
+Produk menyimpan file pengguna (misalnya thumbnail foto makanan) di R2. R2 harus diaktifkan sekali saja.
+
+1. Buka <https://dash.cloudflare.com> → **R2 Object Storage** → **Purchase R2 Plan / Enable R2**.
+2. Cloudflare meminta metode pembayaran. Paket gratisnya mencakup 10 GB penyimpanan per bulan, plus jutaan operasi baca/tulis, dan **tidak ada biaya keluar data (egress)**. Selama pemakaian masih di bawah batas itu, tagihannya Rp0.
+3. Kabari agent: "R2 aktif". Agent lalu membuat bucket template (`factory-template-files`, `factory-template-files-preview`). Bucket untuk setiap produk baru dibuat otomatis oleh `/new-product`.
+
+---
+
 ## 3. Duitku sandbox (dikerjakan di Phase 4)
 
 1. Daftar akun merchant: <https://passport.duitku.com/merchant/Project/>
