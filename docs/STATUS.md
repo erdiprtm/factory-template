@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: Product navigation (D-048)
+
+- Template gap GAP-8 from the Myna Fit migration. Products list their main screens in `apps/app/src/features/nav.ts`: bottom tabs on phones and native, the top bar on wide web.
+- **Only GAP-3 (R2 storage for meal thumbnails) is left.** It needs R2 enabled on the Cloudflare account (human).
+
+---
+
 ## 2026-10-12: Product scheduled jobs and product dependencies (D-046, D-047)
 
 - Template gaps GAP-6 and GAP-7 from the Myna Fit migration.

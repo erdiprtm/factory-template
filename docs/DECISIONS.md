@@ -880,3 +880,12 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - A product may add `dependencies` to `apps/app` and `apps/api` for its features, chosen like any dependency: ≥ 14 days old, pinned, recorded in the product's `docs/DECISIONS.md`. Expo-managed packages are added with `expo install`, so they match the Expo SDK.
   - It never changes the template's versions, scripts or other fields. Those come from the template on every sync.
 - **Sync.** `docs/TEMPLATE_SYNC.md` resolves `package.json` dependency conflicts as "both": the template's versions plus the product's additions. Then `pnpm install` regenerates the lockfile.
+
+## D-048: Product navigation: bottom tabs on phones, top bar on wide screens (2026-10-12)
+
+- **Why.** The signed-in shell's top bar was hardcoded to Beranda / Akun / Admin. Myna Fit has four main screens (Beranda, Nutrisi, Gym, Profil) used one-handed at the gym (`specs/myna-fit.migration.md`, GAP-8).
+- **How.** `apps/app/src/features/nav.ts` (product-owned) lists up to 4 tabs: path, label key, optional icon. Core always adds Akun (unless the product links `/account` itself) and Admin for admins.
+  - **Phones and native** (narrower than 768 px): a bottom tab bar with 56 px targets above the home indicator (safe-area inset). Icons are tinted with the theme's real colours, because native SVG can't read CSS variables.
+  - **Wide web:** the top bar with the same tabs.
+  - **Without product tabs:** the template's top bar everywhere, unchanged.
+- **Checked** in the browser with two temporary tabs: the bottom bar at 375 px, switching tabs, content scrolling above the bar, and the top bar at 1280 px. A test checks every product's tab list (`tabProblems`).
