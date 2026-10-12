@@ -1,12 +1,14 @@
 import { ActivityIndicator, ScrollView, View, type ViewProps } from "react-native";
+import { badgeClasses, screenClasses } from "../lib/classes";
 import { cn } from "../lib/utils";
 import { Text } from "./text";
+import { useUiTokens } from "./theme";
 
 /** Mobile-first page: scrolls, centered column capped for wide screens. */
 export function Screen({ className, children, ...props }: ViewProps) {
   return (
     <ScrollView className="flex-1 bg-background" contentContainerClassName="grow">
-      <View className={cn("w-full max-w-lg flex-1 gap-5 self-center px-5 py-8", className)} {...props}>
+      <View className={cn(screenClasses(useUiTokens()), className)} {...props}>
         {children}
       </View>
     </ScrollView>
@@ -26,15 +28,7 @@ export function Loading({ label }: { label: string }) {
 }
 
 export function Badge({ className, ...props }: React.ComponentProps<typeof Text>) {
-  return (
-    <Text
-      className={cn(
-        "self-start rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground",
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <Text className={cn(badgeClasses(useUiTokens()), className)} {...props} />;
 }
 
 export function Separator({ className }: { className?: string }) {

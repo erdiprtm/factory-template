@@ -22,6 +22,7 @@
     "better-auth": "catalog:",
     "expo": "57.0.25",
     "expo-constants": "57.0.19",
+    "expo-font": "57.0.4",
     "expo-linking": "57.0.11",
     "expo-router": "57.0.23",
     "expo-status-bar": "57.0.1",

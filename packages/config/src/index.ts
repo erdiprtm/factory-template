@@ -18,6 +18,9 @@ const planSchema = z.object({
   highlight: z.boolean().optional(),
 });
 
+// A CSS length for radii: "12px", "0.75rem", "0", or "9999px" for a pill.
+const cssLength = z.string().regex(/^(0|\d+(\.\d+)?(px|rem))$/, "a CSS length like 12px or 0.75rem");
+
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, "a 6-digit hex color like #2563eb");
 // Token names follow React Native Reusables / shadcn so components work unchanged.
 // scripts/gen-theme.mjs turns them into CSS variables for the app (and the site).
@@ -59,11 +62,58 @@ export const productSchema = z.object({
   // null until the product has its own domain (it runs on workers.dev until then)
   domain: z.object({ app: hostname.nullable(), site: hostname.nullable() }),
   brand: z.object({
-    tokens: z.object({
-      colors: z.object({ light: colorScale, dark: colorScale }),
-      radius: z.string(),
-      fontFamily: z.object({ sans: z.string(), heading: z.string().optional() }),
-    }),
+    tokens: z
+      .object({
+        colors: z.object({ light: colorScale, dark: colorScale }),
+        radius: z.string(),
+        fontFamily: z.object({ sans: z.string(), heading: z.string().optional() }),
+        // Everything below is optional; unset = the template's look (D-052).
+        /** Corner radius per element (CSS length). Unset: card/button/input/sheet = radius, chip = pill. */
+        radii: z
+          .object({ card: cssLength, button: cssLength, chip: cssLength, input: cssLength, sheet: cssLength })
+          .partial()
+          .default({}),
+        /** Height of buttons and inputs in px (44 is the minimum touch target). Unset = 48. */
+        controlHeight: z.int().min(44).max(72).optional(),
+        /** Card elevation. */
+        shadow: z.enum(["none", "soft", "lift"]).default("none"),
+        /** Spacing inside cards and screens. */
+        density: z.enum(["compact", "regular"]).default("regular"),
+        /** Font weights. Unset heading = h1 bold, h2/h3 semibold; unset body = normal. */
+        weights: z
+          .object({
+            heading: z.enum(["medium", "semibold", "bold", "extrabold"]).optional(),
+            body: z.enum(["normal", "medium"]).optional(),
+          })
+          .default({}),
+        /**
+         * Bundled font files, no calls to Google: app web + native load them with expo-font from
+         * apps/app/assets/fonts/<file>; the site self-hosts apps/site/public/fonts/<file>. Once any is
+         * listed, fontFamily.sans (body) and fontFamily.heading (headings) must name listed families.
+         */
+        fonts: z
+          .array(
+            z.object({
+              family: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9 ]{0,39}$/, "a font family name"),
+              file: z.string().regex(/^[\w-]+\.(ttf|otf|woff2?)$/, "a font file name like Inter-Regular.ttf"),
+              weight: z.int().min(100).max(900).multipleOf(100).default(400),
+            }),
+          )
+          .max(6)
+          .default([]),
+      })
+      .superRefine((t, ctx) => {
+        if (t.fonts.length === 0) return;
+        const families = new Set(t.fonts.map((f) => f.family));
+        for (const [key, name] of Object.entries(t.fontFamily)) {
+          if (name && !families.has(name))
+            ctx.addIssue({
+              code: "custom",
+              message: `fontFamily.${key} "${name}" is not in fonts`,
+              path: ["fontFamily", key],
+            });
+        }
+      }),
     logo: z.string().startsWith("/"),
     favicon: z.string().startsWith("/"),
   }),

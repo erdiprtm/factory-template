@@ -1,9 +1,11 @@
 import { View, type ViewProps } from "react-native";
+import { cardClasses } from "../lib/classes";
 import { cn } from "../lib/utils";
 import { Text } from "./text";
+import { useUiTokens } from "./theme";
 
 export function Card({ className, ...props }: ViewProps) {
-  return <View className={cn("w-full gap-4 rounded-lg border border-border bg-card p-5", className)} {...props} />;
+  return <View className={cn(cardClasses(useUiTokens()), className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: ViewProps) {

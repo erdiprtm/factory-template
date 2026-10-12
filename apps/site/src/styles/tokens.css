@@ -21,6 +21,12 @@
     --input: 212.7 26.8% 83.9%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.75rem;
+    --radius-card: 0.75rem;
+    --radius-button: 0.75rem;
+    --radius-input: 0.75rem;
+    --radius-chip: 9999px;
+    --radius-sheet: 0.75rem;
+    --control-height: 3rem;
   }
   .dark:root {
     --background: 222.9 48.8% 8.4%;

@@ -40,4 +40,55 @@ describe("defineProduct", () => {
       "/scan",
     );
   });
+
+  describe("design tokens (D-052)", () => {
+    const tokens = (extra: Record<string, unknown>) => ({
+      ...base,
+      brand: { ...base.brand, tokens: { ...base.brand.tokens, ...extra } },
+    });
+
+    it("defaults to the template's look when nothing is set", () => {
+      const t = defineProduct(tokens({ radii: undefined, shadow: undefined, density: undefined, fonts: undefined }))
+        .brand.tokens;
+      expect(t).toMatchObject({ radii: {}, shadow: "none", density: "regular", weights: {}, fonts: [] });
+      expect(t.controlHeight).toBeUndefined();
+    });
+
+    it("accepts a full custom set", () => {
+      const t = defineProduct(
+        tokens({
+          radii: { card: "20px", button: "9999px", chip: "8px", input: "1rem", sheet: "24px" },
+          controlHeight: 56,
+          shadow: "soft",
+          density: "compact",
+          weights: { heading: "extrabold", body: "medium" },
+          fonts: [
+            { family: "Fredoka", file: "Fredoka-SemiBold.ttf", weight: 600 },
+            { family: "Plus Jakarta Sans", file: "PlusJakartaSans-Regular.woff2" },
+          ],
+          fontFamily: { sans: "Plus Jakarta Sans", heading: "Fredoka" },
+        }),
+      ).brand.tokens;
+      expect(t.fonts[1]?.weight).toBe(400);
+    });
+
+    it("rejects invalid values", () => {
+      for (const bad of [
+        { radii: { card: "big" } },
+        { radii: { button: "12" } },
+        { controlHeight: 40 },
+        { controlHeight: 48.5 },
+        { shadow: "huge" },
+        { density: "airy" },
+        { weights: { heading: "thin" } },
+        { fonts: [{ family: "Inter", file: "../evil.ttf" }] },
+        { fonts: [{ family: "Inter", file: "Inter.exe" }] },
+        { fonts: [{ family: "Inter", file: "Inter.ttf", weight: 450 }] },
+        // Once fonts are bundled, fontFamily must name them.
+        { fonts: [{ family: "Inter", file: "Inter.ttf" }], fontFamily: { sans: "Roboto" } },
+      ]) {
+        expect(() => defineProduct(tokens(bad)), JSON.stringify(bad)).toThrow(/Invalid product.config.ts/);
+      }
+    });
+  });
 });

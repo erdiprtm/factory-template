@@ -62,7 +62,12 @@
       "radius": "0.75rem",
       "fontFamily": {
         "sans": "Inter, system-ui, sans-serif"
-      }
+      },
+      "radii": {},
+      "shadow": "none",
+      "density": "regular",
+      "weights": {},
+      "fonts": []
     },
     "logo": "/logo.svg",
     "favicon": "/favicon.svg"

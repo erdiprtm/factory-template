@@ -1,4 +1,5 @@
 import "../../global.css";
+import { UiThemeProvider } from "@factory/ui";
 import { PortalHost } from "@rn-primitives/portal";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ErrorBoundaryProps, ErrorBoundary as RouterErrorBoundary, Stack } from "expo-router";
@@ -9,6 +10,7 @@ import { View } from "react-native";
 import product from "../../../../product.config";
 import { initAnalytics } from "../core/analytics";
 import { currentTouch } from "../core/attribution";
+import { uiTokens, useAppFonts } from "../core/design";
 import { I18nProvider } from "../core/i18n";
 import { initMarketing } from "../core/marketing";
 import { MarketingBanner } from "../core/marketing-banner";
@@ -33,20 +35,24 @@ export default function RootLayout() {
     void initMarketing();
   }, []);
   const { colorScheme } = useThemePreference();
+  const fontsReady = useAppFonts();
+  if (!fontsReady) return <View className="flex-1 bg-background" />;
   return (
-    <I18nProvider>
-      <QueryClientProvider client={queryClient}>
-        <Head>
-          <title>{product.name}</title>
-          <meta name="description" content={product.tagline} />
-        </Head>
-        <View className="flex-1 bg-background">
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "transparent" } }} />
-          <MarketingBanner />
-        </View>
-        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-        <PortalHost />
-      </QueryClientProvider>
-    </I18nProvider>
+    <UiThemeProvider tokens={uiTokens}>
+      <I18nProvider>
+        <QueryClientProvider client={queryClient}>
+          <Head>
+            <title>{product.name}</title>
+            <meta name="description" content={product.tagline} />
+          </Head>
+          <View className="flex-1 bg-background">
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "transparent" } }} />
+            <MarketingBanner />
+          </View>
+          <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+          <PortalHost />
+        </QueryClientProvider>
+      </I18nProvider>
+    </UiThemeProvider>
   );
 }

@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Product design, layer 1: fuller design tokens (D-052)
+
+- `brand.tokens` gained radii per element, control height, card shadow, density, heading and body weights, and bundled fonts (expo-font in the app, self-hosted on the site, no Google).
+- Unset gives exactly today's look; a snapshot test pins the default classes.
+- Next: layer 2 (product variants for components, `features/theme.ts`), then layer 3 (slots for core screens) and the Myna Fit template gaps.
+
+---
+
 ## 2026-10-12: Follow-ups from creating myna-fit (D-050, D-051)
 
 - **New products pass lint on their first `pnpm verify`.** `/new-product` wrote a long tagline on one line, which `biome ci` rejects. The generator now writes it the way Biome does and runs `biome format` on every file it rewrote. A test checks every spec.

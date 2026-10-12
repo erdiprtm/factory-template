@@ -30,8 +30,14 @@
 }
 
 @layer base {
+  /* --font-sans / --font-heading exist only when the product bundles fonts (tokens.css, D-052). */
   html {
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: var(--font-sans, Inter, system-ui, -apple-system, "Segoe UI", sans-serif);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading, inherit);
   }
   body {
     @apply bg-background text-foreground antialiased;
