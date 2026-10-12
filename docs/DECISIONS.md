@@ -740,3 +740,19 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **Refunds.** `POST /api/admin/refund` is used after refunding in the provider's dashboard.
   - It sets the payment to `refunded`, ends the access the payment granted now, and records the `refund` event (first-party plus OpenPanel). Refunded payments drop out of revenue. It is idempotent.
   - In the UI it is a two-tap confirm.
+
+## D-039: Sell engine, Module 7: playbooks for specs, ads and diagnosis (2026-10-11)
+
+- **Six new skills in `.claude/skills/`**, in the same format as the existing ones: a `SKILL.md` with `name`, `description`, `argument-hint` and `disable-model-invocation: true`, so they run only when the human types them.
+
+  | Skill | What it does |
+  |---|---|
+  | `/spec-interview` | Asks one question per message, in order: who, problem, core loop, first 30 seconds, "aha", why they come back tomorrow, what they pay for, kill criteria. Pushes back when the scope is more than one core loop, writes `specs/<slug>.md`, and runs `spec-check`. |
+  | `/ad-hooks` | 10 hooks with the formula, two each of: skeptic flip, before → after, name the pain, teach one thing, a push. Each is checked against Meta's standards and the product guardrails, and mapped to a lander `hook`. |
+  | `/creative-brief` | One shootable 9:16 brief: who and where, scenes S1–S4 with timings, the CTA with the UTM template, rules, the safe zone. |
+  | `/ad-test-plan` | Rp100K/day, one ad per test, a first read at 3,000 impressions. Kill at 2× target CAC with zero sales. Promote after at least 3 purchases over at least 3 days with CAC at or under target and ROAS D7 at least 1.75. Tracking is verified before any spend. |
+  | `/funnel-diagnose` | Checks tracking first, then finds the first step below its benchmark (what `/admin` marks red) and maps it to one layer: creative, lander scent, onboarding, offer, or tracking. |
+  | `/explain` | Five answers from the actual diff: what it does, the path from screen to database, the changed files, the proof, the likeliest failure. Ends with a recommendation. |
+
+- **`/hooks` became `/ad-hooks`.** `/hooks` is a built-in Claude Code command (hook settings), and a skill can't reliably take its name.
+- **The spec template has a "Core loop & funnel" section** (core loop, first 30 seconds, "aha", why users return, quiz, free uses and paywall placement, first hooks). It is optional for `spec-check`, so old specs stay valid, and `/spec-interview` fills it. `/build-from-spec` now covers the sell-engine steps: quiz, `requireAccessOrFreeUse`, `reportFirstResult` with `UpgradePrompt`, and landers.
