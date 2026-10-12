@@ -419,7 +419,7 @@ Wrangler runs from the project's own pinned devDependency (`pnpm exec wrangler`)
 
   | Package | Version | Eligible from |
   |---|---|---|
-  | sharp | 0.35.5 | 2026-10-12 |
+  | sharp | 0.35.5 | 2026-10-12 (patched 2026-10-12: override, same minor) |
   | source-map-js | 1.2.2 | 2026-10-14 |
   | shell-quote | 1.11+ | 2026-10-16 |
   | http-cache-semantics | 4.3.0 | 2026-10-18 |
@@ -769,3 +769,28 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - Money events from the server only.
 - **The playbooks enforce it.** `/ad-hooks`, `/creative-brief` and `/ad-test-plan` check these rules, and the lander schema makes the hook the headline (D-035).
 - **Why in CLAUDE.md, not only in skills:** ads also get written outside the playbooks (a quick landing tweak, a new SEO page, a reply to "bikin caption iklan"), and `CLAUDE.md` is always loaded. Meta rejects or restricts ads and accounts that break these standards, which would stop a product's only acquisition channel.
+
+## D-041: Dependency audit follow-up (2026-10-12)
+
+- **`sharp` 0.35.5** is now an override in `pnpm-workspace.yaml` (GHSA-wq5f-xc86-pv6w). It is the same minor and passed the 14-day rule today. Astro uses it for build-time images, and miniflare uses it in dev and tests. It is not in the Worker runtime.
+- **Still waiting under the 14-day rule:**
+
+  | Package | Version | Eligible from |
+  |---|---|---|
+  | source-map-js | 1.2.2 | 2026-10-14 |
+  | shell-quote | 1.11 | 2026-10-16 |
+  | http-cache-semantics | 4.3.0 | 2026-10-18 |
+
+- **The full audit (dev included)** also lists the advisories below. All are dev/build tooling, none in the Worker runtime, and none has a same-major fix that is eligible today, so they stay with their upstreams:
+
+  | Package | Where it comes from | Fix status |
+  |---|---|---|
+  | `undici` 7.29.0 | wrangler/miniflare | The 7.29.1 fix isn't published yet |
+  | `uuid` 7.x | Expo tooling | Fix needs a major bump |
+  | `postcss-selector-parser` 6.x | Tailwind 3 | Fix needs a major bump |
+  | `braces` | build tooling | No fix released |
+  | `node-forge` | build tooling | No fix released |
+  | `decode-uri-component` | build tooling | Fix needs a major bump |
+  | `esbuild` | drizzle-kit | Fix needs a major bump |
+
+  They are re-checked when the upstream packages update.

@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-12: `sharp` 0.35.5 security override (D-041)
+
+- The remaining audit items are dev/build tooling. Three patches become eligible on 2026-10-14, 16 and 18.
+
+---
+
 ## 2026-10-11: Sell engine, Module 8: guardrails (branch `feat/ad-guardrails`)
 
 - `CLAUDE.md` gained an "Ads and landers" section covering Meta Advertising Standards, the health/fitness/food rules, promising only what the product does, lander scent, consent-only tracking and server-only money events (D-040).
