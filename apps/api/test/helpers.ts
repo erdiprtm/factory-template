@@ -76,8 +76,8 @@ app.post(
   (c) => c.json({ ok: true as const }),
 );
 
-// An AI route as products build it (D-045): cost cap first, then the free-use gate, then one call
-// through runAi with the mock provider. At most 2 calls per account or device, 3 for all visitors.
+// AI routes as products build them (D-045): cost cap first, then the free-use gate, then one call
+// through runAi with the mock provider.
 const aiTestRoute = (path: string, cap: ReturnType<typeof aiBudgetGate>, feature: string) =>
   app.post(
     path,
@@ -98,6 +98,7 @@ const aiTestRoute = (path: string, cap: ReturnType<typeof aiBudgetGate>, feature
       return result.ok ? c.json({ output: result.output }) : c.json({ error: result.error }, 503);
     },
   );
+// At most 2 calls per account or device, 3 for all visitors.
 export const AI_ROUTE = "/api/__test/ai";
 export const AI_BUDGET = { perUserPerDay: 2, anonymousPerDay: 3 };
 aiTestRoute(AI_ROUTE, aiBudgetGate(AI_BUDGET), "test_scan");
