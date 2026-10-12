@@ -270,3 +270,21 @@ export const aiUsage = sqliteTable(
   },
   (t) => [index("ai_usage_user_time_idx").on(t.userId, t.createdAt), index("ai_usage_time_idx").on(t.createdAt)],
 );
+
+/**
+ * Files a product stores for a user, e.g. a meal photo thumbnail (D-049). The bytes live in the
+ * R2 bucket bound as FILES under `f/<id>`; this row says who owns them (an account, or
+ * `anon:<anonId>` for a visitor, D-042), so access, export, deletion and retention work by owner.
+ */
+export const files = sqliteTable(
+  "files",
+  {
+    id: id(),
+    userId: text("user_id").notNull(),
+    feature: text("feature").notNull(),
+    contentType: text("content_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (t) => [index("files_user_idx").on(t.userId, t.createdAt)],
+);

@@ -39,6 +39,8 @@ describe.skipIf(!isTemplate)("new-product transforms", () => {
     expect(api).toContain('"name": "catatan-harian"');
     expect(api).toContain('"database_name": "catatan-harian-prod"');
     expect(api).toContain('"database_name": "catatan-harian-preview"');
+    expect(api).toContain('"bucket_name": "catatan-harian-files"');
+    expect(api).toContain('"bucket_name": "catatan-harian-files-preview"');
     expect(api).toContain('"AUTH_HOSTS": "catatan-harian.acme.workers.dev"');
     expect(api).toContain("*-catatan-harian-preview.acme.workers.dev");
     expect(api).not.toContain("factory-template");

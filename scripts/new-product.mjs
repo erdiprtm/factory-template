@@ -8,7 +8,8 @@
 //
 // Steps (--execute):
 //   1. spec-check   2. gh repo create --template   3. product.config.ts + wrangler names/hosts
-//   4. wrangler d1 create <slug>-prod / <slug>-preview, IDs written to wrangler.jsonc
+//   4. wrangler d1 create <slug>-prod / <slug>-preview, IDs written to wrangler.jsonc;
+//      wrangler r2 bucket create <slug>-files / <slug>-files-preview
 //   5. theme + commit + push   6. scripts/setup-github.sh on the new repo + CI secrets
 //      (account id, random BETTER_AUTH_SECRET per environment)   7. factory.json entry here
 // The push to main skips the deploy (not configured yet); the first PR merge deploys.
@@ -69,6 +70,7 @@ export function renameWorkers(text, { slug, subdomain, templateSubdomain = "erdi
     .replaceAll(`${TEMPLATE_SLUG}-site`, `${slug}-site`)
     .replaceAll(`"name": "${TEMPLATE_SLUG}"`, `"name": "${slug}"`)
     .replaceAll(`${TEMPLATE_SLUG}-prod`, `${slug}-prod`)
+    .replaceAll(`${TEMPLATE_SLUG}-files`, `${slug}-files`)
     .replaceAll(`${TEMPLATE_SLUG}-preview`, `${slug}-preview`);
 }
 
@@ -126,6 +128,7 @@ function main() {
     `gh repo create ${repo} --template ${templateRepo} --${a.public ? "public" : "private"} --clone → ${a.dir}`,
     `product.config.ts, wrangler.jsonc (api + site): slug/name/hosts → ${a.slug} on ${a.subdomain}.workers.dev`,
     `wrangler d1 create ${a.slug}-prod and ${a.slug}-preview (region apac), ids → apps/api/wrangler.jsonc`,
+    `wrangler r2 bucket create ${a.slug}-files and ${a.slug}-files-preview (location apac)`,
     `pnpm theme, wrangler types, commit "chore: create ${a.slug} from factory template", push`,
     `scripts/setup-github.sh ${repo} ${appUrl} ${siteUrl}; gh secret set CLOUDFLARE_ACCOUNT_ID, BETTER_AUTH_SECRET_PRODUCTION / _PREVIEW (random)`,
     `factory.json here: ${a.slug} status "building"`,
@@ -164,6 +167,12 @@ function main() {
   edit("apps/api/wrangler.jsonc", (t) =>
     setD1Ids(t, { prodId: d1(`${a.slug}-prod`), previewId: d1(`${a.slug}-preview`) }),
   );
+  // Users' files (D-049): one R2 bucket per environment, named like the D1 databases.
+  for (const bucket of [`${a.slug}-files`, `${a.slug}-files-preview`]) {
+    run("pnpm", ["exec", "wrangler", "r2", "bucket", "create", bucket, "--location", "apac"], {
+      cwd: inRepo("apps/api"),
+    });
+  }
   run("pnpm", ["theme"], { cwd: a.dir });
   // Worker types embed the Worker/env names, so regenerate them after the rename (else typecheck fails).
   run("pnpm", ["--filter", "@factory/api", "types"], { cwd: a.dir });

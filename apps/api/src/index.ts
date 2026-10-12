@@ -22,6 +22,7 @@ import {
 import { capturedDevEmails, emailProvider } from "@factory/core/email";
 import { receiptEmail } from "@factory/core/email/templates";
 import { grantTrial, hasAccess } from "@factory/core/entitlements";
+import { claimAnonymousFiles, deleteUserFiles, type FileBucket, fileKey, fileRow } from "@factory/core/files";
 import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
 import { quizResponsesFor, saveQuizResponse } from "@factory/core/quiz/store";
 import { anonKey, claimAnonymousUses, freeUsesUsed } from "@factory/core/quota";
@@ -66,6 +67,8 @@ export type Bindings = AuthEnv &
     /** Extra admins on top of product.config.ts admin.emails (comma-separated). */
     ADMIN_EMAILS?: string;
     CF_VERSION_METADATA: { id: string; tag: string; timestamp: string };
+    /** R2 bucket for users' files (D-049): `<slug>-files`, `<slug>-files-preview` on preview. */
+    FILES?: FileBucket;
   };
 
 export const app = new Hono<{ Bindings: Bindings; Variables: SessionVariables }>();
@@ -303,6 +306,22 @@ const routes = app
       },
     });
   })
+  // A stored file (D-049), only for its owner: the signed-in account, or the visitor's device.
+  .use("/files/:id", sessionMiddleware)
+  .get("/files/:id", async (c) => {
+    const row = c.env.FILES ? await fileRow(db(c.env), c.req.param("id")) : null;
+    const user = c.get("user");
+    const anonId = anonIdOf(c);
+    const owner = user ? user.id : anonId ? anonKey(anonId) : null;
+    if (!row || !c.env.FILES || row.userId !== owner) return c.json({ error: "not_found" as const }, 404);
+    const object = await c.env.FILES.get(fileKey(row.id));
+    if (!object) return c.json({ error: "not_found" as const }, 404);
+    return c.body(object.body, 200, {
+      "content-type": row.contentType,
+      "cache-control": "private, max-age=31536000, immutable",
+      "x-content-type-options": "nosniff",
+    });
+  })
   .use("/consents", sessionMiddleware, requireSession)
   .use("/consents/*", sessionMiddleware, requireSession)
   .post("/consents", async (c) => {
@@ -352,6 +371,7 @@ const routes = app
       limit: config.funnel.freeUses,
     });
     await claimAnonymousAiUsage(db(c.env), userId, parsed.data.anonId);
+    await claimAnonymousFiles(db(c.env), userId, parsed.data.anonId);
     await claimAnonymousData(db(c.env), userId, parsed.data.anonId);
     return c.json({ ok: true as const, saved });
   })
@@ -464,6 +484,7 @@ const routes = app
     if (!deleteBody.safeParse(await c.req.json().catch(() => null)).success)
       return c.json({ error: "confirmation_required" as const }, 400);
     await deleteProductData(db(c.env), c.get("user").id);
+    if (c.env.FILES) await deleteUserFiles(db(c.env), c.env.FILES, c.get("user").id);
     await deleteUserData(db(c.env), c.get("user").id);
     for (const name of [
       "better-auth.session_token",

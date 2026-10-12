@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./entitlements": "./src/entitlements/index.ts",
+    "./files": "./src/files/index.ts",
     "./ai": "./src/ai/index.ts",
     "./ai/usage": "./src/ai/usage.ts",
     "./economics": "./src/economics/index.ts",
