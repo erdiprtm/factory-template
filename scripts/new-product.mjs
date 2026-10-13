@@ -140,6 +140,7 @@ function main() {
     `Spec OK: "${spec.name}" — ${spec.tagline}`,
     `Plans: ${spec.plans.map((p) => `${p.months} bulan Rp${p.priceIdr}`).join(", ") || "(template defaults)"}`,
     `gh repo create ${repo} --template ${templateRepo} --${a.public ? "public" : "private"} --clone → ${a.dir}`,
+    `.template-version ← the template commit the repo starts from (the base for /sync-template, D-061)`,
     `product.config.ts, wrangler.jsonc (api + site): slug/name/hosts → ${a.slug} on ${a.subdomain}.workers.dev`,
     `wrangler d1 create ${a.slug}-prod and ${a.slug}-preview (region apac), ids → apps/api/wrangler.jsonc`,
     `wrangler r2 bucket create ${a.slug}-files and ${a.slug}-files-preview (location apac)`,
@@ -157,6 +158,10 @@ function main() {
   });
   const inRepo = (p) => join(a.dir, p);
   const edit = (p, fn) => writeFileSync(inRepo(p), fn(readFileSync(inRepo(p), "utf8")));
+  // "Create from template" copies the default branch's files without its history, so record which
+  // template commit that was: /sync-template diffs from it (D-061).
+  const templateSha = run("gh", ["api", `repos/${templateRepo}/commits/HEAD`, "--jq", ".sha"]).trim();
+  writeFileSync(inRepo(".template-version"), `${templateSha}\n`);
 
   edit("product.config.ts", (t) => applyProductConfig(t, { slug: a.slug, ...spec }));
   for (const p of RENAMED_FILES) edit(p, (t) => renameWorkers(t, { slug: a.slug, subdomain: a.subdomain }));

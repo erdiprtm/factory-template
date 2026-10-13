@@ -5,6 +5,7 @@ import { View } from "react-native";
 import product from "../../../../../product.config";
 import { slots } from "../../features/slots";
 import { track } from "../analytics";
+import { appReturnUrl } from "../api-base";
 import { authClient } from "../auth/client";
 import { useMe } from "../auth/use-me";
 import { useI18n } from "../i18n";
@@ -26,7 +27,7 @@ export function SignIn() {
     if (!EMAIL.test(value)) return setState("invalid");
     setState("sending");
     track("signup_started", { method: "magic_link" });
-    const { error } = await authClient.signIn.magicLink({ email: value, callbackURL: "/" });
+    const { error } = await authClient.signIn.magicLink({ email: value, callbackURL: appReturnUrl("/") });
     setState(error ? "error" : "sent");
   }
 
@@ -72,7 +73,7 @@ export function SignIn() {
               </Text>
               <Button
                 variant="outline"
-                onPress={() => authClient.signIn.social({ provider: "google", callbackURL: "/" })}
+                onPress={() => authClient.signIn.social({ provider: "google", callbackURL: appReturnUrl("/") })}
               >
                 <Text>{t("auth.signIn.google")}</Text>
               </Button>

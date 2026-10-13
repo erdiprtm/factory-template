@@ -20,6 +20,7 @@ Write `specs/<slug>.plan.md`: one section per core feature (max 3) covering scre
 - **API:** `apps/api/src/features/<feature>.ts` (Hono sub-app), mounted in `src/index.ts` next to the example. Paid routes use `sessionMiddleware` + `requireAccess`.
 - **Tables:** `packages/db/src/features/<feature>.ts`, exported from `features/index.ts`. Then `pnpm db:generate`, rename the migration, `pnpm db:migrate:local`. Expand-only.
 - **App:** `apps/app/src/features/<feature>/`, plus a route file in `src/app/(app)/`. Use `@factory/ui` components and `useI18n()`. Put the feature's strings in `apps/app/src/features/messages.ts` (both `id` and `en`, feature-prefixed keys), never in `src/core/i18n`. No browser-only APIs outside `*.web.tsx`.
+- **Uploads from the web app:** the app's CSP blocks `fetch(blob:)`, so turn a picked file into base64 and then a `Blob` (or `FormData`) in memory before posting it (D-044, D-049).
 - **User data (UU PDP):** every product table is exported and deleted with the account. Add it to `apps/api/src/features/user-data.ts` (`exportProductData`, `deleteProductData`), or give it `ON DELETE CASCADE` to `user.id` and still export it.
 - **Site:** landing copy in `apps/site/src/pages/index.astro` (marked PRODUCT-OWNED), SEO pages in `apps/site/src/content/seo/`.
 - **The product's look, without touching `packages/ui` or `core/`:**
