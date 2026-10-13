@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: API test timeouts 15 s (D-063), Myna Fit feedback round 2 item 3
+
+- The first sign-in of an API test file no longer times out at 5 s when every package's tests run at once on a busy machine.
+
+---
+
 ## 2026-10-13: Tree shaking for the web export (D-062), Myna Fit feedback item 2c
 
 - Entry −5 KB gzip, and the lazy Sentry chunk is 1.15 MB → 0.62 MB.
