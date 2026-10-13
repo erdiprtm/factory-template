@@ -9,3 +9,8 @@ export function formatDate(iso: string, locale: "id" | "en" = "id"): string {
     year: "numeric",
   });
 }
+
+/** A number in the user's locale: "71,5" in Indonesian, "71.5" in English. */
+export function formatNumber(n: number, locale: "id" | "en" = "id"): string {
+  return n.toLocaleString(locale === "id" ? "id-ID" : "en-GB", { maximumFractionDigits: 2 });
+}

@@ -7,6 +7,7 @@ import { api } from "../../../core/api";
 import { useRefreshMe } from "../../../core/auth/use-me";
 import { useI18n } from "../../../core/i18n";
 import { metaTrack } from "../../../core/marketing";
+import { slots } from "../../../features/slots";
 
 const POLL_MS = 2000;
 const TIMEOUT_MS = 90_000;
@@ -49,7 +50,29 @@ export default function BillingReturn() {
   if (state === "paid") text = t("billing.return.paid");
   else if (state === "failed" || state === "expired") text = t("billing.return.failed");
   else if (timedOut) text = t("billing.return.timeout");
-  const done = state && state !== "pending";
+  const done = Boolean(state && state !== "pending");
+  const Slot = slots.billingReturn;
+  if (Slot) {
+    const shown =
+      state === "paid"
+        ? "paid"
+        : state === "failed" || state === "expired"
+          ? "failed"
+          : timedOut
+            ? "timeout"
+            : "checking";
+    return (
+      <CenteredScreen className="items-center">
+        <Slot
+          state={shown}
+          text={text}
+          done={done}
+          homeLabel={t("billing.return.home")}
+          onHome={() => router.replace("/")}
+        />
+      </CenteredScreen>
+    );
+  }
 
   return (
     <CenteredScreen className="items-center">

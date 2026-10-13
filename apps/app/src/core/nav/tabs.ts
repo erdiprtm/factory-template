@@ -49,3 +49,19 @@ export function tabProblems(product: ProductTab[]): string[] {
   for (const t of product) if (!/^\/[a-z0-9/-]*$/.test(t.href)) problems.push(`tab path "${t.href}" is invalid`);
   return problems;
 }
+
+/**
+ * Icons for the tabs core adds (D-058): the default Beranda (no product tabs), Akun and Admin. A
+ * product tab keeps its own icon.
+ */
+export function withCoreIcons<K extends string>(
+  tabs: NavTab<K>[],
+  icons: Partial<Record<"home" | "account" | "admin", TabIcon>>,
+): NavTab<K>[] {
+  return tabs.map((t) => {
+    if (t.icon) return t;
+    const kind = t.core ?? (t.href === "/" ? "home" : undefined);
+    const icon = kind ? icons[kind] : undefined;
+    return icon ? { ...t, icon } : t;
+  });
+}

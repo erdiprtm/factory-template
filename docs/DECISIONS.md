@@ -1061,3 +1061,22 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - `@factory/ui` uses the real ExtraBold for headings, the regular file for body text, and the nearest weight as a fallback.
   - The default classes snapshot is unchanged (no fonts means the platform font).
 - **Note for products.** A product variant class like `font-extrabold` on its own changes only the weight. On native, also add the matching `font-sans-800`, or use the `weights` tokens, which pick the file automatically.
+
+## D-058: Render tests for app components, and slot follow-ups (2026-10-13)
+
+- **Render tests (Myna Fit feedback 5).**
+  - `apps/app` tests run in jsdom, with `react-native` aliased to `react-native-web` (resolved from `apps/app`, since `packages/ui` doesn't depend on it) and `react-native-svg` stubbed. They use `@testing-library/react` 16.3.3 and `jsdom` 30.1.1, both published at least 14 days before.
+  - Metro's web extensions come first, so `*.web.ts(x)` files resolve as in the web build.
+  - Styles aren't under test (no NativeWind transform); behavior, roles and states are.
+  - A product's `slots.tsx` that imports React Native components now loads in the template tests. Myna Fit's `require()`-at-render workaround can go.
+- **The consent rule is now proven by rendering** (D-054 noted it wasn't). `ConsentForm` renders with a product `consentHeader` slot (mocked): the slot shows, core's three checkboxes are there, the accept button is `aria-disabled` and pressing it does nothing until all three are checked, and then it accepts once.
+- **Slot follow-ups (Myna Fit feedback 4).**
+
+  | Change | Detail |
+  |---|---|
+  | `quizSummaryBody` slot | Gets the translated plan lines and the answer recap. The "next" and "back" buttons stay core's. |
+  | Default summary card | Lost the stray `pt-6` top gap. |
+  | Numbers in the recap | Formatted for the locale with `formatNumber`: "71,5 kg" in Indonesian. A render test checks it through the slot. |
+  | `billingReturn` slot | Gets the state (checking/paid/failed/timeout), core's text, `done`, and the home action. Core still polls the API and decides the state. |
+  | `coreTabIcons` (`home`, `account`, `admin`) | Lives in `slots.tsx`, not `nav.ts`: a new export in an already product-edited `nav.ts` would break products at the next sync, while a new optional slot field can't. A product tab keeps its own icon. |
+  | Akun's segmented controls | Labels stay on one line and shrink to fit (`numberOfLines={1}`, `adjustsFontSizeToFit`). The language is shown as "Indonesia" / "English", and the E2E matches either name. |

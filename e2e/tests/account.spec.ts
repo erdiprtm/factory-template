@@ -24,7 +24,7 @@ test("account: status, history, language, export, delete", async ({ page, reques
   await expect(page.getByText("Payment history")).toBeVisible();
   await page.reload();
   await expect(page.getByText("Payment history")).toBeVisible();
-  await page.getByRole("radio", { name: "Bahasa Indonesia" }).click();
+  await page.getByRole("radio", { name: /Indonesia/ }).click();
 
   // Right of access: JSON download.
   const downloadPromise = page.waitForEvent("download");
