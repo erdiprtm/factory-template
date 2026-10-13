@@ -15,6 +15,7 @@ export {
   buttonTextClasses,
   cardClasses,
   defaultTokens,
+  fontClass,
   inputClasses,
   screenClasses,
   textClasses,

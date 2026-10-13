@@ -13,8 +13,11 @@ export type UiTokens = {
   /** Spacing inside cards and screens. */
   density: "compact" | "regular";
   weights: { heading?: Exclude<Weight, "normal">; body?: Extract<Weight, "normal" | "medium"> };
-  /** True when the product bundles fonts: headings use font-heading, the rest font-sans. */
-  fonts: boolean;
+  /**
+   * The bundled font weights per role, or false for the platform font. Each text gets the
+   * `font-<role>-<weight>` class nearest to its weight (D-057): native picks fonts by file.
+   */
+  fonts: false | { sans: number[]; heading: number[] };
 };
 
 export const defaultTokens: UiTokens = { shadow: "none", density: "regular", weights: {}, fonts: false };
@@ -46,6 +49,21 @@ const WEIGHT: Record<Weight, string> = {
   bold: "font-bold",
   extrabold: "font-extrabold",
 };
+
+const WEIGHT_NUM: Record<Weight, number> = { normal: 400, medium: 500, semibold: 600, bold: 700, extrabold: 800 };
+
+/** The bundled file nearest to `weight` for the role (ties go to the heavier one), as a class. */
+export function fontClass(t: UiTokens, role: "sans" | "heading", weight: number): string | false {
+  if (!t.fonts) return false;
+  const list = t.fonts[role];
+  if (list.length === 0) return false;
+  const nearest = list.reduce((best, w) =>
+    Math.abs(w - weight) < Math.abs(best - weight) || (Math.abs(w - weight) === Math.abs(best - weight) && w > best)
+      ? w
+      : best,
+  );
+  return `font-${role}-${nearest}`;
+}
 
 const SHADOW: Record<UiTokens["shadow"], string> = { none: "", soft: "shadow-sm", lift: "shadow-md" };
 
@@ -101,7 +119,7 @@ export function buttonClasses(
 }
 
 export function buttonTextClasses(t: UiTokens, variant: ButtonVariant = "default", v: UiVariants = {}): string {
-  return cn("text-base font-semibold", BUTTON_TEXT[variant], t.fonts && "font-sans", v.button?.text?.[variant]);
+  return cn("text-base font-semibold", BUTTON_TEXT[variant], fontClass(t, "sans", 600), v.button?.text?.[variant]);
 }
 
 export function cardClasses(t: UiTokens, v: UiVariants = {}): string {
@@ -116,7 +134,7 @@ export function cardClasses(t: UiTokens, v: UiVariants = {}): string {
 export function inputClasses(t: UiTokens, v: UiVariants = {}): string {
   return cn(
     "h-control w-full rounded-input border border-input bg-background px-4 text-base text-foreground web:focus-visible:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring",
-    t.fonts && "font-sans",
+    fontClass(t, "sans", 400),
     v.input,
   );
 }
@@ -124,7 +142,7 @@ export function inputClasses(t: UiTokens, v: UiVariants = {}): string {
 export function badgeClasses(t: UiTokens, v: UiVariants = {}): string {
   return cn(
     "self-start rounded-chip bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground",
-    t.fonts && "font-sans",
+    fontClass(t, "sans", 600),
     v.badge,
   );
 }
@@ -135,10 +153,13 @@ export function screenClasses(t: UiTokens): string {
 
 export function textClasses(t: UiTokens, variant: TextVariant = "default", v: UiVariants = {}): string {
   const heading = isHeading(variant);
+  const weight: Weight = heading
+    ? (t.weights.heading ?? (variant === "h1" ? "bold" : "semibold"))
+    : (t.weights.body ?? "normal");
   return cn(
     TEXT[variant],
     heading ? t.weights.heading && WEIGHT[t.weights.heading] : t.weights.body && WEIGHT[t.weights.body],
-    t.fonts && (heading ? "font-heading" : "font-sans"),
+    fontClass(t, heading ? "heading" : "sans", WEIGHT_NUM[weight]),
     v.text?.[variant],
   );
 }

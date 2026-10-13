@@ -4,6 +4,11 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Bundled fonts with several weights (D-057), Myna Fit feedback item 1
+
+- One family can bundle several weights. Each weight is registered as `<family>_<weight>`, and `@factory/ui` picks the nearest file for each text.
+- Checked in a real web build: headings load the heavy file and body text the regular one.
+- Bundled fonts must be `.ttf`/`.otf`: Metro can't load woff.
 ## 2026-10-13: Free use spent only on success (D-056), Myna Fit feedback item 3
 
 - `checkAccessOrFreeUse` plus `spendFreeUse(c)`: a failed result never costs the free use, and races can't double-spend.
