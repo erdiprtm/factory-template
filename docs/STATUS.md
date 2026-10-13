@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Free use spent only on success (D-056), Myna Fit feedback item 3
+
+- `checkAccessOrFreeUse` plus `spendFreeUse(c)`: a failed result never costs the free use, and races can't double-spend.
+- Myna Fit can replace its P-005 pre-check after the next `/sync-template`.
+- Next from the feedback: bundled fonts with several weights, a render-test setup plus slot follow-ups, first-load size, native storage, the dev sign-in origin and the sync base.
+
+---
+
 ## 2026-10-13: Template gaps from Myna Fit (D-055)
 
 - `POST /api/consents` (and the pre-signup one) accept the missing documents when they complete what's recorded.

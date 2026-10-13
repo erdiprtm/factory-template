@@ -29,7 +29,7 @@ Write `specs/<slug>.plan.md`: one section per core feature (max 3) covering scre
     - A slot gets display-ready props and returns UI only. Never re-implement consent checkboxes, the accept button, prices or access checks in a slot: core keeps them, and the rules can't be bypassed.
 - **Sell engine (D-033 to D-038), from the spec's "Core loop & funnel":**
   - Quiz: replace the EXAMPLE in `apps/app/src/features/quiz.ts` (5–8 steps, strings in `features/messages.ts`), or set it to `null`.
-  - The core action's API route uses `requireAccessOrFreeUse` (not `requireAccess`). Set `funnel.coreAction`, `freeUses` and `paywallPlacement` in `product.config.ts`.
+  - The core action's API route uses `requireAccessOrFreeUse` (not `requireAccess`). If the action can fail without a real result (a blurry photo, an unclear input), use `checkAccessOrFreeUse` instead and call `const denied = await spendFreeUse(c); if (denied) return denied;` right before sending the result (D-056). Set `funnel.coreAction`, `freeUses` and `paywallPlacement` in `product.config.ts`.
   - When the screen shows its first result, call `reportFirstResult()` and render `<UpgradePrompt />` under it. A 402 renders `<Paywall reason=… />`.
   - Landers: one file per ad hook in `apps/site/src/content/landers/`, with `hook` equal to the ad's hook word for word. Replace `contoh.md`.
   - Follow the ad guardrails in `CLAUDE.md`.

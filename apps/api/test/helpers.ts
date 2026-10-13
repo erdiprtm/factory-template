@@ -6,7 +6,7 @@ import { capturedEmails } from "@factory/core/email";
 import { grantTrial } from "@factory/core/entitlements";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
-import { freeUseGate, requireAccess, requireAccessOrFreeUse } from "../src/core/access";
+import { freeUseGate, requireAccess, requireAccessOrFreeUse, spendFreeUse } from "../src/core/access";
 import { aiBudgetGate, requireAiBudgetFor, runAi } from "../src/core/ai";
 import { sessionMiddleware } from "../src/core/session";
 import { app } from "../src/index";
@@ -135,3 +135,21 @@ aiTestRoute(AI_TEXT_ROUTE, aiBudgetGate(AI_FEATURE_CAPS), "test_text");
 // The same feature cap in a product without AI (product.config.ts ai: null).
 export const AI_OFF_ROUTE = "/api/__test/ai-off";
 aiTestRoute(AI_OFF_ROUTE, requireAiBudgetFor("test_photo", 1, null), "test_photo");
+
+// Spend on success (D-056): the handler spends only when it has a result. Body { ok } decides.
+export const CORE_LATER = "/api/__test/core-later";
+export const LATER_LIMITS = {
+  coreAction: "core_later_test",
+  freeUses: 2,
+  anonymousFreeUses: 1,
+  anonymousPerIpPerDay: 5,
+  consents: requiredConsents(config.legal),
+  spend: "on_success" as const,
+};
+app.post(CORE_LATER, sessionMiddleware, freeUseGate(LATER_LIMITS), async (c) => {
+  const { ok } = await c.req.json<{ ok: boolean }>();
+  if (!ok) return c.json({ status: "unclear" as const }, 200);
+  const denied = await spendFreeUse(c);
+  if (denied) return denied;
+  return c.json({ status: "ok" as const });
+});

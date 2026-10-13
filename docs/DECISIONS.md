@@ -1025,3 +1025,22 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - The site test checks the product's first lander instead of `contoh`.
 - **Lander hooks may run to 160 characters** (was 120). Myna Fit's formula hooks need about 124.
 - Not taken now (noted in Myna Fit's STATUS): "spend a free use only on success" (Myna Fit's P-005), persistent native storage (Phase 10), and the `blob:` CSP note.
+
+## D-056: A free use can be spent only on success (2026-10-13)
+
+- **Problem (Myna Fit P-005).** `requireAccessOrFreeUse` spends the free use before the handler runs. A blurry or non-food photo used up a visitor's only free scan and showed "sign up" instead of the first result. Myna Fit worked around it with its own read-only pre-check.
+- **Decision.**
+  - `freeUseGate({ ..., spend: "on_success" })`, with `checkAccessOrFreeUse` as the product's ready-made gate, runs the same checks as before: access, device consent (D-043), free uses left per account or device, and the IP's daily cap. It spends nothing.
+  - The handler calls `spendFreeUse(c)` once it has a real result:
+    - `null` means "send it";
+    - a response means "send this instead", the same 401 `sign_up_required` or 402 `free_uses_used` as before.
+  - The spend uses the same atomic upserts (D-037, D-042), so when concurrent requests race for the last free use, exactly one gets the result.
+  - Paid access never spends.
+  - The default stays `on_request`, so existing products behave the same.
+- **Cost.** Failed attempts don't spend a free use, but each still costs the AI call. The AI budget caps (`requireAiBudget(For)`, D-045/D-050) still bound them, and the route should put that cap before the gate.
+- **Tests.**
+  - Failed attempts keep the free use; the first real result spends it.
+  - Six concurrent requests: one gets the result, five get 401.
+  - A signed-in user spends one per result, then gets 402.
+  - Paid access spends nothing.
+  - The device's consent is still required.
