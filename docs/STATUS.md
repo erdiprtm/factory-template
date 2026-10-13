@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Smaller first web bundle (D-059), Myna Fit feedback item 2
+
+- Sign-in, Akun, Admin, pricing and the billing return page load as one lazy chunk, and the web Checkbox no longer needs `react-native-svg`.
+- Entry bundle: 418 → 366 KB gzip (−52 KB), 1,575 → 1,384 KB raw. better-auth is out of the first load, and a test guards the split.
+
+---
+
 ## 2026-10-13: Render tests and slot follow-ups (D-058), Myna Fit feedback items 4 and 5
 
 - App tests render React Native components (react-native-web in jsdom). The consent button is now proven by rendering, with a product slot filled.
