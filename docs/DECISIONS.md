@@ -1080,3 +1080,25 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   | `billingReturn` slot | Gets the state (checking/paid/failed/timeout), core's text, `done`, and the home action. Core still polls the API and decides the state. |
   | `coreTabIcons` (`home`, `account`, `admin`) | Lives in `slots.tsx`, not `nav.ts`: a new export in an already product-edited `nav.ts` would break products at the next sync, while a new optional slot field can't. A product tab keeps its own icon. |
   | Akun's segmented controls | Labels stay on one line and shrink to fit (`numberOfLines={1}`, `adjustsFontSizeToFit`). The language is shown as "Indonesia" / "English", and the E2E matches either name. |
+
+## D-059: A smaller first web bundle: signed-in core screens in one lazy chunk (2026-10-13)
+
+- **Problem (Myna Fit feedback 2).** With async routes off, every route sits in the entry bundle. The public funnel (`/quiz`, a product's scan) therefore downloaded the signed-in core screens, better-auth's client (≈100 KB raw, used only by sign-in and Akun), the admin economics view, and `react-native-svg` for the consent gate's check glyph.
+- **Decision.**
+  - **`core/signed-in/`** holds sign-in, Akun, Admin, pricing and the billing return page. Their route files are now one-line `lazyScreen(() => import("…/core/signed-in").then((m) => m.X))` wrappers.
+  - It's **one chunk** on purpose. Metro moves modules shared by two lazy chunks into `__common`, which `index.html` loads eagerly; Myna Fit measured per-screen `import()` saving only 32 KB.
+  - **`@factory/ui` Checkbox** draws its glyph with a plain DOM `<svg>` on web (`check-icon.web.tsx`). Native keeps `react-native-svg`.
+- **Measured (`expo export`, template app):**
+
+  | | Entry raw | Entry gzip |
+  |---|---|---|
+  | Before | 1,575,036 B | 418,359 B |
+  | After | 1,384,028 B | 366,352 B |
+  | Change | −191 KB | −52 KB |
+
+  The lazy chunk is 144 KB raw / 39 KB gzip, and no `__common` file appeared. better-auth and `react-native-svg` are no longer in the entry.
+- **Guard.** `apps/app/test/bundle-split.test.ts` (Myna Fit's P-022 pattern) walks the static import graph of every route. It fails if a route statically reaches `core/signed-in`, the economics view or `core/auth/client.ts`, and it checks that each wrapper uses the shared `import()`.
+- **Not taken.**
+  - Lazy `en` messages (~4 KB gzip for core): when a product's default locale is `en`, its strings would flash, and the product catalogs live in one module the template can't split.
+  - Expo Router `asyncRoutes`: re-measured by Myna Fit, more round trips for ~35 KB.
+  - Experimental tree shaking: a separate, guarded change.
