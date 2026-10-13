@@ -8,19 +8,22 @@ import { productTabs } from "../../features/nav";
 import { slots } from "../../features/slots";
 import { useMe } from "../auth/use-me";
 import { type MessageKey, useI18n } from "../i18n";
-import { isActiveTab, type NavTab, navTabs } from "./tabs";
+import { isActiveTab, type NavTab, navTabs, withCoreIcons } from "./tabs";
 
 /** Wide web screens get the top bar; phones and native get the bottom tab bar. */
 export const WIDE = 768;
 
 function useTabs(): NavTab<MessageKey>[] {
   const me = useMe();
-  return navTabs<MessageKey>(productTabs, {
-    isAdmin: Boolean(me.data?.isAdmin),
-    home: "nav.home",
-    account: "nav.account",
-    admin: "nav.admin",
-  });
+  return withCoreIcons(
+    navTabs<MessageKey>(productTabs, {
+      isAdmin: Boolean(me.data?.isAdmin),
+      home: "nav.home",
+      account: "nav.account",
+      admin: "nav.admin",
+    }),
+    slots.coreTabIcons ?? {},
+  );
 }
 
 /** Top bar: the product name and its tabs as links (wide web). */

@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Render tests and slot follow-ups (D-058), Myna Fit feedback items 4 and 5
+
+- App tests render React Native components (react-native-web in jsdom). The consent button is now proven by rendering, with a product slot filled.
+- New slots: `quizSummaryBody`, `billingReturn` and `coreTabIcons`. Quiz numbers are formatted for the locale ("71,5 kg"), and Akun's segments stay on one line.
+
+---
+
 ## 2026-10-13: Bundled fonts with several weights (D-057), Myna Fit feedback item 1
 
 - One family can bundle several weights. Each weight is registered as `<family>_<weight>`, and `@factory/ui` picks the nearest file for each text.

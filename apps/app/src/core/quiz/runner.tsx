@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { slots } from "../../features/slots";
 import { track } from "../analytics";
+import { formatNumber } from "../format";
 import { type MessageKey, useI18n } from "../i18n";
 import { loadQuizProgress, saveQuizProgress } from "./storage";
 
@@ -206,9 +207,18 @@ function Summary({
   onBack: () => void;
   onDone: () => void;
 }) {
-  const { t } = useI18n();
-  const lines = quiz.summary?.(answers) ?? [];
+  const { t, locale } = useI18n();
+  const lineTexts = (quiz.summary?.(answers) ?? []).map((key) => t(key));
+  // Answers translated and formatted for the locale ("71,5 kg" in Indonesian), for both views.
+  const recap = recapAnswers(quiz, answers).map((r) => ({
+    title: t(r.title),
+    value:
+      r.value !== undefined
+        ? `${formatNumber(r.value, locale)}${r.unit ? ` ${t(r.unit)}` : ""}`
+        : r.labels.map((l) => t(l)).join(", "),
+  }));
   const Header = slots.quizSummaryHeader;
+  const Body = slots.quizSummaryBody;
   return (
     <Screen className="max-w-xl">
       {Header ? (
@@ -221,32 +231,34 @@ function Summary({
           <Text variant="lead">{t("quiz.summary.subtitle")}</Text>
         </View>
       )}
-      {lines.length > 0 ? (
-        <Card>
-          <CardContent className="gap-2 pt-6">
-            {lines.map((key) => (
-              <Text key={key} className="text-foreground">{`✓ ${t(key)}`}</Text>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("quiz.summary.answers")}</CardTitle>
-        </CardHeader>
-        <CardContent className="gap-3">
-          {recapAnswers(quiz, answers).map((r) => (
-            <View key={r.title} className="gap-0.5">
-              <Text variant="muted">{t(r.title)}</Text>
-              <Text className="font-medium text-foreground">
-                {r.value !== undefined
-                  ? `${r.value}${r.unit ? ` ${t(r.unit)}` : ""}`
-                  : r.labels.map((l) => t(l)).join(", ")}
-              </Text>
-            </View>
-          ))}
-        </CardContent>
-      </Card>
+      {Body ? (
+        <Body lines={lineTexts} recap={recap} />
+      ) : (
+        <>
+          {lineTexts.length > 0 ? (
+            <Card>
+              <CardContent className="gap-2">
+                {lineTexts.map((line) => (
+                  <Text key={line} className="text-foreground">{`✓ ${line}`}</Text>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("quiz.summary.answers")}</CardTitle>
+            </CardHeader>
+            <CardContent className="gap-3">
+              {recap.map((r) => (
+                <View key={r.title} className="gap-0.5">
+                  <Text variant="muted">{r.title}</Text>
+                  <Text className="font-medium text-foreground">{r.value}</Text>
+                </View>
+              ))}
+            </CardContent>
+          </Card>
+        </>
+      )}
       <Button testID="quiz-done" onPress={onDone}>
         <Text>{t("quiz.summary.cta")}</Text>
       </Button>

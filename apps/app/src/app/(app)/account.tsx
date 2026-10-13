@@ -163,7 +163,15 @@ function Segmented<T extends string>(props: {
                 selected ? "border-primary bg-primary" : "border-input bg-background",
               )}
             >
-              <Text className={selected ? "font-semibold text-primary-foreground" : "text-foreground"}>{o.label}</Text>
+              {/* One line, shrinking if needed (D-058): long labels used to wrap at larger control heights. */}
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                className={selected ? "font-semibold text-primary-foreground" : "text-foreground"}
+              >
+                {o.label}
+              </Text>
             </Pressable>
           );
         })}
@@ -176,7 +184,8 @@ function Preferences() {
   const { t, locale, setLocale, supported } = useI18n();
   const theme = useThemePreference();
   const [pref, setPref] = useState<ThemePreference>(theme.current);
-  const names: Record<Locale, string> = { id: "Bahasa Indonesia", en: "English" };
+  // Each language in its own name, short enough for one line in a segment.
+  const names: Record<Locale, string> = { id: "Indonesia", en: "English" };
   return (
     <Card>
       <CardTitle>{t("account.preferences")}</CardTitle>

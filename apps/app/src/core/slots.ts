@@ -44,11 +44,32 @@ export type TabItemSlotProps = {
   colors: { primary: string; mutedForeground: string; foreground: string; accent: string };
 };
 
+export type QuizSummaryBodySlotProps = {
+  /** The product's plan lines (quiz.summary), translated. */
+  lines: string[];
+  /** The answers, translated and formatted for the locale ("71,5 kg"). */
+  recap: { title: string; value: string }[];
+};
+
+export type BillingReturnSlotProps = {
+  state: "checking" | "paid" | "failed" | "timeout";
+  /** Core's text for the state. */
+  text: string;
+  /** Show the "home" button: the payment is final (paid or failed). */
+  done: boolean;
+  homeLabel: string;
+  onHome: () => void;
+};
+
 export type CoreSlots = {
   /** One quiz step (question + input): e.g. a chat bubble with a stepper for numbers. */
   quizStep?: ComponentType<QuizStepSlotProps>;
   /** "Rencana kamu siap" header. */
   quizSummaryHeader?: ComponentType<HeaderSlotProps>;
+  /** The summary's plan lines and answer recap (D-058). The "next" and "back" buttons stay core's. */
+  quizSummaryBody?: ComponentType<QuizSummaryBodySlotProps>;
+  /** Back from the payment provider (D-058). Core polls the status and decides the state. */
+  billingReturn?: ComponentType<BillingReturnSlotProps>;
   signInHeader?: ComponentType<HeaderSlotProps & { productName: string }>;
   /** /consent and the pre-signup consent gate. The checkboxes and button stay core's. */
   consentHeader?: ComponentType<HeaderSlotProps & { where: "account" | "anonymous" }>;
@@ -59,5 +80,7 @@ export type CoreSlots = {
   tabItem?: ComponentType<TabItemSlotProps>;
   /** Extra classes for the bottom tab bar container. */
   tabBarClassName?: string;
+  /** Icons for the tabs core adds (D-058): Beranda (without product tabs), Akun, Admin. */
+  coreTabIcons?: Partial<Record<"home" | "account" | "admin", ComponentType<{ size: number; color: string }>>>;
   accountHeader?: ComponentType<HeaderSlotProps & { productName: string; logo: string }>;
 };
