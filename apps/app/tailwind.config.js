@@ -10,21 +10,25 @@ const token = (name) => `hsl(var(--${name}) / <alpha-value>)`;
 // font-sans-400, font-heading-800, … @factory/ui picks the class for each text's weight. They are
 // built from config, so the content scan can't see them: hence the safelist. Without bundled fonts
 // nothing changes (the platform's default font).
+//
+// Each family ends in a fallback stack (D-065): web renders before the files arrive and swaps them
+// in, so text is readable meanwhile. Native only uses the first name, the bundled file.
 const brand = require("./src/core/product.generated.json").brand.tokens;
 const fontFamily = {};
+const FALLBACK = ["system-ui", "sans-serif"];
 const fontSafelist = [];
 if (brand.fonts.length > 0) {
   const roles = { sans: brand.fontFamily.sans, heading: brand.fontFamily.heading ?? brand.fontFamily.sans };
   for (const [role, family] of Object.entries(roles)) {
     const files = brand.fonts.filter((f) => f.family === family);
     for (const f of files) {
-      fontFamily[`${role}-${f.weight}`] = [`${f.family}_${f.weight}`];
+      fontFamily[`${role}-${f.weight}`] = [`${f.family}_${f.weight}`, ...FALLBACK];
       fontSafelist.push(`font-${role}-${f.weight}`);
     }
     // The plain role class uses the family's lightest file (the regular one, usually).
     const base = [...files].sort((a, b) => a.weight - b.weight)[0];
     if (base) {
-      fontFamily[role] = [`${base.family}_${base.weight}`];
+      fontFamily[role] = [`${base.family}_${base.weight}`, ...FALLBACK];
       fontSafelist.push(`font-${role}`);
     }
   }
