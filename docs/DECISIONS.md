@@ -554,6 +554,7 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - The Global API Key is never stored anywhere.
   - `/new-product` and SETUP_HUMAN say so.
   - When CI shows 10429 on the first call of a new repo, check the token before suspecting limits.
+
 ## D-030: Payment and reminder analytics come from the server (2026-10-11)
 
 - **Problem.** The human's two sandbox payments never produced a `payment_paid` event. It was sent from the browser's return page, but only if that page was still open when the webhook confirmed, and users often close the tab or come back later.
