@@ -20,6 +20,12 @@ export default defineConfig(async () => {
         },
       }),
     ],
-    test: { setupFiles: ["./test/apply-migrations.ts"] },
+    test: {
+      setupFiles: ["./test/apply-migrations.ts"],
+      // D-063: the first sign-in of a file waits for the workerd pool to start. When turbo runs
+      // every package's tests at once on a busy laptop that can pass 5 s; alone it takes < 1 s.
+      testTimeout: 15_000,
+      hookTimeout: 15_000,
+    },
   };
 });
