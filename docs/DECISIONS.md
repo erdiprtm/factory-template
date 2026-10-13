@@ -1162,6 +1162,22 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **Check.** All packages' tests (`turbo test --force`) ran three times in a row with 16 busy-loop processes on an 8-core Mac (load 50 to 75): green every time.
   - Without the change, one run under the same load was also green, so the 5 s timeout didn't reproduce here. The fix follows Myna Fit's measurement on its machine.
 
+## D-064: Each E2E run gets a fresh local D1 and KV (2026-10-13)
+
+- **Problem (Myna Fit feedback round 2, item 2).** E2E migrated and served the same `.wrangler/state` on every run, the one `pnpm dev` uses too. Counters carried over:
+  - After about 20 funnel runs in one Jakarta day, `anonymousPerIpPerDay` (20) was reached for 127.0.0.1. The funnel E2E then failed with "Scan gratismu sudah terpakai".
+  - CI never saw it, because it starts with a fresh D1.
+  - The product couldn't reset it: the guard hook rightly blocks `wrangler d1 execute … delete`, even with `--local`.
+- **Decision.**
+  - E2E's `wrangler dev` and its migrations use **`--persist-to .wrangler/e2e`** (in `apps/api`, gitignored with the rest of `.wrangler/`).
+  - `scripts/e2e-state.mjs` empties that folder at the start of every run, before migrating. It only ever touches that folder, so `pnpm dev`'s data stays.
+  - Runs no longer share counters with each other or with `pnpm dev`, and nobody has to delete rows.
+- **Not chosen.** A different `cf-connecting-ip` per test: it fixes only this counter, and the shared state would stay.
+- **Tests.**
+  - `scripts/e2e-state.test.mjs`: the E2E folder is emptied, `.wrangler/state` is untouched, and a first run with no folder is fine.
+  - The funnel spec ran 25 times in a row as separate runs (server start each time): green every time.
+  - The E2E database held the same row counts after each run, so nothing accumulates.
+
 ## D-065: Bundled fonts swap in on web instead of holding back the first screen (2026-10-13)
 
 - **Problem (Myna Fit feedback round 2, item 1).** `useAppFonts()` returned false until every bundled font file had loaded, and the root layout rendered nothing until then. Myna Fit measured production `/quiz` with 4 Plus Jakarta Sans weights (Lighthouse 13.5.0 mobile, median of 5): score 71, versus 80 with the system font, and LCP about 4.9 s versus 3.5 s.
