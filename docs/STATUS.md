@@ -7,6 +7,9 @@ Progress log, newest entry on top.
 ## 2026-10-13: A fresh local D1 per E2E run (D-064), Myna Fit feedback round 2 item 2
 
 - E2E uses its own `.wrangler/e2e`, emptied and migrated each run, so the anonymous per-IP cap and other counters never fill up across runs or from `pnpm dev`.
+## 2026-10-13: API test timeouts 15 s (D-063), Myna Fit feedback round 2 item 3
+
+- The first sign-in of an API test file no longer times out at 5 s when every package's tests run at once on a busy machine.
 
 ---
 

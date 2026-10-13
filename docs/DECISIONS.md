@@ -1152,6 +1152,16 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **Rollback.** Remove the two variables from `apps/app/package.json` `build`. Nothing else depends on them.
 - **Caveats** (from the guide): only ESM imports and exports are shaken; adding a CommonJS Babel transform would silently undo it; and builds use more memory.
 
+## D-063: API tests get 15 s per test and hook (2026-10-13)
+
+- **Problem (Myna Fit feedback round 2, item 3).** On a busy laptop (load 15–30), `pnpm verify`'s test step sometimes failed 2–5 API tests with "Test timed out in 5000ms". It was always the first sign-in of a file, while the workerd pool started up and the other packages' tests ran at the same time. Alone, the same tests pass.
+- **Decision.** `testTimeout` and `hookTimeout` are 15 s for `apps/api` only. They're a ceiling, not a wait: a fast test still ends at once. A real hang still fails, after 15 s instead of 5.
+- **Not chosen.**
+  - Running the API tests after the others (turbo `dependsOn`): it makes every `pnpm verify` slower to fix a rare case.
+  - Limiting the pool's concurrency: same cost.
+- **Check.** All packages' tests (`turbo test --force`) ran three times in a row with 16 busy-loop processes on an 8-core Mac (load 50 to 75): green every time.
+  - Without the change, one run under the same load was also green, so the 5 s timeout didn't reproduce here. The fix follows Myna Fit's measurement on its machine.
+
 ## D-064: Each E2E run gets a fresh local D1 and KV (2026-10-13)
 
 - **Problem (Myna Fit feedback round 2, item 2).** E2E migrated and served the same `.wrangler/state` on every run, the one `pnpm dev` uses too. Counters carried over:
