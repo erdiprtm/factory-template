@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Tree shaking for the web export (D-062), Myna Fit feedback item 2c
+
+- Entry −5 KB gzip, and the lazy Sentry chunk is 1.15 MB → 0.62 MB.
+- Gated by all E2E and the preview check of error reporting. Rollback: remove the two env vars from the app's `build` script.
+
+---
+
 ## 2026-10-13: Smaller first web bundle (D-059), Myna Fit feedback item 2
 
 - Sign-in, Akun, Admin, pricing and the billing return page load as one lazy chunk, and the web Checkbox no longer needs `react-native-svg`.

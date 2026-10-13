@@ -1103,3 +1103,21 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - Lazy `en` messages (~4 KB gzip for core): when a product's default locale is `en`, its strings would flash, and the product catalogs live in one module the template can't split.
   - Expo Router `asyncRoutes`: re-measured by Myna Fit, more round trips for ~35 KB.
   - Experimental tree shaking: a separate, guarded change.
+
+## D-062: Experimental tree shaking for the web export, behind E2E and a preview check (2026-10-13)
+
+- **Change (Myna Fit feedback 2c).** The app's web `build` script sets `EXPO_UNSTABLE_TREE_SHAKING=1 EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1` (Expo's tree-shaking guide, read 2026-10-13). It's production `expo export` only, and native builds aren't affected: they don't use this script.
+- **Measured on the template app**, after D-059:
+
+  | Bundle | Before | After |
+  |---|---|---|
+  | Entry | 1,384,028 B raw / 366,351 B gzip | 1,363,090 / 360,906 (−21 KB raw, −5 KB gzip) |
+  | Lazy Sentry chunk | 1,149,630 B | 618,597 B |
+  | Lazy signed-in chunk | 144 KB | 135 KB |
+
+- **Why it's acceptable although Expo calls it "very experimental".**
+  - All 10 E2E pass against the tree-shaken build.
+  - CI's preview smoke test runs on it for every PR.
+  - On the PR's preview, a forced error was checked to load the shrunk Sentry chunk and reach Sentry's ingest.
+- **Rollback.** Remove the two variables from `apps/app/package.json` `build`. Nothing else depends on them.
+- **Caveats** (from the guide): only ESM imports and exports are shaken; adding a CommonJS Babel transform would silently undo it; and builds use more memory.
