@@ -120,3 +120,21 @@ export async function purgeIpUsage(db: Db, now = new Date()): Promise<void> {
     .delete(freeUsage)
     .where(and(sql`${freeUsage.userId} like 'ip:%'`, sql`${freeUsage.updatedAt} < ${now.getTime() - 2 * 86_400_000}`));
 }
+
+// ---- Read-only checks (spend on success, D-056) ----------------------------------------------
+
+/** Whether a signed-in user still has a free use, without spending it. */
+export async function hasFreeUseLeft(db: Db, input: { userId: string; action: string; limit: number }) {
+  return input.limit > 0 && (await freeUsesUsed(db, input.userId, input.action)) < input.limit;
+}
+
+/** Whether a visitor's device AND its IP (today) still allow an anonymous use, without spending it. */
+export async function hasAnonymousFreeUseLeft(
+  db: Db,
+  input: { anonId: string; ipKey: string; action: string; limit: number; perIpPerDay: number },
+  now = new Date(),
+) {
+  if (input.limit <= 0) return false;
+  if ((await freeUsesUsed(db, anonKey(input.anonId), input.action)) >= input.limit) return false;
+  return (await freeUsesUsed(db, input.ipKey, `${input.action}@${jakartaDay(now)}`)) < input.perIpPerDay;
+}
