@@ -9,14 +9,14 @@ git remote add template https://github.com/<owner>/factory-template.git
 git fetch template
 ```
 
-GitHub's "create from template" gives the product a fresh history. The first sync therefore needs `--allow-unrelated-histories`; later syncs merge normally.
+GitHub's "create from template" gives the product a fresh history, and sync PRs are squash-merged, so the product never shares history with the template. `/new-product` therefore writes **`.template-version`**: the template commit the repo starts from (D-061). Each sync applies the template's diff since that commit and records the new one.
 
 ## Each sync (`/sync-template`)
 
 ```sh
 git fetch template
 git switch -c chore/sync-template-YYYYMMDD origin/main
-git merge template/main --no-ff            # first time: add --allow-unrelated-histories
+node scripts/template-sync.mjs              # applies .template-version..template/main (3-way), updates it
 pnpm install && pnpm theme && pnpm verify
 gh pr create --fill && gh pr merge --auto --squash
 ```
