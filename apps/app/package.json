@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "EXPO_PUBLIC_API_URL=http://localhost:8787 expo start --web --port 8081",
     "start": "expo start",
-    "build": "expo export --platform web --output-dir dist",
+    "build": "EXPO_UNSTABLE_TREE_SHAKING=1 EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1 expo export --platform web --output-dir dist",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run --passWithNoTests"
   },

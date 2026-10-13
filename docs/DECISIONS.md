@@ -1133,3 +1133,21 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - A test with two temporary git repos without shared history checks that the template's changes arrive, product-only files stay, a line changed on both sides is marked as a conflict, `.template-version` moves, and a second run is a no-op.
   - Existing products write their last synced commit into `.template-version` once. For Myna Fit that is `2f425e32baff993910d97b4fb817995de4d7b2e8`.
 - **Docs.** The web app's CSP blocks `fetch(blob:)`, so uploads go base64 → `Blob` in memory (noted in `/build-from-spec`).
+
+## D-062: Experimental tree shaking for the web export, behind E2E and a preview check (2026-10-13)
+
+- **Change (Myna Fit feedback 2c).** The app's web `build` script sets `EXPO_UNSTABLE_TREE_SHAKING=1 EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1` (Expo's tree-shaking guide, read 2026-10-13). It's production `expo export` only, and native builds aren't affected: they don't use this script.
+- **Measured on the template app**, after D-059:
+
+  | Bundle | Before | After |
+  |---|---|---|
+  | Entry | 1,384,028 B raw / 366,351 B gzip | 1,363,090 / 360,906 (−21 KB raw, −5 KB gzip) |
+  | Lazy Sentry chunk | 1,149,630 B | 618,597 B |
+  | Lazy signed-in chunk | 144 KB | 135 KB |
+
+- **Why it's acceptable although Expo calls it "very experimental".**
+  - All 10 E2E pass against the tree-shaken build.
+  - CI's preview smoke test runs on it for every PR.
+  - On the PR's preview, a forced error was checked to load the shrunk Sentry chunk and reach Sentry's ingest.
+- **Rollback.** Remove the two variables from `apps/app/package.json` `build`. Nothing else depends on them.
+- **Caveats** (from the guide): only ESM imports and exports are shaken; adding a CommonJS Babel transform would silently undo it; and builds use more memory.

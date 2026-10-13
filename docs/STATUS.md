@@ -4,6 +4,10 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Tree shaking for the web export (D-062), Myna Fit feedback item 2c
+
+- Entry −5 KB gzip, and the lazy Sentry chunk is 1.15 MB → 0.62 MB.
+- Gated by all E2E and the preview check of error reporting. Rollback: remove the two env vars from the app's `build` script.
 ## 2026-10-13: Dev sign-in from :8081 and template sync by version (D-061), Myna Fit feedback items 7 and 8
 
 - `pnpm dev` sign-in works from the Expo dev server (development only).
