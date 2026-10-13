@@ -9,6 +9,9 @@ Progress log, newest entry on top.
 - On web, the first screen no longer waits for font files: it shows the fallback stack, then swaps.
 - Local Lighthouse with 4 bundled weights: 63 → 85, the same as the system font. Native unchanged.
 - Preloading made it worse (69), so it isn't used. Subsetting stays a product choice (licence per font).
+## 2026-10-13: API test timeouts 15 s (D-063), Myna Fit feedback round 2 item 3
+
+- The first sign-in of an API test file no longer times out at 5 s when every package's tests run at once on a busy machine.
 
 ---
 
