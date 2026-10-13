@@ -25,6 +25,14 @@ export type AuthEnv = {
 // Only for local dev and tests. Deployed Workers must have the BETTER_AUTH_SECRET secret.
 const DEV_SECRET = "dev-only-secret-not-for-deployed-environments-0123456789";
 
+/**
+ * Extra origins Better Auth trusts (D-061): only in local development, the Expo dev server (:8081)
+ * that `pnpm dev` runs next to wrangler dev (:8787). Never in preview or production.
+ */
+export function devTrustedOrigins(env: Pick<AuthEnv, "APP_ENV">): string[] {
+  return env.APP_ENV === "development" ? ["http://localhost:8081", "http://127.0.0.1:8081"] : [];
+}
+
 function buildAuth(env: AuthEnv) {
   const local = env.APP_ENV === "development" || env.APP_ENV === "test";
   const secret = env.BETTER_AUTH_SECRET ?? (local ? DEV_SECRET : undefined);
@@ -40,6 +48,7 @@ function buildAuth(env: AuthEnv) {
       protocol: local ? "http" : "https",
     },
     secret,
+    trustedOrigins: devTrustedOrigins(env),
     database: drizzleAdapter(drizzle(env.DB), { provider: "sqlite", schema: authSchema }),
     advanced: { ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] } },
     session: { cookieCache: { enabled: true, maxAge: 300 } },

@@ -109,3 +109,22 @@ describe("consents endpoint", () => {
     });
   });
 });
+
+// D-061: the Expo dev server's origin is trusted in local development only.
+describe("dev app origin", () => {
+  it("is trusted only when APP_ENV is development", async () => {
+    const { devTrustedOrigins } = await import("../src/core/auth");
+    expect(devTrustedOrigins({ APP_ENV: "development" })).toEqual(["http://localhost:8081", "http://127.0.0.1:8081"]);
+    for (const env of ["test", "preview", "production"] as const)
+      expect(devTrustedOrigins({ APP_ENV: env })).toEqual([]);
+  });
+
+  it("is rejected outside development (here: tests)", async () => {
+    const res = await call("/api/auth/sign-in/magic-link", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://localhost:8081" },
+      body: JSON.stringify({ email: `origin-${crypto.randomUUID()}@example.com`, callbackURL: "/" }),
+    });
+    expect(res.status).toBe(403);
+  });
+});

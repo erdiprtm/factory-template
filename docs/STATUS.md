@@ -8,6 +8,18 @@ Progress log, newest entry on top.
 
 - Entry −5 KB gzip, and the lazy Sentry chunk is 1.15 MB → 0.62 MB.
 - Gated by all E2E and the preview check of error reporting. Rollback: remove the two env vars from the app's `build` script.
+## 2026-10-13: Dev sign-in from :8081 and template sync by version (D-061), Myna Fit feedback items 7 and 8
+
+- `pnpm dev` sign-in works from the Expo dev server (development only).
+- `/sync-template` applies the template's changes since `.template-version`, with no more `--allow-unrelated-histories` or manual base.
+- **Myna Fit:** before its next sync, write `2f425e32baff993910d97b4fb817995de4d7b2e8` into `.template-version` and commit.
+
+---
+
+## 2026-10-13: Native storage that survives restarts (D-060), Myna Fit feedback item 6
+
+- `core/kv`: AsyncStorage behind a cache loaded at start on native, and `localStorage` on web.
+- Theme, language, quiz progress and the after-sign-in target now persist on native. Products can keep drafts with it.
 
 ---
 

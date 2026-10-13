@@ -1104,6 +1104,36 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - Expo Router `asyncRoutes`: re-measured by Myna Fit, more round trips for ~35 KB.
   - Experimental tree shaking: a separate, guarded change.
 
+## D-060: Native storage survives app restarts (2026-10-13)
+
+- **Problem (Myna Fit feedback 6).** On native, theme, language, quiz progress and the "after sign-in" target lived in memory, so closing the app lost them. Myna Fit's meal drafts had the same problem.
+- **Decision.**
+  - **`core/kv`** reads synchronously, like the web's `localStorage`:
+    - On native, `@react-native-async-storage/async-storage` 2.2.0 (the version Expo SDK 57 bundles, so no 14-day pick) is loaded into a cache once at start (`hydrateKv`). Reads come from the cache, and writes go to both.
+    - On web, `kv.web.ts` is `localStorage` and always ready.
+  - **The root layout** waits for fonts and storage on native. On web, `kvReady()` is true from the first render, so nothing waits and nothing flashes.
+  - **Keys** are the same as on web: `theme`, `locale`, `factory.quiz.<id>`, `factory.afterSignIn`.
+  - **Products** may use `kvGet` / `kvSet` / `kvRemove` for their own drafts.
+- **Not used:** `expo-secure-store`. None of this is secret, and AsyncStorage has no small size limit per value.
+- **Tests (`apps/app/test/kv.test.ts`).**
+  - With a mocked persistent AsyncStorage, a fresh module ("next app start") sees the quiz progress, theme, locale and after-sign-in target written by the previous one.
+  - `kvReady()` is false until hydration.
+  - Corrupt stored JSON gives an empty state, not a crash.
+
+## D-061: Local sign-in from the Expo dev server, and template sync without shared history (2026-10-13)
+
+- **Dev sign-in (Myna Fit feedback 7).** With `pnpm dev`, the app runs on `:8081` and the API on `:8787`, so Better Auth refused the magic-link request: "Invalid origin: http://localhost:8081", 403.
+  - `devTrustedOrigins(env)` adds `http://localhost:8081` and `http://127.0.0.1:8081` to `trustedOrigins` **only when `APP_ENV` is `development`**. Never in test, preview or production.
+  - Sign-in's callback goes back to the app's own origin when `EXPO_PUBLIC_API_URL` points elsewhere (`appReturnUrl`). It stays relative when deployed (same origin).
+  - Tests: the rule per environment, and the request with Origin `:8081` is refused in tests. Checked on a real `wrangler dev` (development): Origin `:8081` gets 200, an unknown origin 403.
+- **Template sync (Myna Fit feedback 8).** "Create from template" plus squash-merged sync PRs mean a product never shares history with the template. Every `/sync-template` needed `--allow-unrelated-histories` and a hand-picked 3-way base.
+  - `/new-product` writes `.template-version`, the template commit the repo starts from.
+  - `scripts/template-sync.mjs` applies `git diff <.template-version>..template/main` with `git apply --3way --index`. Real conflicts get the usual markers, and then it records the new commit.
+  - `/sync-template` and `docs/TEMPLATE_SYNC.md` use it.
+  - A test with two temporary git repos without shared history checks that the template's changes arrive, product-only files stay, a line changed on both sides is marked as a conflict, `.template-version` moves, and a second run is a no-op.
+  - Existing products write their last synced commit into `.template-version` once. For Myna Fit that is `2f425e32baff993910d97b4fb817995de4d7b2e8`.
+- **Docs.** The web app's CSP blocks `fetch(blob:)`, so uploads go base64 → `Blob` in memory (noted in `/build-from-spec`).
+
 ## D-062: Experimental tree shaking for the web export, behind E2E and a preview check (2026-10-13)
 
 - **Change (Myna Fit feedback 2c).** The app's web `build` script sets `EXPO_UNSTABLE_TREE_SHAKING=1 EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1` (Expo's tree-shaking guide, read 2026-10-13). It's production `expo export` only, and native builds aren't affected: they don't use this script.

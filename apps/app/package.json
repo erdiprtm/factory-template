@@ -16,6 +16,7 @@
     "@factory/core": "workspace:*",
     "@factory/ui": "workspace:*",
     "@openpanel/web": "catalog:",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@rn-primitives/portal": "1.5.3",
     "@sentry/browser": "catalog:",
     "@tanstack/react-query": "5.104.0",

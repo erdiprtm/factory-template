@@ -1,23 +1,30 @@
 import type { QuizAnswers } from "@factory/core/quiz";
+import { kvGet, kvRemove, kvSet } from "../kv";
 
-// Native: in-memory until Phase 10 adds persistent storage (like theme and locale).
+// Native: quiz progress kept across app restarts (core/kv, D-060), with the web build's keys.
 export type QuizProgress = { answers: QuizAnswers; completedAt?: number; sentAt?: number };
-const memory = new Map<string, QuizProgress>();
+const key = (quizId: string) => `factory.quiz.${quizId}`;
 
 export function loadQuizProgress(quizId: string): QuizProgress | null {
-  return memory.get(quizId) ?? null;
+  try {
+    const raw = JSON.parse(kvGet(key(quizId)) ?? "null") as QuizProgress | null;
+    return raw && typeof raw === "object" && raw.answers && typeof raw.answers === "object" ? raw : null;
+  } catch {
+    return null;
+  }
 }
 
 export function saveQuizProgress(quizId: string, progress: QuizProgress): void {
-  memory.set(quizId, progress);
+  kvSet(key(quizId), JSON.stringify(progress));
 }
 
-let afterSignIn: string | null = null;
+// Where to go once the quiz's sign-in completes (paywall placement "after_quiz", D-037).
+const NEXT = "factory.afterSignIn";
 export function setAfterSignIn(path: "/pricing" | "/"): void {
-  afterSignIn = path;
+  kvSet(NEXT, path);
 }
 export function takeAfterSignIn(): "/pricing" | null {
-  const v = afterSignIn;
-  afterSignIn = null;
+  const v = kvGet(NEXT);
+  kvRemove(NEXT);
   return v === "/pricing" ? v : null;
 }
