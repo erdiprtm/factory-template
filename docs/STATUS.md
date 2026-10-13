@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Native storage that survives restarts (D-060), Myna Fit feedback item 6
+
+- `core/kv`: AsyncStorage behind a cache loaded at start on native, and `localStorage` on web.
+- Theme, language, quiz progress and the after-sign-in target now persist on native. Products can keep drafts with it.
+
+---
+
 ## 2026-10-13: Smaller first web bundle (D-059), Myna Fit feedback item 2
 
 - Sign-in, Akun, Admin, pricing and the billing return page load as one lazy chunk, and the web Checkbox no longer needs `react-native-svg`.

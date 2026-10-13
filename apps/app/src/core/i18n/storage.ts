@@ -1,10 +1,13 @@
-// Native: in-memory until Phase 10 adds persistent storage (expo-secure-store / AsyncStorage).
-let current: "id" | "en" | null = null;
+import { kvGet, kvSet } from "../kv";
+
+// Native: the chosen language, kept across app restarts (core/kv, D-060), as on the web.
+const KEY = "locale";
 
 export function loadLocale(): "id" | "en" | null {
-  return current;
+  const v = kvGet(KEY);
+  return v === "id" || v === "en" ? v : null;
 }
 
 export function saveLocale(locale: "id" | "en"): void {
-  current = locale;
+  kvSet(KEY, locale);
 }
