@@ -1151,3 +1151,32 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - On the PR's preview, a forced error was checked to load the shrunk Sentry chunk and reach Sentry's ingest.
 - **Rollback.** Remove the two variables from `apps/app/package.json` `build`. Nothing else depends on them.
 - **Caveats** (from the guide): only ESM imports and exports are shaken; adding a CommonJS Babel transform would silently undo it; and builds use more memory.
+
+## D-065: Bundled fonts swap in on web instead of holding back the first screen (2026-10-13)
+
+- **Problem (Myna Fit feedback round 2, item 1).** `useAppFonts()` returned false until every bundled font file had loaded, and the root layout rendered nothing until then. Myna Fit measured production `/quiz` with 4 Plus Jakarta Sans weights (Lighthouse 13.5.0 mobile, median of 5): score 71, versus 80 with the system font, and LCP about 4.9 s versus 3.5 s.
+- **Decision.** Products still choose any font (D-052, D-057); only how it loads changes.
+  - **Web** (`core/font-loading.web.ts`): never waits.
+    - Every face is registered with `font-display: swap`, keeping the `"<family>_<weight>"` names, so D-057's classes still work.
+    - The first screen renders at once in the fallback stack. `tailwind.config.js` gives every font class `"<family>_<weight>", system-ui, sans-serif`.
+  - **Native** (`core/font-loading.ts`): waits as before. The files come from the app bundle, so it's quick, and a swap would reflow. NativeWind uses only the first name of a font-family list on native, so the fallback stack changes nothing there.
+- **Measured locally** on the template app, `/quiz`, Lighthouse 13.5.0 mobile, 5 runs each. Four bundled files of about 130 KB (400/600/700/800), like Myna Fit's:
+
+  | Variant | Median score | LCP | FCP |
+  |---|---|---|---|
+  | System font | 85 | 3.2 s | 0.8 s |
+  | Bundled, waiting (before) | 63 | 5.2 s | 2.6 s |
+  | **Bundled, swap (this decision)** | **85** | **3.3 s** | **0.85 s** |
+  | Bundled, swap + `<link rel=preload>` for body and h1 | 69 | 4.3 s | 0.9 s |
+
+- **Not taken: preloading.** It made LCP a second worse: the two preloaded files compete with the JS bundle for the throttled connection, and the screen can't paint until the JS has run anyway.
+- **Not taken: subsetting in `pnpm theme`.** The font files are product-owned (`apps/app/assets/fonts`), and whether a font may be subset is a licence question per font (OFL without a Reserved Font Name allows it). The template shouldn't change them on its own.
+  - A product that wants smaller files can subset them once and commit the result. For example, Latin plus Latin-1 is enough for Indonesian: `pyftsubset <file> --unicodes="U+0000-00FF,U+2013-2014,U+2018-201D,U+2022,U+2026,U+20AC,U+2122" --output-file=<file>`.
+  - With swap, file size no longer delays the first screen, only how soon the face changes.
+- **Tests.**
+  - `apps/app/test/font-loading.test.ts`: on web it's ready at once and every face uses swap; on native it waits for the files.
+  - `e2e/tests/fonts.spec.ts` (runs in products with bundled fonts, skipped otherwise):
+    - with every font request held, the sign-in button's text is visible in the fallback stack;
+    - the face isn't loaded yet;
+    - after releasing the requests, the bundled face loads.
+  - Checked against the old behaviour: that spec fails (the button never appears while fonts are held).

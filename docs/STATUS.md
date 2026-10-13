@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: Bundled fonts swap in on web (D-065), Myna Fit feedback round 2 item 1
+
+- On web, the first screen no longer waits for font files: it shows the fallback stack, then swaps.
+- Local Lighthouse with 4 bundled weights: 63 → 85, the same as the system font. Native unchanged.
+- Preloading made it worse (69), so it isn't used. Subsetting stays a product choice (licence per font).
+
+---
+
 ## 2026-10-13: Tree shaking for the web export (D-062), Myna Fit feedback item 2c
 
 - Entry −5 KB gzip, and the lazy Sentry chunk is 1.15 MB → 0.62 MB.

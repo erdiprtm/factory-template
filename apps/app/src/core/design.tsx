@@ -1,8 +1,7 @@
 import type { UiTokens } from "@factory/ui";
-import { useFonts } from "expo-font";
 import { useEffect, useState } from "react";
 import product from "../../../../product.config";
-import { bundledFonts } from "./fonts.generated";
+import { useBundledFonts } from "./font-loading";
 import { hydrateKv, kvReady } from "./kv";
 
 // The product's design tokens for @factory/ui, from product.config.ts brand.tokens (D-052).
@@ -23,13 +22,6 @@ export const uiTokens: UiTokens = {
       : false,
 };
 
-/**
- * True once the product's bundled fonts are loaded (expo-font: web and native, no Google calls).
- * Without bundled fonts it's true at once, so nothing waits and nothing flashes.
- */
-export const useBundledFonts: () => boolean =
-  Object.keys(bundledFonts).length > 0 ? () => useFonts(bundledFonts)[0] : () => true;
-
 /** True once stored values (core/kv) are loaded: instantly on web, after AsyncStorage on native (D-060). */
 function useStorageReady(): boolean {
   const [ready, setReady] = useState(kvReady);
@@ -39,7 +31,10 @@ function useStorageReady(): boolean {
   return ready;
 }
 
-/** The root layout renders once fonts and stored values are ready. */
+/**
+ * The root layout renders once fonts and stored values are ready: on native after both load, on
+ * web at once (fonts swap in, D-065; storage is localStorage).
+ */
 export function useAppFonts(): boolean {
   const fonts = useBundledFonts();
   const storage = useStorageReady();
