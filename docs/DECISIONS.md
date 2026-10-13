@@ -1151,3 +1151,19 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - On the PR's preview, a forced error was checked to load the shrunk Sentry chunk and reach Sentry's ingest.
 - **Rollback.** Remove the two variables from `apps/app/package.json` `build`. Nothing else depends on them.
 - **Caveats** (from the guide): only ESM imports and exports are shaken; adding a CommonJS Babel transform would silently undo it; and builds use more memory.
+
+## D-064: Each E2E run gets a fresh local D1 and KV (2026-10-13)
+
+- **Problem (Myna Fit feedback round 2, item 2).** E2E migrated and served the same `.wrangler/state` on every run, the one `pnpm dev` uses too. Counters carried over:
+  - After about 20 funnel runs in one Jakarta day, `anonymousPerIpPerDay` (20) was reached for 127.0.0.1. The funnel E2E then failed with "Scan gratismu sudah terpakai".
+  - CI never saw it, because it starts with a fresh D1.
+  - The product couldn't reset it: the guard hook rightly blocks `wrangler d1 execute … delete`, even with `--local`.
+- **Decision.**
+  - E2E's `wrangler dev` and its migrations use **`--persist-to .wrangler/e2e`** (in `apps/api`, gitignored with the rest of `.wrangler/`).
+  - `scripts/e2e-state.mjs` empties that folder at the start of every run, before migrating. It only ever touches that folder, so `pnpm dev`'s data stays.
+  - Runs no longer share counters with each other or with `pnpm dev`, and nobody has to delete rows.
+- **Not chosen.** A different `cf-connecting-ip` per test: it fixes only this counter, and the shared state would stay.
+- **Tests.**
+  - `scripts/e2e-state.test.mjs`: the E2E folder is emptied, `.wrangler/state` is untouched, and a first run with no folder is fine.
+  - The funnel spec ran 25 times in a row as separate runs (server start each time): green every time.
+  - The E2E database held the same row counts after each run, so nothing accumulates.

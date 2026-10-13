@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-13: A fresh local D1 per E2E run (D-064), Myna Fit feedback round 2 item 2
+
+- E2E uses its own `.wrangler/e2e`, emptied and migrated each run, so the anonymous per-IP cap and other counters never fill up across runs or from `pnpm dev`.
+
+---
+
 ## 2026-10-13: Tree shaking for the web export (D-062), Myna Fit feedback item 2c
 
 - Entry −5 KB gzip, and the lazy Sentry chunk is 1.15 MB → 0.62 MB.

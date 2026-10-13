@@ -7,8 +7,13 @@ import { defineConfig, devices } from "@playwright/test";
 // `wrangler dev` has old code or other vars, and another project's server on the port makes the
 // start-up time out. port-free.mjs stops the run at once instead. The server's log (stdout) is
 // hidden by Playwright; `DEBUG=pw:webserver pnpm e2e` shows it.
+//
+// Its own local D1 and KV too (D-064): `--persist-to .wrangler/e2e`, emptied and migrated at the
+// start of every run, so counters (anonymous free uses per IP per day, rate limits) never carry
+// over between runs or from `pnpm dev`'s .wrangler/state.
 const PORT = 8788;
 const BASE = `http://localhost:${PORT}`;
+const STATE = "--persist-to .wrangler/e2e";
 
 export default defineConfig({
   testDir: "./tests",
@@ -24,8 +29,9 @@ export default defineConfig({
   webServer: {
     command: [
       `node scripts/port-free.mjs ${PORT}`,
-      "pnpm --filter @factory/api db:migrate:local",
-      `pnpm --filter @factory/api exec wrangler dev --port ${PORT} --var APP_ENV:development --var AUTH_HOSTS:localhost:${PORT} --var ADMIN_EMAILS:admin@example.com`,
+      "node scripts/e2e-state.mjs",
+      `pnpm --filter @factory/api exec wrangler d1 migrations apply DB --local ${STATE}`,
+      `pnpm --filter @factory/api exec wrangler dev ${STATE} --port ${PORT} --var APP_ENV:development --var AUTH_HOSTS:localhost:${PORT} --var ADMIN_EMAILS:admin@example.com`,
     ].join(" && "),
     url: `${BASE}/api/health`,
     reuseExistingServer: false,
