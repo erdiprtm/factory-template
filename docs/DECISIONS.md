@@ -1103,3 +1103,19 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - Lazy `en` messages (~4 KB gzip for core): when a product's default locale is `en`, its strings would flash, and the product catalogs live in one module the template can't split.
   - Expo Router `asyncRoutes`: re-measured by Myna Fit, more round trips for ~35 KB.
   - Experimental tree shaking: a separate, guarded change.
+
+## D-060: Native storage survives app restarts (2026-10-13)
+
+- **Problem (Myna Fit feedback 6).** On native, theme, language, quiz progress and the "after sign-in" target lived in memory, so closing the app lost them. Myna Fit's meal drafts had the same problem.
+- **Decision.**
+  - **`core/kv`** reads synchronously, like the web's `localStorage`:
+    - On native, `@react-native-async-storage/async-storage` 2.2.0 (the version Expo SDK 57 bundles, so no 14-day pick) is loaded into a cache once at start (`hydrateKv`). Reads come from the cache, and writes go to both.
+    - On web, `kv.web.ts` is `localStorage` and always ready.
+  - **The root layout** waits for fonts and storage on native. On web, `kvReady()` is true from the first render, so nothing waits and nothing flashes.
+  - **Keys** are the same as on web: `theme`, `locale`, `factory.quiz.<id>`, `factory.afterSignIn`.
+  - **Products** may use `kvGet` / `kvSet` / `kvRemove` for their own drafts.
+- **Not used:** `expo-secure-store`. None of this is secret, and AsyncStorage has no small size limit per value.
+- **Tests (`apps/app/test/kv.test.ts`).**
+  - With a mocked persistent AsyncStorage, a fresh module ("next app start") sees the quiz progress, theme, locale and after-sign-in target written by the previous one.
+  - `kvReady()` is false until hydration.
+  - Corrupt stored JSON gives an empty state, not a crash.

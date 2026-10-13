@@ -1,11 +1,14 @@
-// Native: in-memory until Phase 10 adds persistent storage.
+import { kvGet, kvSet } from "./kv";
+
+// Native: kept across app restarts (core/kv, D-060), under the same key as the web build.
 export type ThemePreference = "light" | "dark" | "system";
-let current: ThemePreference | null = null;
+const KEY = "theme";
 
 export function loadThemePreference(): ThemePreference | null {
-  return current;
+  const v = kvGet(KEY);
+  return v === "light" || v === "dark" || v === "system" ? v : null;
 }
 
 export function saveThemePreference(pref: ThemePreference): void {
-  current = pref;
+  kvSet(KEY, pref);
 }
