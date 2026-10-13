@@ -1025,3 +1025,20 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - The site test checks the product's first lander instead of `contoh`.
 - **Lander hooks may run to 160 characters** (was 120). Myna Fit's formula hooks need about 124.
 - Not taken now (noted in Myna Fit's STATUS): "spend a free use only on success" (Myna Fit's P-005), persistent native storage (Phase 10), and the `blob:` CSP note.
+
+## D-057: Bundled fonts with several weights per family (2026-10-13)
+
+- **Problem (Myna Fit feedback 1).** `fonts.generated.ts` keyed fonts by family, so a second weight of the same family was a duplicate object key (TS1117). A product could bundle one weight, and browsers faked bold from the regular file. Myna Fit stayed on the system font.
+- **Decision.**
+  - **Config.** `fonts` may list one family several times with different `weight`s, up to 12 files. The same family and weight twice is rejected.
+  - **App, web and native.** Each file is registered with expo-font as `"<family>_<weight>"`, because native platforms pick a font by file, not by `font-weight`. The Tailwind config builds a class per role and bundled weight (`font-sans-400`, `font-heading-800`, …) and safelists them, since they come from config.
+  - **`@factory/ui`.** It knows each text's weight: h1 bold, h2/h3 semibold, body normal, labels and badges semibold, all after `weights` overrides. `fontClass()` picks the nearest bundled file, and a tie goes to the heavier file. `UiTokens.fonts` is now the bundled weights per role, or `false`.
+  - **Site.** Unchanged: one family with an `@font-face` per weight, so CSS `font-weight` picks the right face.
+- **Correction to D-052.** Only `.ttf` and `.otf` are allowed now. Metro (and expo-font on native) can't load `.woff`/`.woff2`: the first build with a `.woff` failed with "Unable to resolve module". The site serves the same files.
+- **Checked in a real build.** With a temporary two-weight config (a 400 and a 900 file), the web build's `<h1>` computed to `Arial_900`, the body to `Arial_400`, and both faces were `loaded`. The config was reverted afterwards. Native isn't checked yet; that's the Expo Go check in the product.
+- **Tests.**
+  - The config accepts 5 weights of one family and rejects a duplicate and a `.woff2`.
+  - The generator writes 5 distinct keys (snapshot, no duplicate keys), and the site writes 5 faces.
+  - `@factory/ui` uses the real ExtraBold for headings, the regular file for body text, and the nearest weight as a fallback.
+  - The default classes snapshot is unchanged (no fonts means the platform font).
+- **Note for products.** A product variant class like `font-extrabold` on its own changes only the weight. On native, also add the matching `font-sans-800`, or use the `weights` tokens, which pick the file automatically.

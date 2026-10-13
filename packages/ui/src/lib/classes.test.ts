@@ -5,6 +5,7 @@ import {
   buttonTextClasses,
   cardClasses,
   defaultTokens,
+  fontClass,
   inputClasses,
   screenClasses,
   textClasses,
@@ -51,7 +52,7 @@ describe("tokens change the classes", () => {
     shadow: "lift",
     density: "compact",
     weights: { heading: "extrabold", body: "medium" },
-    fonts: true,
+    fonts: { sans: [400, 500, 600, 700, 800], heading: [600, 800] },
   };
 
   it("card shadow and density", () => {
@@ -64,10 +65,10 @@ describe("tokens change the classes", () => {
   it("weights and bundled fonts", () => {
     expect(textClasses(custom, "h2")).toContain("font-extrabold");
     expect(textClasses(custom, "h2")).not.toContain("font-semibold");
-    expect(textClasses(custom, "h1")).toContain("font-heading");
+    expect(textClasses(custom, "h1")).toContain("font-heading-800");
     expect(textClasses(custom)).toContain("font-medium");
-    expect(textClasses(custom)).toContain("font-sans");
-    expect(buttonTextClasses(custom)).toContain("font-sans");
+    expect(textClasses(custom)).toContain("font-sans-500");
+    expect(buttonTextClasses(custom)).toContain("font-sans-600");
   });
 
   it("screens get tighter when compact", () => {
@@ -128,5 +129,24 @@ describe("product variants", () => {
   it("change nothing when empty", () => {
     expect(buttonClasses(defaultTokens, "default", "default", {})).toBe(buttonClasses(defaultTokens));
     expect(cardClasses(defaultTokens, {})).toBe(cardClasses(defaultTokens));
+  });
+});
+
+// D-057: several weights per family. Each text gets the file nearest to its weight.
+describe("bundled font weights", () => {
+  const fonts: UiTokens = { ...defaultTokens, fonts: { sans: [400, 500, 600, 700, 800], heading: [800] } };
+
+  it("headings use the real ExtraBold, body the regular file", () => {
+    expect(textClasses({ ...fonts, weights: { heading: "extrabold" } }, "h1")).toContain("font-heading-800");
+    expect(textClasses(fonts, "default")).toContain("font-sans-400");
+    expect(textClasses(fonts, "muted")).toContain("font-sans-400");
+  });
+
+  it("falls back to the nearest bundled weight", () => {
+    const only = { ...defaultTokens, fonts: { sans: [400, 700], heading: [400, 700] } };
+    expect(fontClass(only, "sans", 600)).toBe("font-sans-700"); // 600 is nearer 700 than 400
+    expect(fontClass(only, "sans", 550)).toBe("font-sans-700"); // tie goes to the heavier file
+    expect(fontClass(only, "heading", 800)).toBe("font-heading-700");
+    expect(fontClass(defaultTokens, "sans", 400)).toBe(false);
   });
 });

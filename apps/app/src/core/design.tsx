@@ -6,11 +6,19 @@ import { bundledFonts } from "./fonts.generated";
 // The product's design tokens for @factory/ui, from product.config.ts brand.tokens (D-052).
 // Colors, radii and control height are CSS variables (scripts/gen-theme.mjs); these are the rest.
 const brand = product.brand.tokens;
+const weightsOf = (family: string | undefined) => brand.fonts.filter((f) => f.family === family).map((f) => f.weight);
 export const uiTokens: UiTokens = {
   shadow: brand.shadow,
   density: brand.density,
   weights: brand.weights,
-  fonts: brand.fonts.length > 0,
+  // The bundled weights per role (D-057): @factory/ui picks the nearest file for each text.
+  fonts:
+    brand.fonts.length > 0
+      ? {
+          sans: weightsOf(brand.fontFamily.sans),
+          heading: weightsOf(brand.fontFamily.heading ?? brand.fontFamily.sans),
+        }
+      : false,
 };
 
 /**

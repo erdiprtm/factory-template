@@ -5,18 +5,36 @@ const { hairlineWidth } = require("nativewind/theme");
 
 const token = (name) => `hsl(var(--${name}) / <alpha-value>)`;
 
-// Bundled fonts (D-052): font-sans / font-heading name the families loaded by expo-font. Without
-// bundled fonts nothing changes (the platform's default font).
+// Bundled fonts (D-052, D-057). Every file is registered as "<family>_<weight>" (expo-font, web and
+// native: native picks a font by file, not by font-weight), and gets a class per role and weight:
+// font-sans-400, font-heading-800, … @factory/ui picks the class for each text's weight. They are
+// built from config, so the content scan can't see them: hence the safelist. Without bundled fonts
+// nothing changes (the platform's default font).
 const brand = require("./src/core/product.generated.json").brand.tokens;
-const fontFamily =
-  brand.fonts.length > 0
-    ? { sans: [brand.fontFamily.sans], heading: [brand.fontFamily.heading ?? brand.fontFamily.sans] }
-    : {};
+const fontFamily = {};
+const fontSafelist = [];
+if (brand.fonts.length > 0) {
+  const roles = { sans: brand.fontFamily.sans, heading: brand.fontFamily.heading ?? brand.fontFamily.sans };
+  for (const [role, family] of Object.entries(roles)) {
+    const files = brand.fonts.filter((f) => f.family === family);
+    for (const f of files) {
+      fontFamily[`${role}-${f.weight}`] = [`${f.family}_${f.weight}`];
+      fontSafelist.push(`font-${role}-${f.weight}`);
+    }
+    // The plain role class uses the family's lightest file (the regular one, usually).
+    const base = [...files].sort((a, b) => a.weight - b.weight)[0];
+    if (base) {
+      fontFamily[role] = [`${base.family}_${base.weight}`];
+      fontSafelist.push(`font-${role}`);
+    }
+  }
+}
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: "class",
   content: [path.join(__dirname, "src/**/*.{ts,tsx}"), path.join(__dirname, "../../packages/ui/src/**/*.{ts,tsx}")],
+  safelist: fontSafelist,
   presets: [require("nativewind/preset")],
   theme: {
     extend: {

@@ -64,12 +64,23 @@ describe("defineProduct", () => {
           weights: { heading: "extrabold", body: "medium" },
           fonts: [
             { family: "Fredoka", file: "Fredoka-SemiBold.ttf", weight: 600 },
-            { family: "Plus Jakarta Sans", file: "PlusJakartaSans-Regular.woff2" },
+            { family: "Plus Jakarta Sans", file: "PlusJakartaSans-Regular.otf" },
           ],
           fontFamily: { sans: "Plus Jakarta Sans", heading: "Fredoka" },
         }),
       ).brand.tokens;
       expect(t.fonts[1]?.weight).toBe(400);
+    });
+
+    it("accepts several weights of one family, but not the same weight twice (D-057)", () => {
+      const fonts = [400, 500, 600, 700, 800].map((weight) => ({
+        family: "Plus Jakarta Sans",
+        file: `PlusJakartaSans-${weight}.ttf`,
+        weight,
+      }));
+      const fontFamily = { sans: "Plus Jakarta Sans" };
+      expect(defineProduct(tokens({ fonts, fontFamily })).brand.tokens.fonts).toHaveLength(5);
+      expect(() => defineProduct(tokens({ fonts: [...fonts, fonts[0]], fontFamily }))).toThrow(/listed twice/);
     });
 
     it("rejects invalid values", () => {
@@ -83,6 +94,8 @@ describe("defineProduct", () => {
         { weights: { heading: "thin" } },
         { fonts: [{ family: "Inter", file: "../evil.ttf" }] },
         { fonts: [{ family: "Inter", file: "Inter.exe" }] },
+        // Metro and expo-font on native can't load woff/woff2.
+        { fonts: [{ family: "Inter", file: "Inter.woff2" }], fontFamily: { sans: "Inter" } },
         { fonts: [{ family: "Inter", file: "Inter.ttf", weight: 450 }] },
         // Once fonts are bundled, fontFamily must name them.
         { fonts: [{ family: "Inter", file: "Inter.ttf" }], fontFamily: { sans: "Roboto" } },

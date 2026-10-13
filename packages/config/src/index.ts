@@ -95,15 +95,32 @@ export const productSchema = z.object({
           .array(
             z.object({
               family: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9 ]{0,39}$/, "a font family name"),
-              file: z.string().regex(/^[\w-]+\.(ttf|otf|woff2?)$/, "a font file name like Inter-Regular.ttf"),
+              file: z
+                .string()
+                .regex(
+                  /^[\w-]+\.(ttf|otf)$/,
+                  "a .ttf or .otf font file name like Inter-Regular.ttf (Metro and expo-font on native need these)",
+                ),
               weight: z.int().min(100).max(900).multipleOf(100).default(400),
             }),
           )
-          .max(6)
+          .max(12)
           .default([]),
       })
       .superRefine((t, ctx) => {
         if (t.fonts.length === 0) return;
+        // Several weights per family are fine (D-057); the same family + weight twice is not.
+        const seen = new Set<string>();
+        for (const f of t.fonts) {
+          const key = `${f.family}@${f.weight}`;
+          if (seen.has(key))
+            ctx.addIssue({
+              code: "custom",
+              message: `font "${f.family}" weight ${f.weight} is listed twice`,
+              path: ["fonts"],
+            });
+          seen.add(key);
+        }
         const families = new Set(t.fonts.map((f) => f.family));
         for (const [key, name] of Object.entries(t.fontFamily)) {
           if (name && !families.has(name))
