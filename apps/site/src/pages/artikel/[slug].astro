@@ -1,10 +1,11 @@
 ---
-// SEO content pages from src/content/seo/*.md (PRODUCT-OWNED content, template-owned layout).
+// SEO content pages from src/content/seo/*.md (PRODUCT-OWNED content, template-owned layout), at
+// /artikel/<slug>/ so no slug can collide with an app screen on one domain (D-069).
 import { getCollection, render } from "astro:content";
-import Faq from "../components/Faq.astro";
-import Base from "../layouts/Base.astro";
-import { faqLd } from "../lib/jsonld";
-import { appUrl, product } from "../lib/site";
+import Faq from "../../components/Faq.astro";
+import Base from "../../layouts/Base.astro";
+import { faqLd } from "../../lib/jsonld";
+import { appUrl, product } from "../../lib/site";
 
 export async function getStaticPaths() {
   const pages = await getCollection("seo");

@@ -27,7 +27,7 @@ pnpm verify           # lint + migration safety + typecheck + test + build + e2e
 pnpm db:generate      # new migration from schema changes (packages/db)
 pnpm db:migrate:local # apply migrations to the local D1;  pnpm db:seed:local loads dev data
 pnpm theme            # regenerate files derived from product.config.ts (theme CSS + the app's validated config JSON) after ANY config change
-pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/seo/<slug>.md)
+pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/seo/<slug>.md, served at /artikel/<slug>/)
 pnpm setup-secrets    # shared CI secrets (factory.secrets.json) from the human's machine; --dry-run first (docs/SECRETS.md)
 ```
 
@@ -109,7 +109,7 @@ pnpm setup-secrets    # shared CI secrets (factory.secrets.json) from the human'
 ```
 apps/app        Expo app (web export now, iOS/Android later). src/core = template, src/features = product
 apps/api        Hono Worker: /api/* + serves the app's web export. src/core = template, src/features = product
-apps/site       Astro 7 site: landing, harga, SEO pages (src/content/seo), ad landers (src/content/landers → /l/<slug>), legal templates, OG images
+apps/site       Astro 7 site: landing, harga, SEO pages (src/content/seo → /artikel/<slug>), ad landers (src/content/landers → /l/<slug>), legal templates, OG images
 packages/config product.config.ts schema (defineProduct)
 packages/core   billing, entitlements, email, analytics, i18n (Phases 3–7); sell engine: attribution, meta, quiz, quota, pricing, economics
 packages/db     Drizzle schema + migrations (Phase 2)

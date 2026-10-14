@@ -1,0 +1,14 @@
+---
+// One domain (D-068): the landing page again at domain.anonymousHome (e.g. /mulai/), where visitors
+// without a session are sent from "/". It renders index.astro as it is, so the landing copy stays in
+// one PRODUCT-OWNED file; its canonical is this path. No pages without anonymousHome.
+import product from "../../../../product.config";
+import Home from "./index.astro";
+
+export function getStaticPaths() {
+  const home = product.domain.anonymousHome;
+  return home ? [{ params: { landing: home.slice(1, -1) } }] : [];
+}
+---
+
+<Home />

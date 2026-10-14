@@ -1262,3 +1262,37 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
     - 200 index.html with the CSP from `_headers` with a cookie, on `localhost`, and for `/quiz`;
     - in Chromium: sign in, then `/` is the app, and sign-out lands on `/mulai/`.
 - **For products on one domain.** Move the landing to the site path (for example `src/pages/mulai/index.astro`), route it to the site Worker, then set `domain.anonymousHome`.
+
+## D-069: One domain is a template pattern: site routes, a checker, and the human steps (2026-10-14)
+
+- **Problem (Myna Fit feedback round 3, item 3).** Myna Flow (P-019) and Myna Fit (P-027) both put app and site on one host by hand, with the same five changes. The next product would copy them a third time.
+- **Decision.** It's now template behaviour, inactive until `domain.site` equals `domain.app`.
+  - **SEO pages at `/artikel/<slug>/`** (`src/pages/artikel/[slug].astro`), so no slug can collide with an app screen.
+    - Products that had SEO pages at `/<slug>/` get new URLs when they sync. Both one-domain products already moved, and Myna Health doesn't sync.
+  - **The FAQ** has `id="faq"` on `/harga/` too, and the nav links to `/harga/#faq`. On one domain the site's `/` isn't reachable, but `/harga/` is.
+  - **Production builds use the own domain** once `domain.site` / `domain.app` are set:
+    - canonical URLs, the sitemap and OG URLs (`astro.config.mjs`);
+    - the "Masuk"/"Mulai" links (`lib/site.ts` `appUrl`).
+    - Previews and CI's smoke tests keep `SITE_URL` / `PUBLIC_APP_URL` on workers.dev.
+  - **The landing at `domain.anonymousHome`** (`src/pages/[...landing].astro`) renders `index.astro` as it is, so the landing copy stays in one product-owned file. Its canonical is that path, and the site's logo links there on one-domain production builds.
+    - On one domain the sitemap leaves out `/`, which is the app's there.
+  - **`apps/site/wrangler.jsonc`:**
+    - `env.preview.routes: []`, so previews never inherit production routes;
+    - a comment showing the route shape.
+  - **`apps/site/test/one-domain.ts` + `.test.ts`.** The checker lists each problem as a sentence: an unrouted site path (with the route to add), a route that shadows an app screen, public file, `/api`, `/_expo`, `/assets` or `/`, an unrouted `anonymousHome`, routes in the app Worker's config, inherited preview routes, and a wrong host or zone.
+    - **Shared entries.** Files both Workers have:
+      - when they're byte-identical, they may stay unrouted (Myna Fit's `/exercises/`);
+      - when they're different, they must be routed to the site.
+      - The template's `robots.txt` is the second kind: the app's says `Disallow: /`.
+    - It runs on the real files only on one domain, and the checker is unit-tested always.
+  - **`docs/SETUP_HUMAN.md` section 12 "Satu domain"** covers the human steps:
+    - delete the host's old DNS record;
+    - attach the Workers Custom Domain to the app Worker in the dashboard, never in `apps/api/wrangler.jsonc` (with a route there, `wrangler dev` rewrites local requests to the production host);
+    - add the Google OAuth redirect URI;
+    - check in an incognito window.
+- **Checked** with a temporary one-domain config (`fit.example.id`, `anonymousHome` `/mulai/`) on a production build:
+  - `/mulai/` exists with canonical `https://fit.example.id/mulai/`;
+  - the logo links to `/mulai/`;
+  - the sitemap has `/artikel/…` and `/mulai/` but not `/`;
+  - without routes, the checker listed all 14 missing paths and `/robots.txt`;
+  - with them, it passed.
