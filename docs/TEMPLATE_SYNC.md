@@ -17,6 +17,7 @@ GitHub's "create from template" gives the product a fresh history, and sync PRs 
 git fetch template
 git switch -c chore/sync-template-YYYYMMDD origin/main
 node scripts/template-sync.mjs              # applies .template-version..template/main (3-way), updates it
+                                            # exit 2 = conflicts and/or "Apply by hand" paths to finish; exit 1 = nothing applied (D-070)
 pnpm install && pnpm theme && pnpm verify
 gh pr create --fill && gh pr merge --auto --squash
 ```

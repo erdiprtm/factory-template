@@ -1319,3 +1319,35 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - the sitemap has `/artikel/…` and `/mulai/` but not `/`;
   - without routes, the checker listed all 14 missing paths and `/robots.txt`;
   - with them, it passed.
+
+## D-070: `template-sync` never reports success when nothing was applied (2026-10-14)
+
+- **Problem (Myna Fit feedback round 4, item 1).**
+  - The sync `64e9957..2d5f12d` renames `pages/[slug].astro` to `pages/artikel/[slug].astro`, a move Myna Fit had already made (P-027).
+  - `git apply --3way` failed with `does not exist in index`. `git apply` is all or nothing, so none of the 47 files changed.
+  - The script's `catch` only looked for conflicted files. There were none, so it printed "Applied", exited 0 and moved `.template-version`. The next sync would have silently skipped the whole range.
+- **Decision.**
+  - **The patch is built with `--no-renames`.** A template rename is then "delete old + add new":
+    - a product that already moved the file skips only the old path;
+    - the new path, which exists on both sides, becomes an ordinary 3-way conflict.
+  - **Paths git can't place** (`does not exist in index`, `already exists…`, `No such file`) are left out with `--exclude`, then the rest is applied again.
+    - `--exclude` takes a glob, so `[`, `]`, `*`, `?` are escaped. Without that, `[slug].astro` matched nothing: the first replay of Myna Fit's real sync caught it.
+  - **Left-out paths are printed as "Apply by hand".** Each one gets its step: `git show <commit>:<path> > <path>`, or "the template removed it".
+  - **Exit codes.**
+    - `2` when there are conflicts or left-out paths.
+    - `1`, with git's error, when nothing could be applied, or when the apply "succeeded" but staged nothing from a non-empty patch.
+    - Only in that failure case does `.template-version` stay unchanged.
+- **Tests** (`scripts/template-sync.test.mjs`).
+  - A product that already made the template's rename:
+    - the old path is left out and named;
+    - the new path is a conflict;
+    - the other changes apply;
+    - `.template-version` moves.
+  - Nothing applicable: it throws and `.template-version` stays.
+  - The command exits 2 and prints both lists.
+  - The existing conflict test is unchanged.
+  - Replayed on a clone of Myna Fit just before its sync (`e3136a4~1`, `64e9957..2d5f12d`):
+    - 46 files staged;
+    - 8 conflicts listed;
+    - `pages/[slug].astro` named as "the template removed it";
+    - exit 2.
