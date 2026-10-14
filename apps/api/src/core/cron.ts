@@ -39,7 +39,7 @@ export async function runScheduled(env: Bindings, now = new Date()) {
   for (const r of await dueReminders(db, now)) {
     // Mark first: if two cron runs overlap, only one wins the unique key and sends.
     if (!(await markReminderSent(db, r, now))) continue;
-    await emailProvider(env).send(
+    await emailProvider(env, config.legal.contactEmail).send(
       reminderEmail(r.email, { appName: config.name, kind: r.kind, expiresAt: r.expiresAt, renewUrl }),
     );
     sent++;

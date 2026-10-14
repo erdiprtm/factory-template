@@ -8,6 +8,9 @@ Progress log, newest entry on top.
 
 - `domain.anonymousHome` (e.g. `/mulai/`). A page load of `/` without a session cookie on the production domain gets a 302 there, keeping the query string, and so does the app's guard at `/`.
 - Sign-out lands there. Everything else is unchanged, and so are products without the option. Native unchanged.
+## 2026-10-14: Reply-To on every email (D-067), Myna Fit feedback round 3 item 2
+
+- Customers' replies to sign-in, receipt and reminder emails go to `legal.contactEmail`, or to `MAIL_REPLY_TO` when set, not to a sending-only address.
 
 ---
 

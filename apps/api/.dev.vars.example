@@ -17,6 +17,9 @@ GOOGLE_CLIENT_SECRET=
 RESEND_API_KEY=
 # Sender. Without a verified domain use onboarding@resend.dev (delivers only to the Resend account owner).
 MAIL_FROM=Factory Template <onboarding@resend.dev>
+# Optional Reply-To on every email (D-067). Unset = legal.contactEmail in product.config.ts. Set it
+# only when replies should go elsewhere (MAIL_FROM is often a sending-only subdomain with no inbox).
+MAIL_REPLY_TO=
 
 # Duitku sandbox (SETUP_HUMAN.md step 3). Optional locally: without them a fake provider
 # simulates payments (/api/dev/fake-pay). Required on preview and production.
