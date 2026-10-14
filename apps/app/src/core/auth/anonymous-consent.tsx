@@ -4,6 +4,7 @@ import { acceptAnonymousConsents } from "../api";
 import { useI18n } from "../i18n";
 import { ConsentForm } from "./consent-form";
 import type { ConsentType } from "./consent-rules";
+import { consentPlacement } from "./inline-consent";
 import { useMe, useRefreshMe } from "./use-me";
 
 /**
@@ -17,6 +18,8 @@ export function AnonymousConsentGate({ children }: { children: ReactNode }) {
   const me = useMe();
   const refresh = useRefreshMe();
 
+  // Inline placement (D-074): the quiz (and the product's entry screen) ask in the flow instead.
+  if (consentPlacement !== "screen") return <>{children}</>;
   if (me.isPending) return <Loading label={t("common.loading")} />;
   const needed = (me.data?.user ? [] : (me.data?.missingConsents ?? [])) as ConsentType[];
   if (needed.length === 0) return <>{children}</>;

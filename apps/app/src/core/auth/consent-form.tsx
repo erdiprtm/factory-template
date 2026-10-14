@@ -1,14 +1,16 @@
-import { Button, CenteredScreen, Checkbox, ErrorText, Text } from "@factory/ui";
+import { Button, CenteredScreen, ErrorText, Text } from "@factory/ui";
 import { useState } from "react";
 import { View } from "react-native";
 import { slots } from "../../features/slots";
-import { type MessageKey, useI18n } from "../i18n";
+import { useI18n } from "../i18n";
+import { ConsentChecks } from "./consent-checks";
 import { type ConsentType, canAccept } from "./consent-rules";
 
 /**
  * The required-consent form, shared by /consent and the pre-signup gate (D-043). A product's
  * `consentHeader` slot may restyle the title and subtitle only: the checkboxes, their legal text
- * and the accept button (disabled until all are checked) are always core's (UU PDP, D-054).
+ * and the accept button (disabled until all are checked) are always core's (UU PDP, D-054). With
+ * legal.consentStyle "single" it shows one checkbox for every needed document (D-074).
  */
 export function ConsentForm({
   needed,
@@ -48,16 +50,7 @@ export function ConsentForm({
           <Text variant="lead">{subtitle}</Text>
         </View>
       )}
-      <View className="gap-1">
-        {needed.map((c) => (
-          <Checkbox
-            key={c}
-            label={t(`consent.${c}` as MessageKey)}
-            checked={Boolean(checked[c])}
-            onCheckedChange={(v) => setChecked((s) => ({ ...s, [c]: v }))}
-          />
-        ))}
-      </View>
+      <ConsentChecks needed={needed} checked={checked} onChange={setChecked} />
       {failed ? <ErrorText>{t("consent.error")}</ErrorText> : null}
       <Button testID={testID} onPress={submit} disabled={!canAccept(needed, checked)}>
         <Text>{t("consent.continue")}</Text>

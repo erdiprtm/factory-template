@@ -46,6 +46,18 @@ describe("defineProduct", () => {
     );
   });
 
+  it("consent style and placement: today's behaviour by default, the single inline row on request (D-074)", () => {
+    const parsed = defineProduct(base);
+    if (!("consentStyle" in (base.legal as object))) expect(parsed.legal.consentStyle).toBe("separate");
+    if (!("consentPlacement" in (base.legal as object))) expect(parsed.legal.consentPlacement).toBe("screen");
+    const legal = { ...base.legal, consentStyle: "single" as const, consentPlacement: "quiz_last" as const };
+    expect(defineProduct({ ...base, legal }).legal).toMatchObject({
+      consentStyle: "single",
+      consentPlacement: "quiz_last",
+    });
+    expect(() => defineProduct({ ...base, legal: { ...base.legal, consentPlacement: "popup" as never } })).toThrow();
+  });
+
   it("rejects slugs that can't be Worker names", () => {
     expect(() => defineProduct({ ...base, slug: "Bad_Slug" })).toThrow(/slug/);
   });

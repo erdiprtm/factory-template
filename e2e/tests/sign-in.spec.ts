@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import product from "../../product.config";
 import { me, navItem } from "./support";
 
 // Phase 3 acceptance: magic-link sign-in end to end, with the dev mail capture.
@@ -23,11 +24,15 @@ test("magic link sign-in → consent → home → sign out", async ({ page, requ
   await expect(page).toHaveURL(/\/consent$/);
   const continueButton = page.getByRole("button", { name: "Lanjut" });
   await expect(continueButton).toBeDisabled();
-  await page.getByLabel("Saya menyetujui Syarat & Ketentuan").click();
-  await page.getByLabel("Saya menyetujui Kebijakan Privasi").click();
-  // Products with legal.sensitiveDataConsent (health data) ask a third consent.
-  const sensitive = page.getByLabel("Saya setuju data kesehatan/sensitif saya diproses untuk layanan ini");
-  if (await sensitive.isVisible()) await sensitive.click();
+  // One box per document, or one box for all (legal.consentStyle "single", D-074); a third with
+  // legal.sensitiveDataConsent. Never pre-checked, and accept stays off until every box is ticked.
+  const boxes = await page.getByRole("checkbox").all();
+  expect(boxes.length).toBe(product.legal.consentStyle === "single" ? 1 : product.legal.sensitiveDataConsent ? 3 : 2);
+  for (const box of boxes) {
+    await expect(box).toHaveAttribute("aria-checked", "false");
+    await expect(continueButton).toBeDisabled();
+    await box.click();
+  }
   await continueButton.click();
 
   await expect(page).toHaveURL(/\/$/);

@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { config } from "@factory/config/product";
 import {
   ANONYMOUS_CONSENT_DAYS,
+  CONSENT_VERSIONS,
   missingConsents,
   purgeAnonymousConsents,
   recordConsents,
@@ -9,6 +10,7 @@ import {
 } from "@factory/core/consents";
 import { anonKey } from "@factory/core/quota";
 import { schema } from "@factory/db";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
 import { ANON_CONSENTS, BASE, CORE_ANON_CONSENT, call, signIn } from "./helpers";
@@ -34,6 +36,17 @@ describe("consent before signup", () => {
     if (required.length > 1) expect((await consent(anonId, required.slice(1))).status).toBe(400);
     expect((await consent(anonId, required)).status).toBe(200);
     expect(await missingConsents(db, anonKey(anonId), required)).toEqual([]);
+  });
+
+  it("one tick (legal.consentStyle single, D-074) still records one row per document at its version", async () => {
+    const anonId = anon();
+    expect((await consent(anonId, required)).status).toBe(200);
+    const rows = await db
+      .select()
+      .from(schema.consents)
+      .where(eq(schema.consents.userId, anonKey(anonId)));
+    expect(rows.map((r) => [r.type, r.version]).sort()).toEqual(required.map((t) => [t, CONSENT_VERSIONS[t]]).sort());
+    expect(rows.every((r) => r.revokedAt === null)).toBe(true);
   });
 
   it("reports what a visitor still has to accept in /me", async () => {

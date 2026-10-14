@@ -5,13 +5,15 @@ import { me, signIn } from "./support";
 // "Pay for proof" products (D-042/D-043) ask for consent before the quiz and lead to their public
 // entry screen instead of sign-in.
 const anonymousEntry = product.funnel.anonymousFreeUses > 0 ? product.funnel.anonymousEntry : null;
+// D-074: or one row inside the quiz (first or last question) instead of a screen before it.
+const inlineConsent = anonymousEntry !== null && product.legal.consentPlacement !== "screen";
 
 // Sell engine Module 4 (D-036). Product-independent: answers whatever quiz the product defines
 // (first option / lowest number), so it holds in every product repo.
 test("quiz: lander CTA → steps with back → summary → sign-in → answers attached", async ({ page, request }) => {
   await page.goto("/quiz");
   if (page.url().endsWith("/sign-in")) return test.skip(true, "this product has no quiz");
-  if (anonymousEntry) {
+  if (anonymousEntry && !inlineConsent) {
     await expect(page.getByTestId("anon-consent-continue")).toBeVisible();
     for (const box of await page.getByRole("checkbox").all()) await box.click();
     await page.getByTestId("anon-consent-continue").click();
@@ -19,6 +21,21 @@ test("quiz: lander CTA → steps with back → summary → sign-in → answers a
   const summary = page.getByRole("heading", { name: "Rencana kamu siap" });
   const next = page.getByTestId("quiz-next");
   const answerStep = async () => {
+    // The inline consent row: its step can't be answered before the box(es) are ticked.
+    const row = page.getByTestId("inline-consent");
+    if (inlineConsent) {
+      // The row's step: the first question, or the last ("Langkah N dari N").
+      const [n, total] = ((await page.getByText(/Langkah \d+ dari \d+/).textContent()) ?? "").match(/\d+/g) ?? [];
+      const here = product.legal.consentPlacement === "quiz_first" ? n === "1" : n === total;
+      if (here) await expect(row).toBeVisible();
+    }
+    if (inlineConsent && (await row.isVisible())) {
+      for (const box of await row.getByRole("checkbox").all()) {
+        await expect(box).toHaveAttribute("aria-checked", "false");
+        await box.click();
+        await expect(box).toHaveAttribute("aria-checked", "true");
+      }
+    }
     const number = page.getByTestId("quiz-number");
     if (await number.isVisible()) {
       await number.fill("1");

@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: One consent checkbox, inside the quiz (D-074), Myna Fit feedback round 5 item 1
+
+- `legal.consentStyle: "single"` gives one checkbox with document links; one tick records every document at its version.
+- `legal.consentPlacement: "quiz_first" | "quiz_last"` puts it under that question instead of a screen before the quiz.
+- The server gate is unchanged. The legal team approved the single checkbox (Erdi, 2026-10-15).
+
+---
+
 ## 2026-10-14: Secret steps that work from the Run button (D-072), Myna Fit feedback round 4 item 3
 
 - SETUP_HUMAN 2a and every secret step: one `pbpaste | pnpm --filter @factory/api exec wrangler versions secret put …` command per block, `--env=""` for production. The same rule is in CLAUDE.md for agents.

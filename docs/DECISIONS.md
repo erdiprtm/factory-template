@@ -1406,3 +1406,37 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - Real local builds without `SITE_URL` / `PUBLIC_APP_URL`:
     - the template gives canonical `http://localhost:4321/harga/`;
     - with the slug temporarily set to `myna-fit`, it gives `https://myna-fit-site.erdiprtm.workers.dev/harga/` and the app link `https://myna-fit.erdiprtm.workers.dev`.
+
+## D-074: One consent checkbox, inside the quiz (`legal.consentStyle`, `legal.consentPlacement`) (2026-10-15)
+
+- **Problem (Myna Fit feedback round 5, item 1; Erdi as product owner).** The pre-signup consent was a screen of its own, before the quiz and `/scan`, with three checkboxes (terms, privacy, health data). It felt heavy for a visitor who only wants to try the product. Erdi wants one checkbox inside the flow.
+- **Decision.** Two optional config fields. The defaults keep today's behaviour.
+  - **`legal.consentStyle: "separate" | "single"`**, default `"separate"`.
+    - With `"single"`, one checkbox carries one sentence, everywhere consent is asked: `/consent`, the pre-signup screen and the inline row.
+    - With `sensitiveDataConsent`, the sentence names the health data and its purpose. The product words it as `productConsent.single` in `features/messages.ts`; that key exists only for products, so core doesn't override it, and core has a generic default.
+    - Under the box, core always shows links to both documents ("Baca: Syarat & Ketentuan · Kebijakan Privasi"). They point to the site's `/syarat/` and `/privasi/`: the domain, else the product's `factory.json` site URL (D-073). On web they open a new tab, so the quiz stays where it is.
+  - **`legal.consentPlacement: "screen" | "quiz_first" | "quiz_last"`**, default `"screen"`. It applies to "pay for proof" products (D-043), which are the ones with a pre-signup consent.
+    - With `quiz_*`, the quiz runner shows core's consent row under the first or last question.
+    - That step can't be answered until the box is ticked (options and "Lanjut" are locked). Answering it first records the consents (`POST /api/anonymous-consents`), and only then moves on.
+    - The step also stays locked while `/api/me` is still loading. E2E found this: a fast tap could otherwise answer before anyone knew whether consent was needed.
+    - The row sits under a product's `quizStep` slot too, so slots can't skip it (D-054).
+  - **Product entry screens without a quiz** (`/scan`). `useInlineConsent()` gives the row to put above the main action, plus `accept()` to await before running it. With an inline placement, `AnonymousConsentGate` passes children through.
+- **What stays exactly as strict.**
+  - One tick still records each document at its own version (`terms`, `privacy`, `sensitive_data`), so audit, re-consent on a new version, export and withdrawal all work as before.
+  - `canAccept` is unchanged. The server still refuses partial grants (400) and answers `403 consent_required` to anything that processes a visitor's data without them.
+  - Nothing is pre-checked.
+  - With `quiz_last`, the answers stay on the device (`quiz/storage`) until the box is ticked.
+- **Legal.** UU 27/2022 needs explicit consent for health data (specific personal data), asked distinguishably from other matters. That's why the single sentence must name the health data and the purpose in plain words, and why core keeps the document links next to it. **Erdi confirmed on 2026-10-15 that the legal team reviewed the single-checkbox approach and it's a go**; they'll report back if anything changes. Each product's own sentence (`productConsent.single`) is still product copy, so keep it within what was reviewed.
+- **Tests.**
+  - App render (`test/single-consent.test.tsx`):
+    - one unticked checkbox, whose sentence names health data, with links to `/syarat/` and `/privasi/`;
+    - one tick sets all three types;
+    - in the quiz, an unticked tap does nothing, and tick plus tap records all three, then advances;
+    - the step is locked while `/api/me` loads;
+    - there's no row without `consentAt`.
+  - API: one grant writes one row per document at its version, with none revoked. The existing tests cover partial grants (400) and the 403 before consent.
+  - Config: defaults, the new values, and a bad value rejected.
+  - E2E is config-agnostic now:
+    - `sign-in.spec` checks the boxes whatever the style (1, 2 or 3; never pre-checked; accept stays off until all are ticked);
+    - `quiz.spec` ticks the inline row on its step.
+  - With a temporary config (pay for proof, `sensitiveDataConsent`, `single`, `quiz_first`), the full E2E passed, and `quiz.spec` passed 6 times in a row. The config was reverted.
