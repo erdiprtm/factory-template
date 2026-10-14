@@ -170,7 +170,7 @@ app.post("/api/webhooks/:provider", rateLimit("WEBHOOK_LIMITER", clientIp), asyn
         expiresAt: outcome.entitlement.expiresAt,
       });
       // A receipt failure must not make the provider retry an already-granted payment.
-      await emailProvider(c.env)
+      await emailProvider(c.env, config.legal.contactEmail)
         .send(receipt)
         .catch((err: unknown) => console.error("receipt email failed", err instanceof Error ? err.message : err));
     }

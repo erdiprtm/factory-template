@@ -20,6 +20,8 @@ export type AuthEnv = {
   GOOGLE_CLIENT_SECRET?: string;
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
+  /** Reply-To on every email (D-067). Unset = legal.contactEmail from product.config.ts. */
+  MAIL_REPLY_TO?: string;
 };
 
 // Only for local dev and tests. Deployed Workers must have the BETTER_AUTH_SECRET secret.
@@ -79,7 +81,9 @@ function buildAuth(env: AuthEnv) {
         expiresIn: 15 * 60,
         storeToken: "hashed",
         sendMagicLink: async ({ email, url }) => {
-          await emailProvider(env).send(magicLinkEmail(email, url, product.name, product.locale.default));
+          await emailProvider(env, product.legal.contactEmail).send(
+            magicLinkEmail(email, url, product.name, product.locale.default),
+          );
         },
       }),
     ],

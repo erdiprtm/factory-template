@@ -1226,6 +1226,29 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - `--body` / env-var passing to gh: both expose the value in the process list.
 - **Tests.** `scripts/setup-secrets.test.mjs`: env parsing (quotes, escapes, comments, `export`, bad lines), allowlist validation and filtering, flags, preflight failures with fixes, dry run, `--only`, missing and failed names, redaction, and a CLI run with a fake `gh` on `PATH` that proves values arrive on stdin and never in argv or output. Checked by mutation: passing the value with `--body` fails three tests.
 
+## D-067: Every email has a Reply-To, by default the product's contact address (2026-10-14)
+
+- **Problem (Myna Fit feedback round 3, item 2).**
+  - Resend only sends from a verified domain. Myna Fit verified the subdomain `hello.mynahealth.id`, so `MAIL_FROM` is `halo@hello.mynahealth.id`, an address with no inbox.
+  - Customer service is `halo@mynahealth.id` (Google Workspace), and core emails had no Reply-To. A customer's reply to a sign-in or payment email was lost.
+  - An AI support agent for `halo@` is next for Myna Fit, and replies must reach it.
+- **Decision.**
+  - `emailProvider(env, defaultReplyTo)` puts a Reply-To on every email it sends:
+    - `MAIL_REPLY_TO` (optional Worker secret or var), else
+    - the default the API passes: `legal.contactEmail` from `product.config.ts`, which the legal pages already name as the contact.
+    - An email that sets its own `replyTo` keeps it.
+  - It covers every core email: the magic link, receipts, and renewal and expiry reminders. Those are all the emails core sends today.
+  - Resend's field is `reply_to` (`POST /emails`, `string | string[]`; docs read 2026-10-14). It is left out of the body when there's no Reply-To. The dev log prints `reply-to=…`.
+- **Why a default rather than "unset = no header".** Every product has a real `contactEmail` before launch (`/launch-check`), and it's where people are told to write. Without the default, each product would have to remember one more secret to not lose replies.
+- **Tests.**
+  - Core:
+    - Resend's body has `reply_to` when set and no such field when unset;
+    - `MAIL_REPLY_TO` wins over the default, and an empty value falls back to it;
+    - with neither there's no Reply-To;
+    - an email's own Reply-To is kept;
+    - the dev log shows it.
+  - API: the magic link, the receipt and the renewal reminder are captured with `replyTo` = `legal.contactEmail`.
+
 ## D-068: On one domain, visitors without a session see the landing page at "/" (`domain.anonymousHome`) (2026-10-14)
 
 - **Problem (Myna Fit feedback round 3, item 1).**
