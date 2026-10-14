@@ -1425,3 +1425,20 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - `examples/planted-violations.md` (emoji icons, two filled buttons in one viewport, a looping decorative animation, a hero CTA label that differs from the final CTA): all four flagged, with lines. `examples/clean-page.md` passes.
   - The template's own pages, findings recorded in STATUS (2026-10-15) and left for follow-ups: two filled buttons in the landing's first viewport (header "Masuk" and hero CTA); header links and "Masuk" under 44 px; three equal feature columns on the landing; the landing has no final CTA, no "how it works", and its hero CTA isn't full width on mobile; the dark `destructive` token gives 3.8:1 with white text; the example feature screen has no loading state and throws on network errors. The lander template passes.
 
+## D-076: `brand.darkMode` switch for light-only products (2026-10-15)
+
+- **Problem (Myna Fit feedback round 5, item 3).** Myna Fit is light only. It set `brand.tokens.colors.dark` to the light palette, but core's Akun page still offered "Tampilan: Terang / Gelap / Ikuti perangkat", and the site's `Base.astro` still loaded `/theme.js`.
+- **Decision.** Optional `brand.darkMode: boolean` in `packages/config`, default `true` (today's behaviour, byte-for-byte: the generated CSS and site HTML don't change). With `false`:
+  - `colors.dark` is optional. The parsed config fills it with the light palette, so code that picks a palette by scheme (bottom nav icons) still gets one. With `true` it's still required ("colors.dark is required unless brand.darkMode is false").
+  - `scripts/gen-theme.mjs` writes no `.dark:root` block in `apps/app/global.css` or the site's `tokens.css`.
+  - `apps/app/src/core/theme.ts` (`darkModeEnabled`) always resolves to light: a stored "dark"/"system" is ignored, `set` is a no-op, and no device-change listener is added. Akun hides the Tampilan row.
+  - The app web root layout adds `<meta name="color-scheme" content="light">` through `expo-router/head` (a no-op on native).
+  - The site (`apps/site/src/lib/color-scheme.mjs`, used by `Base.astro`) loads no `/theme.js` and adds the same meta.
+  - With `true`, no color-scheme meta is added (unsure that `light dark` would change nothing visible, so nothing).
+- **Tests.**
+  - `packages/config`: `false` accepted without `colors.dark` (dark mirrors light); `true` and unset still require it.
+  - `scripts/gen-theme.test.mjs`: no `.dark` block when false (inline snapshot); the block stays by default.
+  - `apps/app/test/account-theme-render.test.tsx`: Akun preferences render without Tampilan when false (with a stored "dark", the scheme applied is light); with true, all three choices show and a stored "dark" applies.
+  - `apps/site/test/color-scheme.test.ts` (the helper) and `build.test.ts` (the built HTML follows `brand.darkMode`).
+- **Checked by hand.** With `darkMode: false` temporarily in `product.config.ts`, `pnpm theme` wrote no `.dark` in either CSS file, and a real `astro build` produced 8 pages, all without `theme.js` and all with `<meta name="color-scheme" content="light">`; the site's tests passed on that build. The config was then reverted and `pnpm theme` re-run (no diff in the CSS). The app web's meta was not checked in a browser, only in code and tests.
+- **Products.** Myna Fit: set `brand.darkMode: false`, and `colors.dark` can go. `/theme.js` stays in `apps/site/public` (unused when false).

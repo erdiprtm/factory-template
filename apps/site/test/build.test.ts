@@ -8,6 +8,12 @@ const page = (path: string) => readFileSync(new URL(path, dist), "utf8");
 const idr = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 
 describe("built site", () => {
+  it("dark mode follows brand.darkMode: /theme.js with it, color-scheme light without (D-076)", () => {
+    const html = page("index.html");
+    expect(html.includes('src="/theme.js"')).toBe(product.brand.darkMode);
+    expect(html.includes('<meta name="color-scheme" content="light"')).toBe(!product.brand.darkMode);
+  });
+
   it("prices come from product.config.ts (no code edits needed)", () => {
     const html = page("harga/index.html");
     for (const plan of product.plans) {

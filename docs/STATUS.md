@@ -4,6 +4,9 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: `brand.darkMode` for light-only products (D-076), Myna Fit feedback round 5 item 3
+
+- `darkMode: false`: no `colors.dark` needed, no `.dark` CSS, no Tampilan row in Akun, app never dark, site loads no `/theme.js`, and app and site say `color-scheme: light`. Default `true` changes nothing.
 ## 2026-10-15: `/design-review` skill (D-075), Myna Fit feedback round 5 item 2
 
 - `.claude/skills/design-review/`: read the product's design system first, then a pass/fail rubric (AI defaults, colour, motion, touch, states, words, landing pages) with `file:line`; fix critical failures before the PR. Credits in its `README.md`. `/build-from-spec` and `/add-feature` end with it.

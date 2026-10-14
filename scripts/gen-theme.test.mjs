@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { fontKey, hexToHslChannels, renderAppFonts, renderFontFaces, renderTheme, sizeVars } from "./gen-theme.mjs";
+import {
+  fontKey,
+  hexToHslChannels,
+  renderAppFonts,
+  renderFontFaces,
+  renderTheme,
+  renderTokens,
+  sizeVars,
+} from "./gen-theme.mjs";
 
 describe("gen-theme", () => {
   it("converts hex to HSL channels", () => {
@@ -16,6 +24,32 @@ describe("gen-theme", () => {
     });
     expect(css).toContain(":root {\n    --primary-foreground: 0 0% 100%;\n    --radius: 0.75rem;");
     expect(css).toContain(".dark:root {\n    --primary-foreground: 0 0% 0%;");
+  });
+
+  it("light-only products (darkMode false) get no .dark block (D-076)", () => {
+    const tokens = { colors: { light: { primaryForeground: "#ffffff" } }, radius: "0.75rem" };
+    const css = renderTheme(tokens, false);
+    expect(css).not.toContain(".dark");
+    expect(css).toContain(":root {\n    --primary-foreground: 0 0% 100%;");
+    expect(renderTokens(tokens, false)).toMatchInlineSnapshot(`
+      "@layer base {
+        :root {
+          --primary-foreground: 0 0% 100%;
+          --radius: 0.75rem;
+          --radius-card: 0.75rem;
+          --radius-button: 0.75rem;
+          --radius-input: 0.75rem;
+          --radius-chip: 9999px;
+          --radius-sheet: 0.75rem;
+          --control-height: 3rem;
+        }
+      }
+      "
+    `);
+    // Default (true): the dark block stays, as before.
+    expect(renderTokens({ ...tokens, colors: { ...tokens.colors, dark: { primaryForeground: "#000000" } } })).toContain(
+      ".dark:root {",
+    );
   });
 
   it("writes per-element sizes; the defaults reproduce today's look (D-052)", () => {
