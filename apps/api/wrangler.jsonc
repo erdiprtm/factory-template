@@ -15,7 +15,8 @@
     "directory": "../app/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api", "/api/*"]
+    // "/" only for the one-domain landing redirect (D-068); everything else is assets first.
+    "run_worker_first": ["/", "/api", "/api/*"]
   },
   // Non-inheritable keys below must be repeated in env.preview.
   "vars": {

@@ -11,7 +11,8 @@
   },
   "domain": {
     "app": null,
-    "site": null
+    "site": null,
+    "anonymousHome": null
   },
   "brand": {
     "tokens": {
