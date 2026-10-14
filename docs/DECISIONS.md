@@ -1367,6 +1367,22 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - With 10 busy-loop processes on an 8-core Mac (load 19 to 22), the full E2E ran three times in a row: green every time.
   - The old config was also green in one run at load 19. The template has 10 lighter specs than Myna Fit's 14, so the failure didn't reproduce here. The change follows Myna Fit's measurement.
 
+## D-072: Human secret steps are one pasteable command each (2026-10-14)
+
+- **Problem (Myna Fit feedback round 4, item 3).** Erdi sets secrets by pressing **Run** on code blocks in the Claude desktop app. Three things broke:
+  - **Folder.** Each block runs from the repo root, so a `cd apps/api` in an earlier block doesn't carry over, and `pnpm exec wrangler` said "Command wrangler not found".
+  - **Prompt.** The interactive "Enter a secret value" prompt doesn't work there.
+  - **npx.** `npx wrangler …` inside a product repo fails with `EBADDEVENGINES`, because of the root `devEngines.packageManager` (pnpm).
+- **Decision.** Every human secret step is one command per block, in this form:
+  `pbpaste | pnpm --filter @factory/api exec wrangler versions secret put NAME --env preview`
+  - `--env=""` targets production and silences the "Multiple environments" warning.
+  - Non-secret values use `echo '…' |`.
+  - `docs/SETUP_HUMAN.md` gains section **2a**: how it works, that nothing is deployed, never run `wrangler versions deploy`, and that the shared GitHub secrets go through `pnpm setup-secrets` instead (D-066).
+  - Every secret step in SETUP_HUMAN uses the form, each one spelled out for preview and production. That covers Duitku, DOKU, OpenPanel, Resend, `MAIL_FROM`, Meta and OpenAI, and the `launch-check` and OPERATIONS commands follow it.
+  - `CLAUDE.md` makes it the rule for agents' human-step instructions.
+  - The `npx wrangler login` step says to run it outside the repo, or to use the pnpm form inside.
+- **Checked.** wrangler 4.141.0's `versions secret put` reads the value from stdin when stdin isn't a TTY, and trims trailing whitespace (source, `versionsSecretPutCommand`). Cloudflare's command docs mention piping only for `secret put`. Myna Fit used this form for `RESEND_API_KEY` (preview and production) and `MAIL_FROM`.
+
 ## D-073: The site's code names no hosts; local builds use the product's URLs from factory.json (2026-10-14)
 
 - **Problem (Myna Fit feedback round 4, item 4).**

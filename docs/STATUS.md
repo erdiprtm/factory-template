@@ -4,6 +4,9 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-14: Secret steps that work from the Run button (D-072), Myna Fit feedback round 4 item 3
+
+- SETUP_HUMAN 2a and every secret step: one `pbpaste | pnpm --filter @factory/api exec wrangler versions secret put …` command per block, `--env=""` for production. The same rule is in CLAUDE.md for agents.
 ## 2026-10-14: The site's local URLs come from the product's factory.json entry (D-073), Myna Fit feedback round 4 item 4
 
 - No hostnames in template-owned site code, so syncs can't bring the template's workers.dev URLs back. `/new-product` writes the product's own registry entry into the new repo.
