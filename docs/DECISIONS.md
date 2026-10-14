@@ -1476,3 +1476,30 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - `apps/site/test/color-scheme.test.ts` (the helper) and `build.test.ts` (the built HTML follows `brand.darkMode`).
 - **Checked by hand.** With `darkMode: false` temporarily in `product.config.ts`, `pnpm theme` wrote no `.dark` in either CSS file, and a real `astro build` produced 8 pages, all without `theme.js` and all with `<meta name="color-scheme" content="light">`; the site's tests passed on that build. The config was then reverted and `pnpm theme` re-run (no diff in the CSS). The app web's meta was not checked in a browser, only in code and tests.
 - **Products.** Myna Fit: set `brand.darkMode: false`, and `colors.dark` can go. `/theme.js` stays in `apps/site/public` (unused when false).
+
+## D-077: The template's landing passes its own /design-review (2026-10-15)
+
+- **Problem.** D-075's first run of `/design-review` on the template found:
+  - two filled buttons in the landing's first viewport (header "Masuk" plus the hero CTA);
+  - header links about 36 px tall, and the logo link 28 px;
+  - three identical feature columns;
+  - no "how it works" section and no closing CTA;
+  - a hero CTA that isn't full width on phones;
+  - dark `destructive` `#ef4444` with white text at 3.8:1, under WCAG's 4.5:1;
+  - an example screen with no loading state, where a network error threw.
+- **Decision.**
+  - **Header** (`Base.astro`): "Masuk" is outlined, so each page's own CTA is the only filled button. Every header link has a 44 px target (`min-h-11`).
+  - **Landing structure** (`index.astro`):
+    1. hero with one primary CTA (full width and 48 px on phones), with "Lihat harga" as a text link;
+    2. one problem in the reader's words, next to at most three mechanism points as a list, not cards;
+    3. "Cara kerjanya" in three numbered steps;
+    4. pricing;
+    5. FAQ;
+    6. a close that answers the last doubt, with the **same CTA label** as the hero (one `cta` constant).
+    - There's no proof strip: the template has no true proof, and products add one only once they do.
+    - The copy stays product-owned; the comment at the top gives the order.
+  - **Dark `destructiveForeground`** is `#0b1120`, which gives 4.9:1 on `#ef4444`. The red stays light enough for error text on the dark background.
+  - **Example screen:** the button shows "Memuat…" and is disabled while running, and a failed request shows the error text instead of throwing.
+- **Tests.**
+  - `apps/site/test/build.test.ts`: the closing CTA (`data-cta="close"`) has the hero's label (`data-cta="hero"`), skipped when a product drops the markers; the header has no filled button, and has 44 px targets.
+  - Checked in Chromium at phone width (Pixel 7) and at 1280 px: header targets are 44 px; there's one filled button above the fold; the order is as above.
