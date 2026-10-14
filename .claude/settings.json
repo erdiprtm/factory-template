@@ -80,7 +80,8 @@
       "Read(!.env.example)",
       "Read(~/Library/Preferences/.wrangler/**)",
       "Read(~/.wrangler/**)",
-      "Read(~/.config/gh/hosts.yml)"
+      "Read(~/.config/gh/hosts.yml)",
+      "Read(~/.config/factory/**)"
     ]
   },
   "hooks": {
