@@ -1225,3 +1225,40 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - Setting the secrets inside `new-product.mjs`: the playbook step keeps creating the repo and handing over secrets as separate, approvable steps, and the same command serves rotation (`--repo … --only …`).
   - `--body` / env-var passing to gh: both expose the value in the process list.
 - **Tests.** `scripts/setup-secrets.test.mjs`: env parsing (quotes, escapes, comments, `export`, bad lines), allowlist validation and filtering, flags, preflight failures with fixes, dry run, `--only`, missing and failed names, redaction, and a CLI run with a fake `gh` on `PATH` that proves values arrive on stdin and never in argv or output. Checked by mutation: passing the value with `--body` fails three tests.
+
+## D-068: On one domain, visitors without a session see the landing page at "/" (`domain.anonymousHome`) (2026-10-14)
+
+- **Problem (Myna Fit feedback round 3, item 1).**
+  - With app and site on one domain (Myna Fit P-027, Myna Flow P-019), `/` belongs to the app Worker, so a returning customer lands in the app, signed in.
+  - But core's guard sent everyone without a session to `/sign-in`. A stranger who typed `fit.mynahealth.id` (from word of mouth or a bio link) got a login form instead of the pitch.
+  - Products couldn't fix it:
+    - routing `/` to the site breaks the app's home;
+    - the landing can't see Better Auth's HttpOnly cookie;
+    - the guard is core.
+- **Decision. `domain.anonymousHome`** in `product.config.ts`: a site path such as `/mulai/`. Unset (`null`) = today's behaviour.
+  - **Schema.** The value must be a path with a trailing slash, not `/`, not under `/api/`, `/_expo/` or `/assets/`. It's only allowed with one domain (`domain.app` set and `domain.site` equal to it).
+  - **Server** (`apps/api/src/core/anonymous-home.ts`). `wrangler.jsonc` `run_worker_first` gains `"/"`, the root only; everything else stays assets-first.
+    - A `GET`/`HEAD` of `/` on the production host `domain.app`, with `Accept: text/html` and **no Better Auth session cookie**, answers `302` to `anonymousHome` plus the original query string, so `utm_*` and `fbclid` survive. It also sends `Cache-Control: no-store` and `Vary: Cookie`.
+    - The cookie check is presence only: `better-auth.session_token` or `__Secure-…`, with no DB call. An expired cookie gets the app, which shows sign-in as before.
+    - It's 302, never 301: the answer depends on state, and browsers cache 301s.
+    - Everything else goes to `ASSETS.fetch` unchanged: other paths, `/api/*`, non-HTML requests, other hosts (workers.dev, previews, local, so smoke tests and E2E keep hitting the app) and products without the option. The app's `_headers` (CSP and the rest) still apply.
+  - **Client** (`core/auth/anonymous-home.web.ts`, the same rule in `anonymous-home-rule.ts`).
+    - When the protected area's guard finds no user at `/` on the production host, it does a full page load to `anonymousHome`, keeping the query string, instead of `<Redirect href="/sign-in">`. The landing is another Worker's path, which the router can't render.
+    - Every other guarded screen still goes to `/sign-in`.
+    - Sign-out lands on `anonymousHome` too.
+    - Native (`anonymous-home.ts`) always keeps sign-in: there's no `/` page load and no site.
+  - **SEO.** Googlebot has no cookie, so `/` is a 302 to the landing. The landing's canonical and sitemap entry are `https://<domain>/mulai/` (site content, D-069).
+- **Tests.**
+  - API (`test/anonymous-home.test.ts`):
+    - `/` without a session cookie gets a 302 that keeps the query string, with `no-store` and `Vary: Cookie`;
+    - other cookies don't count, and `HEAD` is covered;
+    - with a session cookie (both prefixes) it's the app;
+    - `/sign-in`, `/quiz`, `/api/health`, `/mulai/` are unchanged, and so are JSON and `*/*` requests, `POST`, workers.dev and preview hosts, `localhost`, and a product without the option;
+    - the Worker's `/` serves `ASSETS`.
+  - Config: valid and invalid paths, and "needs one domain".
+  - App render test: the guard, signed out, at `/` leaves for `/mulai/` with the query string and never redirects to sign-in. At `/account` it redirects to `/sign-in`.
+  - Checked on a real `wrangler dev` with a temporary `domain.app = fit.localhost`:
+    - 302 `/mulai/?utm_source=ig` without a cookie;
+    - 200 index.html with the CSP from `_headers` with a cookie, on `localhost`, and for `/quiz`;
+    - in Chromium: sign in, then `/` is the app, and sign-out lands on `/mulai/`.
+- **For products on one domain.** Move the landing to the site path (for example `src/pages/mulai/index.astro`), route it to the site Worker, then set `domain.anonymousHome`.

@@ -1,9 +1,10 @@
 import { Loading } from "@factory/ui";
-import { Redirect, Stack, useRouter } from "expo-router";
+import { Redirect, Stack, usePathname, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { View } from "react-native";
 import { identify } from "../../core/analytics";
 import { sendTouch } from "../../core/attribution";
+import { anonymousHome, leaveTo } from "../../core/auth/anonymous-home";
 import { useMe } from "../../core/auth/use-me";
 import { useI18n } from "../../core/i18n";
 import { syncMarketingConsent } from "../../core/marketing";
@@ -17,6 +18,7 @@ export default function ProtectedLayout() {
   const me = useMe();
   const { t } = useI18n();
   const router = useRouter();
+  const pathname = usePathname();
   const placement = useNavPlacement();
   const userId = me.data?.user?.id;
   const ready = Boolean(userId) && me.data?.missingConsents.length === 0;
@@ -35,7 +37,12 @@ export default function ProtectedLayout() {
     if (userId) void sendTouch(userId);
     if (userId) void sendQuiz(); // the protected area renders only after consent
   }, [userId]);
-  if (me.isPending) return <Loading label={t("common.loading")} />;
+  // One domain (D-068): a signed-out visitor at "/" goes to the site's landing page, not sign-in.
+  const landing = !me.isPending && !me.data?.user ? anonymousHome(pathname) : null;
+  useEffect(() => {
+    if (landing) leaveTo(landing, true);
+  }, [landing]);
+  if (me.isPending || landing) return <Loading label={t("common.loading")} />;
   if (!me.data?.user) return <Redirect href="/sign-in" />;
   if (me.data.missingConsents.length > 0) return <Redirect href="/consent" />;
   return (

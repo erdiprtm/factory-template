@@ -37,6 +37,7 @@ import { anonIdOf } from "./core/access";
 import { adminRoutes } from "./core/admin";
 import type { AiEnv } from "./core/ai";
 import { type AnalyticsEnv, serverAnalytics } from "./core/analytics";
+import { anonymousHomeRedirect } from "./core/anonymous-home";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
 import {
@@ -69,10 +70,17 @@ export type Bindings = AuthEnv &
     CF_VERSION_METADATA: { id: string; tag: string; timestamp: string };
     /** R2 bucket for users' files (D-049): `<slug>-files`, `<slug>-files-preview` on preview. */
     FILES?: FileBucket;
+    /** The app's web export (wrangler.jsonc assets). The Worker runs first only for /api and "/". */
+    ASSETS: { fetch(req: Request): Promise<Response> };
   };
 
 export const app = new Hono<{ Bindings: Bindings; Variables: SessionVariables }>();
 const db = (env: Bindings) => drizzle(env.DB, { schema });
+
+// "/" runs the Worker first (wrangler.jsonc run_worker_first) only for this: on one domain, a
+// visitor without a session goes to the landing page instead of sign-in (D-068). Otherwise, and
+// in every product without domain.anonymousHome, it's the app's index.html as before.
+app.get("/", (c) => anonymousHomeRedirect(c.req.raw, config.domain) ?? c.env.ASSETS.fetch(c.req.raw));
 
 /** Work that must not delay the response (analytics). Tests have no execution context: just finish it. */
 async function background(c: Context, work: Promise<unknown>): Promise<void> {

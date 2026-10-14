@@ -60,7 +60,24 @@ export const productSchema = z.object({
       path: ["default"],
     }),
   // null until the product has its own domain (it runs on workers.dev until then)
-  domain: z.object({ app: hostname.nullable(), site: hostname.nullable() }),
+  domain: z
+    .object({
+      app: hostname.nullable(),
+      site: hostname.nullable(),
+      /**
+       * One domain only (D-068): the site path a visitor without a session sees at "/" instead of
+       * sign-in, e.g. "/mulai/" (routed to the site Worker). null = sign-in, as before.
+       */
+      anonymousHome: z
+        .string()
+        .regex(/^\/(?!api\/|_expo\/|assets\/)[a-z0-9-]+(\/[a-z0-9-]+)*\/$/, "a site path like /mulai/")
+        .nullable()
+        .default(null),
+    })
+    .refine((d) => d.anonymousHome === null || (d.app !== null && d.site === d.app), {
+      message: "anonymousHome needs one domain: domain.app set and domain.site equal to it",
+      path: ["anonymousHome"],
+    }),
   brand: z.object({
     tokens: z
       .object({

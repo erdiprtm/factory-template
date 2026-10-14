@@ -7,7 +7,9 @@ export default defineProduct({
   name: "Factory Template",
   tagline: "Template untuk membangun produk web dengan cepat.",
   locale: { default: "id", supported: ["id", "en"] },
-  domain: { app: null, site: null },
+  // One domain (app and site on the same host): set anonymousHome to the site path that visitors
+  // without a session see at "/", e.g. "/mulai/" (D-068). null = they get sign-in.
+  domain: { app: null, site: null, anonymousHome: null },
   brand: {
     tokens: {
       colors: {

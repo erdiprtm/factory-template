@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-14: One domain: the landing page at "/" for visitors without a session (D-068), Myna Fit feedback round 3 item 1
+
+- `domain.anonymousHome` (e.g. `/mulai/`). A page load of `/` without a session cookie on the production domain gets a 302 there, keeping the query string, and so does the app's guard at `/`.
+- Sign-out lands there. Everything else is unchanged, and so are products without the option. Native unchanged.
+
+---
+
 ## 2026-10-14: Shared CI secrets with one command (D-066)
 
 - `pnpm setup-secrets` sets the names in `factory.secrets.json` (Cloudflare token and account id) on a repo from `~/.config/factory/.env.shared`, so new product repos need no token pasted. `--dry-run`, `--repo`, `--only`; values never printed.

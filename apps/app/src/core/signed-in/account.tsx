@@ -24,6 +24,7 @@ import { canDownload, downloadJson } from "../account/download";
 import { resetAnalytics, track } from "../analytics";
 import { api } from "../api";
 import { apiBaseUrl } from "../api-base";
+import { anonymousHome, leaveTo } from "../auth/anonymous-home";
 import { authClient } from "../auth/client";
 import { useMe, useRefreshMe } from "../auth/use-me";
 import { formatDate, formatIdr } from "../format";
@@ -92,7 +93,10 @@ export function Account() {
             resetAnalytics();
             setMonitoringUser(null);
             await refreshMe();
-            router.replace("/sign-in");
+            // One domain: back to the landing page (D-068); elsewhere sign-in, as before.
+            const landing = anonymousHome("/");
+            if (landing) leaveTo(landing);
+            else router.replace("/sign-in");
           }}
         >
           <Text>{t("auth.signOut")}</Text>

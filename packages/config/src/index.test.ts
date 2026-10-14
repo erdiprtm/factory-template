@@ -28,6 +28,24 @@ describe("defineProduct", () => {
     ).toThrow(/Invalid product.config.ts/);
   });
 
+  it("anonymousHome: a site path, only on one domain (D-068)", () => {
+    const one = { app: "fit.example.id", site: "fit.example.id" };
+    expect(defineProduct({ ...base, domain: { ...one, anonymousHome: "/mulai/" } }).domain.anonymousHome).toBe(
+      "/mulai/",
+    );
+    expect(defineProduct({ ...base, domain: one }).domain.anonymousHome).toBeNull();
+    for (const bad of ["/", "mulai/", "/mulai", "/api/x/", "/_expo/x/", "https://x.id/mulai/"]) {
+      expect(() => defineProduct({ ...base, domain: { ...one, anonymousHome: bad } }), bad).toThrow(/a site path/);
+    }
+    // Two domains (or none): "/" isn't shared, so there's nothing to redirect.
+    expect(() =>
+      defineProduct({ ...base, domain: { app: "app.example.id", site: "example.id", anonymousHome: "/mulai/" } }),
+    ).toThrow(/needs one domain/);
+    expect(() => defineProduct({ ...base, domain: { app: null, site: null, anonymousHome: "/mulai/" } })).toThrow(
+      /needs one domain/,
+    );
+  });
+
   it("rejects slugs that can't be Worker names", () => {
     expect(() => defineProduct({ ...base, slug: "Bad_Slug" })).toThrow(/slug/);
   });
