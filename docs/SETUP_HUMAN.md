@@ -321,6 +321,7 @@ Email dipakai untuk magic link login, struk pembayaran, dan pengingat perpanjang
    pnpm exec wrangler versions secret put RESEND_API_KEY
    ```
    Perintah ini **tidak men-deploy apa pun**; secret ikut aktif di deploy CI berikutnya. Kalau wrangler menyarankan `wrangler versions deploy`, **jangan** jalankan (deploy hanya lewat CI).
+6. **Balasan pelanggan (Reply-To).** Kalau pelanggan membalas email login atau struk, balasannya otomatis masuk ke `legal.contactEmail` di `product.config.ts`, bukan ke alamat pengirim. Ini penting kalau pengirimnya subdomain khusus kirim yang tidak punya inbox, misalnya `halo@hello.domainmu.id`. Mau diarahkan ke alamat lain? Isi secret `MAIL_REPLY_TO` dengan cara yang sama seperti di langkah 5 (D-067).
 
 Sumber: <https://resend.com/pricing>, <https://resend.com/docs/knowledge-base/403-error-resend-dev-domain>
 

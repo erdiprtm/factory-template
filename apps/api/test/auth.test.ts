@@ -18,6 +18,8 @@ async function signIn(email: string): Promise<string> {
   expect(res.status).toBe(200);
   const mail = capturedEmails().last(email);
   expect(mail?.subject).toMatch(/Masuk ke/);
+  // D-067: replies reach the product's contact address (no MAIL_REPLY_TO in tests).
+  expect(mail?.replyTo).toBe(config.legal.contactEmail);
   const link = mail?.text.match(/https?:\/\/\S+/)?.[0];
   expect(link).toContain("/api/auth/magic-link/verify?token=");
 
