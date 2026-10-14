@@ -11,6 +11,12 @@ import { defineConfig, devices } from "@playwright/test";
 // Its own local D1 and KV too (D-064): `--persist-to .wrangler/e2e`, emptied and migrated at the
 // start of every run, so counters (anonymous free uses per IP per day, rate limits) never carry
 // over between runs or from `pnpm dev`'s .wrangler/state.
+//
+// Locally, 2 workers and 10 s for expect (D-071): every worker hits the one `wrangler dev` and its
+// one SQLite D1, and on a busy laptop Playwright's default (half the cores) made flows that wait
+// on the server (sign-in mail, billing return) miss 5 s. PW_WORKERS overrides it. CI keeps
+// Playwright's defaults, so a slowdown there still shows.
+const CI = Boolean(process.env.CI);
 const PORT = 8788;
 const BASE = `http://localhost:${PORT}`;
 const STATE = "--persist-to .wrangler/e2e";
@@ -18,8 +24,10 @@ const STATE = "--persist-to .wrangler/e2e";
 export default defineConfig({
   testDir: "./tests",
   timeout: 60_000,
-  retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? "github" : "list",
+  workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : CI ? undefined : 2,
+  expect: { timeout: CI ? 5_000 : 10_000 },
+  retries: CI ? 1 : 0,
+  reporter: CI ? "github" : "list",
   use: {
     baseURL: BASE,
     trace: "retain-on-failure",
