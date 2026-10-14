@@ -51,5 +51,6 @@ If a change is needed in `core/` or `packages/*` (other than `db/src/features`),
 ## 3. Test and ship
 - Add unit/integration tests per feature, and extend `e2e/` for the paid path.
 - `pnpm verify` must be green.
+- Run `/design-review` on every new or changed screen, site page and lander (follow `.claude/skills/design-review/SKILL.md`). Fix the critical failures, re-run `pnpm verify`, and put the remaining ones in the PR body under `## Design review` (D-075).
 - Branch, then `gh pr create --fill`, then `gh pr merge --auto --squash`. Report the preview URL from the PR comment.
 - Update `docs/STATUS.md`, and `docs/DECISIONS.md` for non-trivial choices.
