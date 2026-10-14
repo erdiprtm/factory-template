@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-14: Secret steps that work from the Run button (D-072), Myna Fit feedback round 4 item 3
+
+- SETUP_HUMAN 2a and every secret step: one `pbpaste | pnpm --filter @factory/api exec wrangler versions secret put …` command per block, `--env=""` for production. The same rule is in CLAUDE.md for agents.
+
+---
+
 ## 2026-10-14: One domain as a template pattern (D-069), Myna Fit feedback round 3 item 3
 
 - SEO pages at `/artikel/<slug>/`; FAQ link `/harga/#faq`; production builds use `product.domain`.

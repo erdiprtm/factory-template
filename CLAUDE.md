@@ -66,6 +66,7 @@ pnpm setup-secrets    # shared CI secrets (factory.secrets.json) from the human'
 - Read current official docs before using an external API or library. Don't rely on memory.
 - Write files that *mention* blocked commands (docs, workflows) with the Write/Edit tools. A Bash heredoc containing them is blocked by the guard hook.
 - Ask the human only for what only a human can do: accounts, credentials, payments, legal, product decisions, and deleting cloud resources.
+- When a human step sets a Worker secret, give **one command per `bash` block** that runs from anywhere in the repo, with the value on the clipboard: `pbpaste | pnpm --filter @factory/api exec wrangler versions secret put NAME --env preview` (or `--env=""` for production). Never `cd` + `pnpm exec`, an interactive prompt, or `npx` (D-072, `docs/SETUP_HUMAN.md` 2a).
 
 ## Product guardrails (every product from this factory)
 

@@ -164,6 +164,8 @@ Auto-merge di sini bergantung pada aturan proteksi branch `main` (*ruleset*). Di
 
    Harus menampilkan email dan **Account ID** Cloudflare kamu.
 
+   Jalankan kedua perintah `npx` ini dari Terminal biasa, **di luar** folder repo. Di dalam repo produk, npm menolak `npx` (`EBADDEVENGINES`). Kalau sudah di dalam repo, pakai `pnpm --filter @factory/api exec wrangler login`.
+
 ### Kapan perlu upgrade ke Workers Paid (mulai US$5/bulan)?
 
 Paket gratis cukup untuk membangun template. Upgrade diperlukan kalau salah satu ini terjadi (angka dari dokumentasi resmi Cloudflare, Okt 2026):
@@ -181,6 +183,26 @@ Paket gratis cukup untuk membangun template. Upgrade diperlukan kalau salah satu
 Sumber: <https://developers.cloudflare.com/workers/platform/limits/>, <https://developers.cloudflare.com/d1/platform/limits/>, <https://developers.cloudflare.com/workers/platform/pricing/>
 
 > Token API Cloudflare untuk GitHub Actions **belum** perlu dibuat sekarang. Instruksinya diberikan di checkpoint Phase 1.
+
+---
+
+## 2a. Cara menyimpan secret ke Worker (dipakai di langkah-langkah berikutnya)
+
+Beberapa langkah di bawah meminta kamu menyimpan *secret* (API key, token) ke Worker di Cloudflare. Caranya selalu sama, dan bisa dijalankan lewat tombol **Run** di aplikasi Claude (D-072):
+
+1. **Salin** nilainya (key, token) ke clipboard dari dashboard layanannya.
+2. Tekan **Run** pada perintah yang diberikan. Setiap blok berisi satu perintah, misalnya:
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put NAMA_SECRET --env preview
+   ```
+   - `pbpaste |` mengirim isi clipboard ke perintahnya. Nilainya **tidak tampil** di layar maupun di chat, dan tidak ada prompt yang perlu diisi.
+   - `pnpm --filter @factory/api exec wrangler` jalan dari folder mana pun di dalam repo, jadi tidak perlu `cd apps/api` lebih dulu. Jangan pakai `npx wrangler` di dalam repo produk: npm menolaknya (`EBADDEVENGINES`) karena repo ini memakai pnpm.
+   - `--env preview` = Worker preview. `--env=""` = Worker **produksi**. Tanpa `--env` sama sekali, wrangler menampilkan peringatan "Multiple environments"; peringatan itu tidak berbahaya, tapi `--env=""` lebih jelas.
+3. Perintah ini **tidak men-deploy apa pun**. Secret ikut aktif di rilis CI berikutnya. Kalau wrangler menyarankan `wrangler versions deploy`, **jangan** jalankan: deploy hanya lewat CI.
+
+Nilai yang bukan rahasia (misalnya alamat pengirim email) boleh ditulis langsung: `echo 'Nama <halo@domainmu.id>' | …`.
+
+Secret **GitHub Actions** yang sama untuk semua produk (token Cloudflare) diatur sekaligus dengan `pnpm setup-secrets`, bukan dengan cara ini. Lihat `docs/SECRETS.md`.
 
 ---
 
@@ -205,14 +227,21 @@ Produk menyimpan file pengguna (misalnya thumbnail foto makanan) di R2. R2 harus
    - **API Key** (Merchant Key)
 5. **Callback URL:** sudah dipastikan di Phase 4. Aplikasi mengirim callback URL di setiap transaksi (`https://<alamat-aplikasi>/api/webhooks/duitku`), jadi **tidak perlu diatur di dashboard**.
 6. **Metode pembayaran:** halaman bayar Duitku menampilkan **semua channel yang aktif di proyek**. Aktifkan di dashboard proyek: QRIS, DANA, ShopeePay, OVO, dan Virtual Account.
-7. **Simpan ke Cloudflare** (jalankan di folder `~/ASF/apps/api`; tempel nilainya saat diminta, isinya tidak tampil di layar). Setiap perintah dijalankan dua kali, untuk preview dan produksi:
+7. **Simpan ke Cloudflare** (cara di langkah 2a). Salin **Merchant Code**, lalu Run dua perintah ini (preview, lalu produksi):
    ```bash
-   pnpm exec wrangler versions secret put DUITKU_MERCHANT_CODE --env preview
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put DUITKU_MERCHANT_CODE --env preview
    ```
    ```bash
-   pnpm exec wrangler versions secret put DUITKU_API_KEY --env preview
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put DUITKU_MERCHANT_CODE --env=""
    ```
-   Lalu ulangi kedua perintah **tanpa** `--env preview` untuk produksi. Mode tetap **sandbox** sampai kamu sendiri memutuskan pindah ke produksi.
+   Salin **API Key**, lalu:
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put DUITKU_API_KEY --env preview
+   ```
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put DUITKU_API_KEY --env=""
+   ```
+   Mode tetap **sandbox** sampai kamu sendiri memutuskan pindah ke produksi.
 8. **Cara mensimulasikan bayar di sandbox:** pilih **Virtual Account** di halaman bayar, salin nomor VA-nya, lalu buka <https://sandbox.duitku.com/payment/demo/demosuccesstransaction.aspx> dan masukkan nomor VA tersebut. Untuk QRIS ShopeePay ada aplikasi Shopee *staging* (link di dokumentasi Duitku). DANA/OVO sandbox tidak punya simulator resmi.
 
 Catatan untuk nanti (bukan sekarang): pindah ke produksi butuh verifikasi dokumen. Untuk merchant perorangan: KTP, NPWP, dan rekening bank; untuk badan usaha: dokumen PT.
@@ -233,14 +262,20 @@ Template mendukung DOKU Checkout sebagai penyedia kedua. Langkah ini **hanya** p
 
    Catatan: satu akun sandbox hanya punya satu Notification URL per channel, jadi notifikasi sandbox masuk ke **preview** Worker yang tetap (bukan URL `pr-<n>`).
 4. **Metode pembayaran:** halaman DOKU Checkout menampilkan semua channel yang aktif di akun. Aktifkan yang dipakai produk (QRIS, e-wallet, Virtual Account).
-5. **Simpan ke Cloudflare** (di folder `~/ASF/apps/api`; tempel nilainya saat diminta):
+5. **Simpan ke Cloudflare** (cara di langkah 2a). Salin **Client ID**, lalu:
    ```bash
-   pnpm exec wrangler versions secret put DOKU_CLIENT_ID --env preview
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put DOKU_CLIENT_ID --env preview
    ```
    ```bash
-   pnpm exec wrangler versions secret put DOKU_SECRET_KEY --env preview
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put DOKU_CLIENT_ID --env=""
    ```
-   Lalu ulangi **tanpa** `--env preview` untuk produksi. Mode tetap **sandbox** (`DOKU_MODE`) sampai kamu sendiri memutuskan pindah.
+   Salin **Secret Key**, lalu:
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put DOKU_SECRET_KEY --env preview
+   ```
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put DOKU_SECRET_KEY --env=""
+   ``` Mode tetap **sandbox** (`DOKU_MODE`) sampai kamu sendiri memutuskan pindah.
 6. **Simulasi bayar:** pilih Virtual Account di halaman DOKU, lalu ikuti petunjuk simulasi pembayaran sandbox di dokumentasi DOKU (agen belum memverifikasi letak menunya; kabari kalau tampilannya beda).
 
 Sumber: <https://developers.doku.com/accept-payments/doku-checkout/integration-guide/backend-integration> dan <https://developers.doku.com/get-started-with-doku-api/notification/setup-notification-url>
@@ -276,9 +311,9 @@ Sumber: <https://support.google.com/cloud/answer/15549257>, <https://www.better-
 1. Daftar: <https://dashboard.openpanel.dev>
 2. Ikuti onboarding: buat **organization**, lalu satu **project** per produk (untuk template: `factory-template`).
 3. Di pengaturan project, buat **client** untuk web, salin **Client ID**, dan masukkan domain yang diizinkan (URL `workers.dev` dulu, domain asli nanti).
-4. **Client Secret** (dibuat bersama client). Jangan kirim ke chat. Simpan ke Worker **produksi** saja, untuk event dari server (pembayaran, pengingat). Jalankan di `~/ASF/apps/api`, lalu tempel saat diminta:
+4. **Client Secret** (dibuat bersama client). Jangan kirim ke chat. Simpan ke Worker **produksi** saja, untuk event dari server (pembayaran, pengingat). Salin, lalu Run (cara di langkah 2a):
    ```bash
-   pnpm exec wrangler versions secret put OPENPANEL_CLIENT_SECRET --env=""
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put OPENPANEL_CLIENT_SECRET --env=""
    ```
 
 **Soal biaya (Okt 2026):** OpenPanel Cloud **tidak punya paket gratis permanen**. Ada trial 30 hari, lalu paket termurah ±US$2,50/bulan (5.000 event). Alternatifnya self-host (gratis, tapi perlu server sendiri). Saran: tunda daftar sampai Phase 6 agar trial tidak habis sebelum dipakai.
@@ -313,15 +348,18 @@ Email dipakai untuk magic link login, struk pembayaran, dan pengingat perpanjang
    - **Tanpa domain sendiri**, Resend hanya bisa mengirim email **ke alamat email akun Resend kamu sendiri**. Ini cukup untuk mencoba magic link di preview (login pakai email yang sama dengan akun Resend).
    - **Sebelum launch**, kamu perlu domain sendiri: **Domains → Add Domain** → tambahkan record DNS yang diminta → tunggu status *Verified*.
 4. Paket gratis: 3.000 email/bulan, maksimal 100 email/hari.
-5. **Simpan ke Cloudflare** (di folder `~/ASF/apps/api`; tempel key-nya saat diminta):
+5. **Simpan ke Cloudflare** (cara di langkah 2a). Salin API key-nya, lalu:
    ```bash
-   pnpm exec wrangler versions secret put RESEND_API_KEY --env preview
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put RESEND_API_KEY --env preview
    ```
    ```bash
-   pnpm exec wrangler versions secret put RESEND_API_KEY
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put RESEND_API_KEY --env=""
    ```
-   Perintah ini **tidak men-deploy apa pun**; secret ikut aktif di deploy CI berikutnya. Kalau wrangler menyarankan `wrangler versions deploy`, **jangan** jalankan (deploy hanya lewat CI).
-6. **Balasan pelanggan (Reply-To).** Kalau pelanggan membalas email login atau struk, balasannya otomatis masuk ke `legal.contactEmail` di `product.config.ts`, bukan ke alamat pengirim. Ini penting kalau pengirimnya subdomain khusus kirim yang tidak punya inbox, misalnya `halo@hello.domainmu.id`. Mau diarahkan ke alamat lain? Isi secret `MAIL_REPLY_TO` dengan cara yang sama seperti di langkah 5 (D-067).
+   Setelah domain terverifikasi, atur juga alamat pengirimnya (bukan rahasia, jadi ditulis langsung; ganti dengan alamatmu):
+   ```bash
+   echo 'Nama Produk <halo@hello.domainmu.id>' | pnpm --filter @factory/api exec wrangler versions secret put MAIL_FROM --env=""
+   ```
+6. **Balasan pelanggan (Reply-To).** Kalau pelanggan membalas email login atau struk, balasannya otomatis masuk ke `legal.contactEmail` di `product.config.ts`, bukan ke alamat pengirim. Ini penting kalau pengirimnya subdomain khusus kirim yang tidak punya inbox, misalnya `halo@hello.domainmu.id`. Mau diarahkan ke alamat lain? Isi secret `MAIL_REPLY_TO` dengan cara di langkah 2a (`echo 'cs@domainmu.id' | …`, D-067).
 
 Sumber: <https://resend.com/pricing>, <https://resend.com/docs/knowledge-base/403-error-resend-dev-domain>
 
@@ -374,17 +412,17 @@ Tanpa langkah ini produk tetap jalan: tidak ada Pixel, tidak ada banner izin ikl
 1. **Akun bisnis.** Buka <https://business.facebook.com> lalu buat **Business Portfolio** (nama usaha, email kerja). Lengkapi info bisnis (nama legal, alamat) kalau diminta.
 2. **Akun iklan.** Pengaturan bisnis → **Akun → Akun iklan → Tambah → Buat akun iklan baru**. Pilih mata uang **IDR** dan zona waktu **Asia/Jakarta**; keduanya tidak bisa diubah nanti. Tambahkan metode pembayaran di **Penagihan**.
 3. **Pixel (dataset).** Buka **Events Manager** → **Hubungkan sumber data → Web** → beri nama (misalnya nama produk) → buat. Salin **ID Pixel/Dataset** (angka saja). ID ini **publik** dan aman dikirim ke chat. Agent memasukkannya ke `product.config.ts` → `marketing.metaPixelId`.
-4. **Token Conversions API.** Di Events Manager, pilih dataset tadi → **Pengaturan** → bagian **Conversions API** → **Buat token akses**. Token hanya muncul sekali. **Jangan kirim ke chat.** Simpan ke Worker **produksi**: jalankan perintah ini di folder `apps/api` repo produk, lalu tempel token saat diminta:
+4. **Token Conversions API.** Di Events Manager, pilih dataset tadi → **Pengaturan** → bagian **Conversions API** → **Buat token akses**. Token hanya muncul sekali. **Jangan kirim ke chat.** Simpan ke Worker **produksi**. Salin token-nya, lalu Run di repo produk (cara di langkah 2a):
    ```bash
-   pnpm exec wrangler versions secret put META_CAPI_TOKEN --env=""
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put META_CAPI_TOKEN --env=""
    ```
-5. **Mode tes (untuk uji coba).** Events Manager → dataset → **Uji peristiwa (Test events)** → salin kodenya (misalnya `TEST12345`). Simpan sementara:
+5. **Mode tes (untuk uji coba).** Events Manager → dataset → **Uji peristiwa (Test events)** → salin kodenya (misalnya `TEST12345`). Salin, lalu simpan sementara:
    ```bash
-   pnpm exec wrangler versions secret put META_TEST_EVENT_CODE --env=""
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put META_TEST_EVENT_CODE --env=""
    ```
    Setelah tes selesai, **hapus** kode tes itu. Kalau tidak, event asli ikut ditandai sebagai tes. Langkah ini harus kamu jalankan sendiri, karena agent tidak boleh menghapus secret:
    ```bash
-   pnpm exec wrangler versions secret delete META_TEST_EVENT_CODE --env=""
+   pnpm --filter @factory/api exec wrangler versions secret delete META_TEST_EVENT_CODE --env=""
    ```
    Penghapusannya aktif pada rilis produksi berikutnya lewat CI.
 6. **Domain.** Saat produk sudah punya domain sendiri: Pengaturan bisnis → **Keamanan merek → Domain** → tambahkan dan verifikasi domain (lewat meta-tag atau DNS). Domain `workers.dev` tidak bisa diverifikasi.
@@ -401,9 +439,9 @@ Tanpa langkah ini produk tetap jalan di lokal dan preview dengan jawaban **tirua
 1. Buka <https://platform.openai.com> → **Projects** → buat project baru dengan nama produk (misalnya "Myna Fit"). Satu project per produk, supaya biayanya terpisah.
 2. Di project itu: **Limits** → pasang **batas anggaran bulanan** (misalnya US$20), dan nyalakan email peringatan.
 3. **Billing**: isi saldo (prepaid). Kalau saldo habis, OpenAI menolak dengan `insufficient_quota`. Pengguna melihat pesan "coba lagi nanti", dan log mencatatnya sebagai `quota`.
-4. **API keys** → **Create new secret key** (pilih project tadi). Key hanya muncul sekali. **Jangan kirim ke chat.** Simpan ke Worker produksi: jalankan di folder `apps/api` repo produk, lalu tempel key saat diminta:
+4. **API keys** → **Create new secret key** (pilih project tadi). Key hanya muncul sekali. **Jangan kirim ke chat.** Simpan ke Worker produksi. Salin key-nya, lalu Run di repo produk (cara di langkah 2a):
    ```bash
-   pnpm exec wrangler versions secret put OPENAI_API_KEY --env=""
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put OPENAI_API_KEY --env=""
    ```
    Untuk mencoba model sungguhan di preview (opsional, memakan saldo), jalankan yang sama dengan `--env preview`.
 5. Secret baru aktif pada rilis produksi berikutnya lewat CI.
