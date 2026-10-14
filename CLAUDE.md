@@ -104,6 +104,7 @@ pnpm setup-secrets    # shared CI secrets (factory.secrets.json) from the human'
 | `/ad-test-plan <ads>` | Rp100K/day tests, one ad each, read at 3,000 impressions, kill at 2× target CAC with no sales, target ROAS 1.75 |
 | `/funnel-diagnose <numbers>` | From /admin's funnel: the first bad step and the one layer to fix |
 | `/explain <PR>` | Before accepting a big change: what, screen-to-database path, files, proof, likeliest failure |
+| `/design-review <page>` | After building a screen, site page or lander, before the PR: product design system first, pass/fail rubric with file:line, critical failures fixed (D-075) |
 
 ## Where things are
 

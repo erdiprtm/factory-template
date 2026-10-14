@@ -4,6 +4,16 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: `/design-review` skill (D-075), Myna Fit feedback round 5 item 2
+
+- `.claude/skills/design-review/`: read the product's design system first, then a pass/fail rubric (AI defaults, colour, motion, touch, states, words, landing pages) with `file:line`; fix critical failures before the PR. Credits in its `README.md`. `/build-from-spec` and `/add-feature` end with it.
+- Planted fixture: all four violations flagged; the clean version passes.
+- Open on the template's own pages (follow-ups):
+  - landing `index.astro`: header "Masuk" and hero CTA are both filled in the first viewport; three equal feature columns; no "how it works" or final CTA; hero CTA not full width on mobile;
+  - `Base.astro` header links and "Masuk" are about 36 px tall (< 44 px);
+  - dark `destructive` token `#ef4444` with white text is 3.8:1 (< 4.5:1);
+  - `features/example/screen.tsx`: no loading state while running, and a network error throws instead of showing the error text.
+  - The lander template `/l/[slug]` passes.
 ## 2026-10-14: Secret steps that work from the Run button (D-072), Myna Fit feedback round 4 item 3
 
 - SETUP_HUMAN 2a and every secret step: one `pbpaste | pnpm --filter @factory/api exec wrangler versions secret put …` command per block, `--env=""` for production. The same rule is in CLAUDE.md for agents.
