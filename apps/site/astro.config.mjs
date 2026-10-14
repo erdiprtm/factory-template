@@ -1,17 +1,18 @@
 // @ts-check
+
+import { readFileSync } from "node:fs";
 import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import product from "../../product.config";
+import { siteUrl } from "./src/lib/urls.mjs";
 
 // Canonical URLs, the sitemap and OG image URLs are built from `site`: the own domain on production
 // builds once `domain.site` is set (D-069), else SITE_URL from CI (workers.dev, so the smoke test
-// still reaches the site's own "/"; previews).
+// still reaches the site's own "/"; previews), else this product's URL in factory.json (D-073).
 const production = process.env.PUBLIC_APP_ENV === "production";
-const site =
-  production && product.domain.site
-    ? `https://${product.domain.site}`
-    : (process.env.SITE_URL ?? "https://factory-template-site.erdiprtm.workers.dev");
+const registry = JSON.parse(readFileSync(new URL("../../factory.json", import.meta.url), "utf8"));
+const site = siteUrl({ production, env: process.env.SITE_URL, domain: product.domain, slug: product.slug, registry });
 // One domain (D-068): "/" belongs to the app there, so the site's own home stays out of the sitemap;
 // its copy at domain.anonymousHome is the landing search engines see.
 const oneDomain = production && product.domain.app !== null && product.domain.site === product.domain.app;

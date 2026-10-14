@@ -26,12 +26,8 @@ import { checkSpec, sections } from "./spec-check.mjs";
 
 const TEMPLATE_SLUG = "factory-template";
 /** Files whose Worker names and hosts are renamed from the template's (renameWorkers). */
-const RENAMED_FILES = [
-  "apps/api/wrangler.jsonc",
-  "apps/site/wrangler.jsonc",
-  "apps/site/astro.config.mjs",
-  "apps/site/src/lib/site.ts",
-];
+// The site's code names no hosts any more: it reads this product's URLs from factory.json (D-073).
+const RENAMED_FILES = ["apps/api/wrangler.jsonc", "apps/site/wrangler.jsonc"];
 
 /** Extracts what product.config.ts needs from a spec. */
 export function parseSpec(markdown) {
@@ -147,7 +143,7 @@ function main() {
     `wrangler r2 bucket create ${a.slug}-files and ${a.slug}-files-preview (location apac)`,
     `pnpm theme, wrangler types, biome format of the rewritten files, commit "chore: create ${a.slug} from factory template", push`,
     `scripts/setup-github.sh ${repo} ${appUrl} ${siteUrl}; gh secret set CLOUDFLARE_ACCOUNT_ID, BETTER_AUTH_SECRET_PRODUCTION / _PREVIEW (random)`,
-    `factory.json here: ${a.slug} status "building"`,
+    `factory.json here and in the new repo: ${a.slug} status "building", its workers.dev URLs (the site's local fallback, D-073)`,
     `NEXT, in ${a.dir}: pnpm setup-secrets (shared CI secrets, docs/SECRETS.md)`,
   ];
   console.log(`${a.execute ? "Creating" : "DRY RUN (add --execute)"}:\n- ${plan.join("\n- ")}`);
@@ -192,6 +188,21 @@ function main() {
   // A longer name, tagline or slug can push a rewritten line past Biome's width, and the product's
   // first `pnpm verify` (biome ci) would fail on it.
   run("pnpm", ["exec", "biome", "format", "--write", "product.config.ts", ...RENAMED_FILES], { cwd: a.dir });
+  // The product's own entry in its copy of the registry too: the site reads its workers.dev URLs
+  // from there for local builds (D-073), before the template's registry PR is ever synced.
+  const entry = {
+    slug: a.slug,
+    name: spec.name,
+    repo,
+    status: "building",
+    spec: `specs/${a.slug}.md`,
+    launchDate: null,
+    reviewDate: null,
+    metricTargets: {},
+    killCriteria: specText.match(/Kill criteria[^:]*:\s*(.*)/i)?.[1]?.trim() ?? null,
+    urls: { app: appUrl, site: siteUrl },
+  };
+  edit("factory.json", (t) => registerProduct(t, entry));
   run("git", ["add", "-A"], { cwd: a.dir });
   run("git", ["commit", "-m", `chore: create ${a.slug} from factory template`], { cwd: a.dir });
   run("git", ["push", "-u", "origin", "HEAD"], { cwd: a.dir });
@@ -209,21 +220,7 @@ function main() {
   }
 
   const registry = fileURLToPath(new URL("../factory.json", import.meta.url));
-  writeFileSync(
-    registry,
-    registerProduct(readFileSync(registry, "utf8"), {
-      slug: a.slug,
-      name: spec.name,
-      repo,
-      status: "building",
-      spec: `specs/${a.slug}.md`,
-      launchDate: null,
-      reviewDate: null,
-      metricTargets: {},
-      killCriteria: specText.match(/Kill criteria[^:]*:\s*(.*)/i)?.[1]?.trim() ?? null,
-      urls: { app: appUrl, site: siteUrl },
-    }),
-  );
+  writeFileSync(registry, registerProduct(readFileSync(registry, "utf8"), entry));
   console.log(
     `\nCreated ${repo} in ${a.dir}.\nNEXT: cd ${a.dir} && pnpm setup-secrets --dry-run && pnpm setup-secrets (docs/SECRETS.md)`,
   );

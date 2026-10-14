@@ -1382,3 +1382,27 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - `CLAUDE.md` makes it the rule for agents' human-step instructions.
   - The `npx wrangler login` step says to run it outside the repo, or to use the pnpm form inside.
 - **Checked.** wrangler 4.141.0's `versions secret put` reads the value from stdin when stdin isn't a TTY, and trims trailing whitespace (source, `versionsSecretPutCommand`). Cloudflare's command docs mention piping only for `secret put`. Myna Fit used this form for `RESEND_API_KEY` (preview and production) and `MAIL_FROM`.
+
+## D-073: The site's code names no hosts; local builds use the product's URLs from factory.json (2026-10-14)
+
+- **Problem (Myna Fit feedback round 4, item 4).**
+  - `/new-product` used to rename the template's workers.dev hosts inside `apps/site/astro.config.mjs` and `apps/site/src/lib/site.ts`. Both files are template-owned.
+  - When D-069 rewrote the same lines, the sync took the template's version, and Myna Fit's fallbacks became `factory-template…workers.dev` again.
+  - Production and previews were fine (`product.domain`, CI's `SITE_URL` / `PUBLIC_APP_URL`). But a local `astro build` or `astro dev` wrote canonical, OG and "Masuk" URLs for the template's hosts.
+- **Decision.** Template-owned site code holds no hostnames. `apps/site/src/lib/urls.mjs` (`siteUrl`, `appUrlFor`) resolves them in this order:
+  1. production with a domain → the domain;
+  2. CI's env;
+  3. `product.domain`;
+  4. **this product's entry in `factory.json`** (`urls.site` / `urls.app`, its workers.dev URLs);
+  5. local dev (`http://localhost:4321` / `:8787`).
+  - The template repo itself isn't in `factory.json`, so its local builds point at localhost, not at some product.
+  - `/new-product` no longer rewrites these two files, so a sync can't bring a foreign host back. It now writes the product's registry entry into the **new repo's** `factory.json` too (as well as the template's), so local builds are right from day one.
+- **Tests.**
+  - `apps/site/test/urls.test.ts`:
+    - a local build resolves to the product's workers.dev URLs from the registry;
+    - CI env wins outside production, and a domain wins in production;
+    - an unlisted slug falls back to localhost;
+    - `astro.config.mjs`, `site.ts` and `urls.mjs` contain no `*.workers.dev` host.
+  - Real local builds without `SITE_URL` / `PUBLIC_APP_URL`:
+    - the template gives canonical `http://localhost:4321/harga/`;
+    - with the slug temporarily set to `myna-fit`, it gives `https://myna-fit-site.erdiprtm.workers.dev/harga/` and the app link `https://myna-fit.erdiprtm.workers.dev`.
