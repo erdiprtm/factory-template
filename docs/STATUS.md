@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-14: The site's local URLs come from the product's factory.json entry (D-073), Myna Fit feedback round 4 item 4
+
+- No hostnames in template-owned site code, so syncs can't bring the template's workers.dev URLs back. `/new-product` writes the product's own registry entry into the new repo.
+
+---
+
 ## 2026-10-14: One domain as a template pattern (D-069), Myna Fit feedback round 3 item 3
 
 - SEO pages at `/artikel/<slug>/`; FAQ link `/harga/#faq`; production builds use `product.domain`.

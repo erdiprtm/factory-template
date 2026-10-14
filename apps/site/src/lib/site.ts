@@ -1,4 +1,6 @@
+import registry from "../../../../factory.json";
 import product from "../../../../product.config";
+import { appUrlFor } from "./urls.mjs";
 
 export { product };
 
@@ -10,13 +12,16 @@ export const isProduction = import.meta.env.PUBLIC_APP_ENV === "production";
 
 /**
  * Where "Masuk" / "Mulai" buttons go: the app's own domain on production builds once it has one
- * (D-069), else CI's PUBLIC_APP_URL (workers.dev, previews), else the configured domain.
+ * (D-069), else CI's PUBLIC_APP_URL (workers.dev, previews), else the domain, else this product's
+ * URL in factory.json (D-073).
  */
-export const appUrl: string =
-  isProduction && product.domain.app
-    ? `https://${product.domain.app}`
-    : (import.meta.env.PUBLIC_APP_URL ??
-      (product.domain.app ? `https://${product.domain.app}` : "https://factory-template.erdiprtm.workers.dev"));
+export const appUrl: string = appUrlFor({
+  production: isProduction,
+  env: import.meta.env.PUBLIC_APP_URL,
+  domain: product.domain,
+  slug: product.slug,
+  registry,
+});
 
 /** App and site on one host (D-068, D-069): "/" there is the app's, the landing lives at anonymousHome. */
 export const oneDomain = product.domain.app !== null && product.domain.site === product.domain.app;
