@@ -26,6 +26,12 @@ export const en: Messages = {
   "consent.sensitive_data": "I agree to the processing of my health/sensitive data for this service",
   "consent.continue": "Continue",
   "consent.error": "Couldn't save your consent. Try again.",
+  "consent.single": "I agree to the Terms of Service and the Privacy Policy.",
+  "consent.singleSensitive":
+    "I agree to the Terms of Service and the Privacy Policy, and allow my health data to be processed to prepare my results.",
+  "consent.read": "Read:",
+  "consent.termsDoc": "Terms of Service",
+  "consent.privacyDoc": "Privacy Policy",
   "common.loading": "Loading…",
   "home.openExample": "Open example feature (paid)",
   "home.pricing": "Subscription",

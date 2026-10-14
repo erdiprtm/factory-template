@@ -197,6 +197,18 @@ export const productSchema = z.object({
     // Set true only after a lawyer reviewed the privacy policy and terms; removes the TEMPLATE banner.
     reviewed: z.boolean().default(false),
     productDataDescription: z.string().default("Tidak ada data tambahan selain data akun dan langganan."),
+    /**
+     * How the required consents are asked (D-074). "separate": one checkbox per document, as before.
+     * "single": one checkbox whose sentence names the documents (and, with sensitiveDataConsent, the
+     * health data and its purpose: word it in features/messages.ts); one tick records every type.
+     */
+    consentStyle: z.enum(["separate", "single"]).default("separate"),
+    /**
+     * Where a visitor consents before signup, in "pay for proof" products (D-043, D-074). "screen":
+     * a screen before the quiz, as before. "quiz_first" / "quiz_last": a row under the quiz's first
+     * or last question; nothing leaves the device before it's ticked.
+     */
+    consentPlacement: z.enum(["screen", "quiz_first", "quiz_last"]).default("screen"),
     refundPolicy: z
       .string()
       .default(

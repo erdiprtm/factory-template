@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: One consent checkbox, inside the quiz (D-074), Myna Fit feedback round 5 item 1
+
+- `legal.consentStyle: "single"` gives one checkbox with document links; one tick records every document at its version.
+- `legal.consentPlacement: "quiz_first" | "quiz_last"` puts it under that question instead of a screen before the quiz.
+- The server gate is unchanged. The legal team approved the single checkbox (Erdi, 2026-10-15).
+
+---
+
 ## 2026-10-15: `brand.darkMode` for light-only products (D-076), Myna Fit feedback round 5 item 3
 
 - `darkMode: false`: no `colors.dark` needed, no `.dark` CSS, no Tampilan row in Akun, app never dark, site loads no `/theme.js`, and app and site say `color-scheme: light`. Default `true` changes nothing.

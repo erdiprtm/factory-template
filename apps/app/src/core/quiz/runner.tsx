@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { slots } from "../../features/slots";
 import { track } from "../analytics";
+import { type InlineConsent, useInlineConsent } from "../auth/inline-consent";
 import { formatNumber } from "../format";
 import { type MessageKey, useI18n } from "../i18n";
 import { loadQuizProgress, saveQuizProgress } from "./storage";
@@ -20,8 +21,31 @@ import { loadQuizProgress, saveQuizProgress } from "./storage";
  * Runs a product's quiz (D-036): one step per screen, progress bar, back button, answers saved on
  * the device after every step. Ends on the "Rencana kamu siap" summary; `onDone` decides what's
  * next (sign-in, first result or paywall).
+ *
+ * `consentAt` (D-074): the step under which a visitor gives the pre-signup consent in one row.
+ * That step can't be answered until the box is ticked, and answering it records the consent first.
  */
-export function QuizRunner({ quiz, onDone }: { quiz: QuizDefinition<MessageKey>; onDone: () => void }) {
+export function QuizRunner(props: { quiz: QuizDefinition<MessageKey>; onDone: () => void; consentAt?: number }) {
+  return props.consentAt === undefined ? <Runner {...props} consent={NO_CONSENT} /> : <RunnerWithConsent {...props} />;
+}
+
+const NO_CONSENT: InlineConsent = { needed: [], pending: false, ticked: true, accept: async () => true, row: null };
+
+function RunnerWithConsent(props: { quiz: QuizDefinition<MessageKey>; onDone: () => void; consentAt?: number }) {
+  return <Runner {...props} consent={useInlineConsent()} />;
+}
+
+function Runner({
+  quiz,
+  onDone,
+  consentAt,
+  consent,
+}: {
+  quiz: QuizDefinition<MessageKey>;
+  onDone: () => void;
+  consentAt?: number;
+  consent: InlineConsent;
+}) {
   const { t } = useI18n();
   const [answers, setAnswers] = useState(() => cleanAnswers(quiz, loadQuizProgress(quiz.id)?.answers));
   const [index, setIndex] = useState(() => firstOpenStep(quiz, answers));
@@ -50,6 +74,14 @@ export function QuizRunner({ quiz, onDone }: { quiz: QuizDefinition<MessageKey>;
     return <Summary quiz={quiz} answers={answers} onBack={() => setIndex(quiz.steps.length - 1)} onDone={onDone} />;
   const step = quiz.steps[index] as QuizStep<MessageKey>;
   const total = quiz.steps.length;
+  // Core's, under the step even when a product slot draws it: the slot can't skip the consent.
+  // Locked while /api/me loads too: until then nobody knows whether consent is still needed.
+  const asking = index === consentAt && (consent.pending || consent.needed.length > 0);
+  const onAnswer = asking
+    ? async (v: QuizAnswer) => {
+        if (await consent.accept()) answer(step, v);
+      }
+    : (v: QuizAnswer) => answer(step, v);
   const StepSlot = slots.quizStep;
   if (StepSlot) {
     return (
@@ -58,11 +90,12 @@ export function QuizRunner({ quiz, onDone }: { quiz: QuizDefinition<MessageKey>;
           key={step.id}
           step={step}
           value={answers[step.id]}
-          onAnswer={(v) => answer(step, v)}
+          onAnswer={(v) => void onAnswer(v)}
           back={index > 0 ? () => setIndex(index - 1) : undefined}
           progress={{ step: index + 1, total }}
           t={t}
         />
+        {asking ? consent.row : null}
       </Screen>
     );
   }
@@ -104,7 +137,14 @@ export function QuizRunner({ quiz, onDone }: { quiz: QuizDefinition<MessageKey>;
         </Text>
         {step.hint ? <Text variant="muted">{t(step.hint)}</Text> : null}
       </View>
-      <StepInput key={step.id} step={step} value={answers[step.id]} onAnswer={(v) => answer(step, v)} />
+      <StepInput
+        key={step.id}
+        step={step}
+        value={answers[step.id]}
+        onAnswer={(v) => void onAnswer(v)}
+        locked={asking && !consent.ticked}
+      />
+      {asking ? consent.row : null}
     </Screen>
   );
 }
@@ -113,10 +153,13 @@ function StepInput({
   step,
   value,
   onAnswer,
+  locked = false,
 }: {
   step: QuizStep<MessageKey>;
   value: QuizAnswer | undefined;
   onAnswer: (v: QuizAnswer) => void;
+  /** Consent not ticked yet (D-074): the answer can be prepared but not sent on. */
+  locked?: boolean;
 }) {
   const { t } = useI18n();
   const [multi, setMulti] = useState<string[]>(Array.isArray(value) ? value : []);
@@ -147,7 +190,7 @@ function StepInput({
           {step.unit ? <Text className="text-foreground">{t(step.unit)}</Text> : null}
         </View>
         {invalid ? <ErrorText>{`${t("quiz.numberRange")} ${step.min}–${step.max}`}</ErrorText> : null}
-        <Button testID="quiz-next" onPress={submit} disabled={text.trim() === ""}>
+        <Button testID="quiz-next" onPress={submit} disabled={locked || text.trim() === ""}>
           <Text>{t("quiz.next")}</Text>
         </Button>
       </View>
@@ -168,7 +211,7 @@ function StepInput({
             aria-checked={selected}
             accessibilityState={{ checked: selected }}
             onPress={() => {
-              if (!isMulti) return onAnswer(o.value);
+              if (!isMulti) return locked ? undefined : onAnswer(o.value);
               setMulti((m) =>
                 m.includes(o.value) ? m.filter((v) => v !== o.value) : m.length < max ? [...m, o.value] : m,
               );
@@ -187,7 +230,7 @@ function StepInput({
           {max < step.options.length && !step.hint ? (
             <Text variant="muted">{`${t("quiz.pickUpTo")} ${max}`}</Text>
           ) : null}
-          <Button testID="quiz-next" onPress={() => onAnswer(multi)} disabled={multi.length === 0}>
+          <Button testID="quiz-next" onPress={() => onAnswer(multi)} disabled={locked || multi.length === 0}>
             <Text>{t("quiz.next")}</Text>
           </Button>
         </>

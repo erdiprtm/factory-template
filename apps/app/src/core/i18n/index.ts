@@ -29,6 +29,15 @@ export function t(key: MessageKey, locale: Locale = fallback): string {
   return catalogs[locale][key] ?? catalogs[fallback][key];
 }
 
+/**
+ * A product-only string, if the product defines it in features/messages.ts (e.g. its own consent
+ * sentence, D-074). Unlike t(), core doesn't win here: there is no core string under these keys.
+ */
+export function productMessage(key: string, locale: Locale = fallback): string | undefined {
+  const own = featureMessages[locale] as Record<string, string | undefined>;
+  return own[key] ?? (featureMessages[fallback] as Record<string, string | undefined>)[key];
+}
+
 type I18n = {
   locale: Locale;
   setLocale: (l: Locale) => void;

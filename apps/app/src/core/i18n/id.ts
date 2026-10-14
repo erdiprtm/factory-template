@@ -24,6 +24,14 @@ export const id = {
   "consent.sensitive_data": "Saya setuju data kesehatan/sensitif saya diproses untuk layanan ini",
   "consent.continue": "Lanjut",
   "consent.error": "Gagal menyimpan persetujuan. Coba lagi.",
+  // legal.consentStyle "single" (D-074). Products with health data reword consent.singleSensitive in
+  // features/messages.ts to name the data and the purpose in plain words.
+  "consent.single": "Saya setuju dengan Syarat & Ketentuan dan Kebijakan Privasi.",
+  "consent.singleSensitive":
+    "Saya setuju dengan Syarat & Ketentuan dan Kebijakan Privasi, dan mengizinkan data kesehatan saya diproses untuk menyusun hasil saya.",
+  "consent.read": "Baca:",
+  "consent.termsDoc": "Syarat & Ketentuan",
+  "consent.privacyDoc": "Kebijakan Privasi",
   "common.loading": "Memuat…",
   "home.openExample": "Buka fitur contoh (berbayar)",
   "home.pricing": "Langganan",

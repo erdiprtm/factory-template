@@ -109,6 +109,8 @@
     "sensitiveDataConsent": false,
     "reviewed": false,
     "productDataDescription": "Tidak ada data tambahan selain data akun dan langganan.",
+    "consentStyle": "separate",
+    "consentPlacement": "screen",
     "refundPolicy": "Karena akses diberikan segera setelah pembayaran, pembayaran tidak dapat dikembalikan, kecuali terjadi kesalahan tagihan atau layanan tidak dapat dipakai karena kesalahan kami. Hubungi kami untuk pengajuan."
   },
   "admin": {
