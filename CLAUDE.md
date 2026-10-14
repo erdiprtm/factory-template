@@ -13,7 +13,7 @@ The full design is in `FACTORY_BLUEPRINT.md`. Progress is in `docs/STATUS.md`, d
 | May edit in a product repo | Must not edit in a product repo |
 |---|---|
 | `apps/app/src/features/**` (incl. `messages.ts` for UI strings, `theme.ts` for component variants, `slots.tsx` for how core screens look), `apps/api/src/features/**` (incl. `user-data.ts` export/delete hooks) | `apps/app/src/core/**`, `apps/api/src/core/**` |
-| `product.config.ts`, `specs/**`, site content in `apps/site` | `packages/**` (core, db, ui, config) |
+| `product.config.ts`, `specs/**`, site content in `apps/site` | `packages/**` (core, db, ui, config), `factory.secrets.json` |
 | Route files in `apps/app/src/app/**` that only re-export a screen from `src/features/**` | Core route files (`quiz.tsx`, `sign-in.tsx`, `consent.tsx`, `(app)/_layout.tsx`, …) |
 | New `dependencies` in `apps/app` / `apps/api` `package.json` that a feature needs (D-047) | The template's own dependency versions, scripts and other `package.json` fields |
 | `packages/db/src/features/**` (product tables + their migrations) | existing core tables or merged migrations |
@@ -28,6 +28,7 @@ pnpm db:generate      # new migration from schema changes (packages/db)
 pnpm db:migrate:local # apply migrations to the local D1;  pnpm db:seed:local loads dev data
 pnpm theme            # regenerate files derived from product.config.ts (theme CSS + the app's validated config JSON) after ANY config change
 pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/seo/<slug>.md)
+pnpm setup-secrets    # shared CI secrets (factory.secrets.json) from the human's machine; --dry-run first (docs/SECRETS.md)
 ```
 
 - Migrations: see `packages/db/README.md`. Local only: `--local`. Remote databases are migrated **only by CI**.

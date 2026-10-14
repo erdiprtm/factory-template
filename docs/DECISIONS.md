@@ -1206,3 +1206,22 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
     - the face isn't loaded yet;
     - after releasing the requests, the bundled face loads.
   - Checked against the old behaviour: that spec fails (the button never appears while fonts are held).
+
+## D-066: Shared CI secrets from one file on the human's machine (`pnpm setup-secrets`) (2026-10-14)
+
+- **Problem.** Every new product repo needed `CLOUDFLARE_API_TOKEN` pasted by hand (`gh secret set`), and `CLOUDFLARE_ACCOUNT_ID` only if the agent had it in its environment. Same value, every repo, every time.
+- **Decision.** `scripts/setup-secrets.mjs` (`pnpm setup-secrets`), run in the new repo right after `/new-product` creates it (playbook step 6).
+  - **Values** only from `~/.config/factory/.env.shared`. A file inside the repo is refused (checked after resolving symlinks). The script never prints a value: each one goes to `gh secret set <NAME> --repo <repo>` on **stdin**, never argv (as D-027). gh's error text is redacted before it is shown. Unreadable lines are named by line number only, since their text may be a secret.
+  - **Names** only from `factory.secrets.json` (committed, a plain JSON array): `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. Other names in `.env.shared` are never set, only counted. The file is template-owned (`docs/TEMPLATE_SYNC.md`): it lists shared infra tokens, and products' own secrets stay per repo (`docs/SECRETS.md`).
+  - **Flags:** `--repo owner/name`, `--dry-run`, `--only NAME,NAME` (names must be in the allowlist, else usage error, exit 2).
+  - **Preflight**, all problems reported at once with the exact fix: gh installed, `gh auth status`, `.env.shared` exists, the allowlist exists, and the target repo resolves (`gh repo view`, unless `--repo`). It runs on a dry run too, so a dry run is a full rehearsal.
+  - **Exit:** 1 when a selected name is missing or empty in `.env.shared`, or gh failed to set one. Present names are still set first, so a rerun after adding the missing line finishes the job. Names left out by `--only` are "skipped", not missing.
+  - Warns (doesn't stop) when `.env.shared` is readable by group or others: `chmod 600`.
+  - `.gitignore` also ignores `.env.shared` / `*.env.shared` (already covered by `.env.*`, listed explicitly for clarity).
+- **Agent guardrails.** `.claude/settings.json` puts `pnpm setup-secrets`, `pnpm run setup-secrets` and `node scripts/setup-secrets.mjs` under **ask**, like `gh secret set`: the agent may run it, but the human approves each run (dry runs too). The guard hook already blocks any Bash command naming `.env.shared` (its `.env.*` rule); `scripts/guard-destructive.test.mjs` now proves it for this path.
+  - A `Read(~/.config/factory/**)` deny rule was meant to go with it, but the agent's edit was refused as self-modification. The human adds it (one line, see the PR).
+- **Not chosen.**
+  - Org-level GitHub secrets: the repos live under a personal account, which has none.
+  - Setting the secrets inside `new-product.mjs`: the playbook step keeps creating the repo and handing over secrets as separate, approvable steps, and the same command serves rotation (`--repo … --only …`).
+  - `--body` / env-var passing to gh: both expose the value in the process list.
+- **Tests.** `scripts/setup-secrets.test.mjs`: env parsing (quotes, escapes, comments, `export`, bad lines), allowlist validation and filtering, flags, preflight failures with fixes, dry run, `--only`, missing and failed names, redaction, and a CLI run with a fake `gh` on `PATH` that proves values arrive on stdin and never in argv or output. Checked by mutation: passing the value with `--body` fails three tests.

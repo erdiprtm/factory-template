@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-14: Shared CI secrets with one command (D-066)
+
+- `pnpm setup-secrets` sets the names in `factory.secrets.json` (Cloudflare token and account id) on a repo from `~/.config/factory/.env.shared`, so new product repos need no token pasted. `--dry-run`, `--repo`, `--only`; values never printed.
+- `/new-product` step 6 now runs it. `docs/SECRETS.md`: what is shared, what stays per repo, how to rotate.
+
+---
+
 ## 2026-10-13: Bundled fonts swap in on web (D-065), Myna Fit feedback round 2 item 1
 
 - On web, the first screen no longer waits for font files: it shows the fallback stack, then swaps.

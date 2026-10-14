@@ -14,7 +14,8 @@
 //   6. scripts/setup-github.sh on the new repo + CI secrets
 //      (account id, random BETTER_AUTH_SECRET per environment)   7. factory.json entry here
 // The push to main skips the deploy (not configured yet); the first PR merge deploys.
-// Human afterwards: `gh secret set CLOUDFLARE_API_TOKEN --repo <owner>/<slug>` (token is never copied).
+// Afterwards, in the new repo: `pnpm setup-secrets` sets the shared CI secrets from the human's
+// machine (D-066, docs/SECRETS.md); the token is never copied.
 
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -147,7 +148,7 @@ function main() {
     `pnpm theme, wrangler types, biome format of the rewritten files, commit "chore: create ${a.slug} from factory template", push`,
     `scripts/setup-github.sh ${repo} ${appUrl} ${siteUrl}; gh secret set CLOUDFLARE_ACCOUNT_ID, BETTER_AUTH_SECRET_PRODUCTION / _PREVIEW (random)`,
     `factory.json here: ${a.slug} status "building"`,
-    `HUMAN: gh secret set CLOUDFLARE_API_TOKEN --repo ${repo}`,
+    `NEXT, in ${a.dir}: pnpm setup-secrets (shared CI secrets, docs/SECRETS.md)`,
   ];
   console.log(`${a.execute ? "Creating" : "DRY RUN (add --execute)"}:\n- ${plan.join("\n- ")}`);
   if (!a.execute) return;
@@ -224,7 +225,7 @@ function main() {
     }),
   );
   console.log(
-    `\nCreated ${repo} in ${a.dir}.\nHUMAN: gh secret set CLOUDFLARE_API_TOKEN --repo ${repo}${accountId ? "" : `\nAlso: gh secret set CLOUDFLARE_ACCOUNT_ID --repo ${repo}`}`,
+    `\nCreated ${repo} in ${a.dir}.\nNEXT: cd ${a.dir} && pnpm setup-secrets --dry-run && pnpm setup-secrets (docs/SECRETS.md)`,
   );
 }
 
