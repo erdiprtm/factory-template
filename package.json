@@ -26,7 +26,8 @@
     "db:migrate:local": "pnpm --filter @factory/api db:migrate:local",
     "db:seed:local": "pnpm --filter @factory/api db:seed:local",
     "e2e": "pnpm --filter @factory/e2e e2e",
-    "theme": "node scripts/gen-theme.mjs"
+    "theme": "node scripts/gen-theme.mjs",
+    "setup-secrets": "node scripts/setup-secrets.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

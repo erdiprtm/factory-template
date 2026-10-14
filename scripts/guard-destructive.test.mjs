@@ -49,6 +49,8 @@ const blocked = [
   "cat .dev.vars",
   "cat apps/api/.dev.vars",
   "cp .env .env.bak",
+  "cat ~/.config/factory/.env.shared",
+  "grep TOKEN $HOME/.config/factory/.env.shared",
 ];
 
 const allowed = [
@@ -74,6 +76,7 @@ const allowed = [
   "rm -rf node_modules",
   "cat .dev.vars.example",
   "ls -la ~/.env-tools",
+  "pnpm setup-secrets --dry-run",
 ];
 
 describe("guard-destructive hook", () => {

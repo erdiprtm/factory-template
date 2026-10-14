@@ -28,7 +28,7 @@ Never rebase or force-push. The `main` ruleset forbids it, and merges keep the h
 | Path | Who wins | Notes |
 |---|---|---|
 | `apps/*/src/core/**`, `packages/**` (except `packages/db/src/features/**`) | Template | Product code must not have edited these. If it did, that's a template bug to upstream |
-| `scripts/**`, `.github/**`, `.claude/**` | Template | |
+| `scripts/**`, `.github/**`, `.claude/**`, `factory.secrets.json` | Template | `factory.secrets.json` lists only shared infra secrets (D-066). A product's own secrets are set per repo |
 | `apps/*/src/features/**`, `packages/db/src/features/**` | Product | Includes `theme.ts` (component variants, D-053) and `slots.tsx` (core screens' look, D-054). A template change to their *types* (`@factory/ui` `UiVariants`, `core/slots.ts`) only adds optional fields |
 | `product.config.ts` | Product values | Accept new *fields* the template added (they have defaults in the schema) |
 | `specs/**`, `factory.json`, site SEO content and landing copy | Product | |

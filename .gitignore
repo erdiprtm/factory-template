@@ -19,6 +19,9 @@ test-results/
 .env
 .env.*
 !.env.example
+# shared secrets live in ~/.config/factory/ only (docs/SECRETS.md); never in a repo
+.env.shared
+*.env.shared
 
 # personal Claude Code overrides
 .claude/settings.local.json

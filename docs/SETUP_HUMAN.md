@@ -360,6 +360,8 @@ Terminal akan meminta nilainya. Tempel token, lalu tekan Enter. Isinya tidak tam
 
 `CLOUDFLARE_ACCOUNT_ID` bukan rahasia; agent yang mengisinya.
 
+**C. Untuk produk berikutnya: simpan sekali, pakai di semua repo.** Simpan token dan account ID di file `~/.config/factory/.env.shared` di Mac-mu (di luar repo mana pun). Setelah itu, setiap repo produk baru cukup menjalankan `pnpm setup-secrets` di foldernya, tanpa menempel token lagi. Isinya tidak pernah ditampilkan. Cara membuat file itu, isi yang boleh, dan cara mengganti token ada di `docs/SECRETS.md`.
+
 Catatan: Cloudflare sedang mengganti model izin Workers (sejak 15 Sep 2026). Kalau deploy pertama gagal karena izin, agent akan memberi tahu izin apa yang perlu ditambah.
 
 ---
