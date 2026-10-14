@@ -1352,6 +1352,21 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
     - `pages/[slug].astro` named as "the template removed it";
     - exit 2.
 
+## D-071: Local E2E runs 2 workers with 10 s expects; CI keeps Playwright's defaults (2026-10-14)
+
+- **Problem (Myna Fit feedback round 4, item 2).**
+  - On a busy MacBook (load 15–30), full `pnpm e2e` failed 3 to 11 of Myna Fit's 14 specs, different ones each run. `main` failed the same way, and CI was green every time.
+  - Every failure was a 5 s `expect`/`poll` timing out on a flow that waits on the server: the sign-in mail being sent, the billing return, "Memuat…". Once, workerd returned `Network connection lost`.
+  - Playwright's default is half the cores (4 workers there), all hitting one `wrangler dev` with one SQLite D1.
+  - `--workers=1` passed.
+- **Decision.**
+  - **Locally:** `workers` 2 and `expect.timeout` 10 s. `PW_WORKERS` overrides the worker count, for example `PW_WORKERS=1` on a very busy machine or more on an idle one.
+  - **On CI:** Playwright's defaults stay (workers by core count, 5 s expects), so a real slowdown still fails there. Retries are unchanged.
+  - **Not done:** a load-average hint in `pnpm verify`. It's noise once the run itself tolerates load.
+- **Check.**
+  - With 10 busy-loop processes on an 8-core Mac (load 19 to 22), the full E2E ran three times in a row: green every time.
+  - The old config was also green in one run at load 19. The template has 10 lighter specs than Myna Fit's 14, so the failure didn't reproduce here. The change follows Myna Fit's measurement.
+
 ## D-073: The site's code names no hosts; local builds use the product's URLs from factory.json (2026-10-14)
 
 - **Problem (Myna Fit feedback round 4, item 4).**
