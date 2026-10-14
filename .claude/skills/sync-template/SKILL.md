@@ -10,7 +10,10 @@ Follow `docs/TEMPLATE_SYNC.md`.
 
 1. `git remote get-url template`. If it's missing, run `git remote add template https://github.com/<owner>/factory-template.git`.
 2. `git fetch template`, then `git switch -c chore/sync-template-$(date +%Y%m%d) origin/main`.
-3. **`node scripts/template-sync.mjs`** (D-061). It applies the template's changes since `.template-version` with a 3-way apply and records the new template commit.
+3. **`node scripts/template-sync.mjs`** (D-061, D-070). It applies the template's changes since `.template-version` with a 3-way apply and records the new template commit. Read its exit code:
+   - **0:** everything applied.
+   - **2:** applied, with work left. It lists conflicted files (step 4), and "Apply by hand" paths that the product had already moved, removed or added. For each of those it says what to do (`git show <commit>:<path> > <path>`, or delete it).
+   - **1:** nothing was applied and `.template-version` didn't move. Read git's error it printed, and never write `.template-version` by hand to get past it.
    - If `.template-version` is missing (a repo created before D-061), write into it the full sha of the template commit this repo last synced from (the last sync PR or `docs/STATUS.md` names it), commit, and rerun.
    - Don't use `git merge template/main`: the histories are unrelated, so every file would look added on both sides.
    - **Never rebase or force-push.**

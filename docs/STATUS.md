@@ -7,6 +7,10 @@ Progress log, newest entry on top.
 ## 2026-10-14: Secret steps that work from the Run button (D-072), Myna Fit feedback round 4 item 3
 
 - SETUP_HUMAN 2a and every secret step: one `pbpaste | pnpm --filter @factory/api exec wrangler versions secret put …` command per block, `--env=""` for production. The same rule is in CLAUDE.md for agents.
+## 2026-10-14: template-sync fails loudly instead of skipping a range (D-070), Myna Fit feedback round 4 item 1
+
+- Paths the product already moved are left out and listed as "Apply by hand", and the rest applies.
+- Nothing applied means exit 1 and `.template-version` unchanged. Conflicts or hand steps mean exit 2.
 
 ---
 
