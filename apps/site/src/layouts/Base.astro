@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import { colorSchemeHead } from "../lib/color-scheme.mjs";
 import { analyticsClientId, appUrl, homeUrl, metaPixelId, product } from "../lib/site";
 
 interface Props {
@@ -19,6 +20,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(`/og/${og}.png`, Astro.site);
 const fullTitle = title === product.name ? title : `${title} | ${product.name}`;
 const year = new Date().getFullYear();
+const scheme = colorSchemeHead(product.brand.darkMode);
 ---
 
 <!doctype html>
@@ -44,8 +46,9 @@ const year = new Date().getFullYear();
     <meta property="og:locale" content={product.locale.default === "id" ? "id_ID" : "en_US"} />
     <meta name="twitter:card" content="summary_large_image" />
     {jsonLd.length > 0 && <script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")} />}
-    <!-- Apply dark mode before paint (follows the device; no flash). -->
-    <script is:inline src="/theme.js"></script>
+    {scheme.colorScheme && <meta name="color-scheme" content={scheme.colorScheme} />}
+    <!-- Apply dark mode before paint (follows the device; no flash). Light-only products skip it (D-076). -->
+    {scheme.themeScript && <script is:inline src="/theme.js"></script>}
   </head>
   <body class="flex min-h-screen flex-col" data-page-event={event} data-op-client={analyticsClientId} data-app-url={appUrl} data-meta-pixel={metaPixelId}>
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded-md focus:bg-background focus:p-2">Langsung ke konten</a>

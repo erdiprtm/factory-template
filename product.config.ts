@@ -61,6 +61,9 @@ export default defineProduct({
     },
     logo: "/logo.svg",
     favicon: "/favicon.svg",
+    // Dark mode (D-076). false = light only: colors.dark may be left out, no Tampilan choice in Akun,
+    // no dark CSS, color-scheme "light" on app and site. Run `pnpm theme` after changing it.
+    darkMode: true,
   },
   trial: { enabled: true, days: 7 },
   plans: [

@@ -19,4 +19,5 @@ Add: $ARGUMENTS
    Never edit `core/` or `packages/*` (other than `db/src/features`). If you need to, it's a template change: stop and say so.
 3. Paid functionality goes behind `requireAccess()` on the API. The app shows `<Paywall />` on 402. Native builds never show prices or web checkout links.
 4. Migrations are expand-only (`scripts/check-migrations.mjs`). All UI strings are i18n keys (`id` + `en`). Analytics events are named `feature_<name>` with no PII.
-5. Write tests (Vitest for logic and API, Playwright for the user path), run `pnpm verify`, then open a PR with auto-merge.
+5. Write tests (Vitest for logic and API, Playwright for the user path) and run `pnpm verify`.
+6. Run `/design-review` on the screens and pages this feature added or changed (follow `.claude/skills/design-review/SKILL.md`). Fix the critical failures, re-run `pnpm verify`, then open a PR with auto-merge and list the remaining failures in its body under `## Design review` (D-075).

@@ -71,6 +71,20 @@ describe("defineProduct", () => {
     );
   });
 
+  it("darkMode: false needs no colors.dark; true (the default) still does (D-076)", () => {
+    const light = base.brand.tokens.colors.light;
+    const brand = (darkMode: boolean | undefined) => ({
+      ...base,
+      brand: { ...base.brand, darkMode, tokens: { ...base.brand.tokens, colors: { light } } },
+    });
+    const off = defineProduct(brand(false)).brand;
+    expect(off.darkMode).toBe(false);
+    expect(off.tokens.colors.dark).toEqual(light); // mirrors light, so a palette lookup never fails
+    expect(() => defineProduct(brand(true))).toThrow(/colors.dark is required unless brand.darkMode is false/);
+    expect(() => defineProduct(brand(undefined))).toThrow(/colors.dark is required/);
+    expect(defineProduct({ ...base, brand: { ...base.brand, darkMode: undefined } }).brand.darkMode).toBe(true);
+  });
+
   describe("design tokens (D-052)", () => {
     const tokens = (extra: Record<string, unknown>) => ({
       ...base,

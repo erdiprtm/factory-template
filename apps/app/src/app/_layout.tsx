@@ -15,7 +15,7 @@ import { I18nProvider } from "../core/i18n";
 import { initMarketing } from "../core/marketing";
 import { MarketingBanner } from "../core/marketing-banner";
 import { captureError, initMonitoring } from "../core/monitoring";
-import { useRestoreTheme, useThemePreference } from "../core/theme";
+import { darkModeEnabled, useRestoreTheme, useThemePreference } from "../core/theme";
 import { variants } from "../features/theme";
 
 /** Expo Router's error screen, plus a report: render errors are caught here, not by window.onerror. */
@@ -45,6 +45,8 @@ export default function RootLayout() {
           <Head>
             <title>{product.name}</title>
             <meta name="description" content={product.tagline} />
+            {/* Light-only product (D-076): form controls and scrollbars stay light too. */}
+            {darkModeEnabled ? null : <meta name="color-scheme" content="light" />}
           </Head>
           <View className="flex-1 bg-background">
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "transparent" } }} />

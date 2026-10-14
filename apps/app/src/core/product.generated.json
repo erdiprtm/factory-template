@@ -71,7 +71,8 @@
       "fonts": []
     },
     "logo": "/logo.svg",
-    "favicon": "/favicon.svg"
+    "favicon": "/favicon.svg",
+    "darkMode": true
   },
   "trial": {
     "enabled": true,

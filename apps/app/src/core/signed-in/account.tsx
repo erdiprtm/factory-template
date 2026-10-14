@@ -31,7 +31,7 @@ import { formatDate, formatIdr } from "../format";
 import { type Locale, type MessageKey, useI18n } from "../i18n";
 import { setMarketingChoice } from "../marketing";
 import { setMonitoringUser } from "../monitoring";
-import { type ThemePreference, useThemePreference } from "../theme";
+import { darkModeEnabled, type ThemePreference, useThemePreference } from "../theme";
 
 export function Account() {
   const { t, locale } = useI18n();
@@ -184,7 +184,8 @@ function Segmented<T extends string>(props: {
   );
 }
 
-function Preferences() {
+/** Language, and Tampilan (light/dark/system) only when the product has a dark mode (D-076). */
+export function Preferences() {
   const { t, locale, setLocale, supported } = useI18n();
   const theme = useThemePreference();
   const [pref, setPref] = useState<ThemePreference>(theme.current);
@@ -200,19 +201,21 @@ function Preferences() {
           options={supported.map((l) => ({ value: l, label: names[l] }))}
           onChange={setLocale}
         />
-        <Segmented
-          label={t("account.theme")}
-          value={pref}
-          options={[
-            { value: "light", label: t("account.theme.light") },
-            { value: "dark", label: t("account.theme.dark") },
-            { value: "system", label: t("account.theme.system") },
-          ]}
-          onChange={(v) => {
-            setPref(v);
-            theme.set(v);
-          }}
-        />
+        {darkModeEnabled ? (
+          <Segmented
+            label={t("account.theme")}
+            value={pref}
+            options={[
+              { value: "light", label: t("account.theme.light") },
+              { value: "dark", label: t("account.theme.dark") },
+              { value: "system", label: t("account.theme.system") },
+            ]}
+            onChange={(v) => {
+              setPref(v);
+              theme.set(v);
+            }}
+          />
+        ) : null}
       </CardContent>
     </Card>
   );

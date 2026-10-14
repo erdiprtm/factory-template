@@ -78,79 +78,103 @@ export const productSchema = z.object({
       message: "anonymousHome needs one domain: domain.app set and domain.site equal to it",
       path: ["anonymousHome"],
     }),
-  brand: z.object({
-    tokens: z
-      .object({
-        colors: z.object({ light: colorScale, dark: colorScale }),
-        radius: z.string(),
-        fontFamily: z.object({ sans: z.string(), heading: z.string().optional() }),
-        // Everything below is optional; unset = the template's look (D-052).
-        /** Corner radius per element (CSS length). Unset: card/button/input/sheet = radius, chip = pill. */
-        radii: z
-          .object({ card: cssLength, button: cssLength, chip: cssLength, input: cssLength, sheet: cssLength })
-          .partial()
-          .default({}),
-        /** Height of buttons and inputs in px (44 is the minimum touch target). Unset = 48. */
-        controlHeight: z.int().min(44).max(72).optional(),
-        /** Card elevation. */
-        shadow: z.enum(["none", "soft", "lift"]).default("none"),
-        /** Spacing inside cards and screens. */
-        density: z.enum(["compact", "regular"]).default("regular"),
-        /** Font weights. Unset heading = h1 bold, h2/h3 semibold; unset body = normal. */
-        weights: z
-          .object({
-            heading: z.enum(["medium", "semibold", "bold", "extrabold"]).optional(),
-            body: z.enum(["normal", "medium"]).optional(),
-          })
-          .default({}),
-        /**
-         * Bundled font files, no calls to Google: app web + native load them with expo-font from
-         * apps/app/assets/fonts/<file>; the site self-hosts apps/site/public/fonts/<file>. Once any is
-         * listed, fontFamily.sans (body) and fontFamily.heading (headings) must name listed families.
-         */
-        fonts: z
-          .array(
-            z.object({
-              family: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9 ]{0,39}$/, "a font family name"),
-              file: z
-                .string()
-                .regex(
-                  /^[\w-]+\.(ttf|otf)$/,
-                  "a .ttf or .otf font file name like Inter-Regular.ttf (Metro and expo-font on native need these)",
-                ),
-              weight: z.int().min(100).max(900).multipleOf(100).default(400),
-            }),
-          )
-          .max(12)
-          .default([]),
-      })
-      .superRefine((t, ctx) => {
-        if (t.fonts.length === 0) return;
-        // Several weights per family are fine (D-057); the same family + weight twice is not.
-        const seen = new Set<string>();
-        for (const f of t.fonts) {
-          const key = `${f.family}@${f.weight}`;
-          if (seen.has(key))
-            ctx.addIssue({
-              code: "custom",
-              message: `font "${f.family}" weight ${f.weight} is listed twice`,
-              path: ["fonts"],
-            });
-          seen.add(key);
-        }
-        const families = new Set(t.fonts.map((f) => f.family));
-        for (const [key, name] of Object.entries(t.fontFamily)) {
-          if (name && !families.has(name))
-            ctx.addIssue({
-              code: "custom",
-              message: `fontFamily.${key} "${name}" is not in fonts`,
-              path: ["fontFamily", key],
-            });
-        }
-      }),
-    logo: z.string().startsWith("/"),
-    favicon: z.string().startsWith("/"),
-  }),
+  brand: z
+    .object({
+      tokens: z
+        .object({
+          // dark: required unless brand.darkMode is false (D-076).
+          colors: z.object({ light: colorScale, dark: colorScale.optional() }),
+          radius: z.string(),
+          fontFamily: z.object({ sans: z.string(), heading: z.string().optional() }),
+          // Everything below is optional; unset = the template's look (D-052).
+          /** Corner radius per element (CSS length). Unset: card/button/input/sheet = radius, chip = pill. */
+          radii: z
+            .object({ card: cssLength, button: cssLength, chip: cssLength, input: cssLength, sheet: cssLength })
+            .partial()
+            .default({}),
+          /** Height of buttons and inputs in px (44 is the minimum touch target). Unset = 48. */
+          controlHeight: z.int().min(44).max(72).optional(),
+          /** Card elevation. */
+          shadow: z.enum(["none", "soft", "lift"]).default("none"),
+          /** Spacing inside cards and screens. */
+          density: z.enum(["compact", "regular"]).default("regular"),
+          /** Font weights. Unset heading = h1 bold, h2/h3 semibold; unset body = normal. */
+          weights: z
+            .object({
+              heading: z.enum(["medium", "semibold", "bold", "extrabold"]).optional(),
+              body: z.enum(["normal", "medium"]).optional(),
+            })
+            .default({}),
+          /**
+           * Bundled font files, no calls to Google: app web + native load them with expo-font from
+           * apps/app/assets/fonts/<file>; the site self-hosts apps/site/public/fonts/<file>. Once any is
+           * listed, fontFamily.sans (body) and fontFamily.heading (headings) must name listed families.
+           */
+          fonts: z
+            .array(
+              z.object({
+                family: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9 ]{0,39}$/, "a font family name"),
+                file: z
+                  .string()
+                  .regex(
+                    /^[\w-]+\.(ttf|otf)$/,
+                    "a .ttf or .otf font file name like Inter-Regular.ttf (Metro and expo-font on native need these)",
+                  ),
+                weight: z.int().min(100).max(900).multipleOf(100).default(400),
+              }),
+            )
+            .max(12)
+            .default([]),
+        })
+        .superRefine((t, ctx) => {
+          if (t.fonts.length === 0) return;
+          // Several weights per family are fine (D-057); the same family + weight twice is not.
+          const seen = new Set<string>();
+          for (const f of t.fonts) {
+            const key = `${f.family}@${f.weight}`;
+            if (seen.has(key))
+              ctx.addIssue({
+                code: "custom",
+                message: `font "${f.family}" weight ${f.weight} is listed twice`,
+                path: ["fonts"],
+              });
+            seen.add(key);
+          }
+          const families = new Set(t.fonts.map((f) => f.family));
+          for (const [key, name] of Object.entries(t.fontFamily)) {
+            if (name && !families.has(name))
+              ctx.addIssue({
+                code: "custom",
+                message: `fontFamily.${key} "${name}" is not in fonts`,
+                path: ["fontFamily", key],
+              });
+          }
+        }),
+      logo: z.string().startsWith("/"),
+      favicon: z.string().startsWith("/"),
+      /**
+       * Whether the product has a dark mode (D-076). false = light only: no colors.dark needed, no
+       * .dark CSS, the app never switches to dark (no Tampilan row in Akun), the site loads no
+       * /theme.js, and both say color-scheme "light". Default true: today's behaviour.
+       */
+      darkMode: z.boolean().default(true),
+    })
+    .superRefine((b, ctx) => {
+      if (b.darkMode && !b.tokens.colors.dark)
+        ctx.addIssue({
+          code: "custom",
+          message: "colors.dark is required unless brand.darkMode is false",
+          path: ["tokens", "colors", "dark"],
+        });
+    })
+    // Light only: dark mirrors light, so code that picks a palette by scheme always gets one.
+    .transform((b) => ({
+      ...b,
+      tokens: {
+        ...b.tokens,
+        colors: { light: b.tokens.colors.light, dark: b.tokens.colors.dark ?? b.tokens.colors.light },
+      },
+    })),
   trial: z.object({ enabled: z.boolean(), days: z.int().min(1).max(90) }),
   plans: z
     .array(planSchema)
