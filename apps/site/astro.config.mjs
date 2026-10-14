@@ -2,10 +2,21 @@
 import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
+import product from "../../product.config";
 
-// SITE_URL is set by CI per environment (production / preview). Canonical URLs, the sitemap and
-// OG image URLs are built from it. product.config.ts `domain.site` replaces it once a domain exists.
-const site = process.env.SITE_URL ?? "https://factory-template-site.erdiprtm.workers.dev";
+// Canonical URLs, the sitemap and OG image URLs are built from `site`: the own domain on production
+// builds once `domain.site` is set (D-069), else SITE_URL from CI (workers.dev, so the smoke test
+// still reaches the site's own "/"; previews).
+const production = process.env.PUBLIC_APP_ENV === "production";
+const site =
+  production && product.domain.site
+    ? `https://${product.domain.site}`
+    : (process.env.SITE_URL ?? "https://factory-template-site.erdiprtm.workers.dev");
+// One domain (D-068): "/" belongs to the app there, so the site's own home stays out of the sitemap;
+// its copy at domain.anonymousHome is the landing search engines see.
+const oneDomain = production && product.domain.app !== null && product.domain.site === product.domain.app;
+/** @param {string} page */
+const isHome = (page) => new URL(page).pathname === "/";
 
 export default defineConfig({
   site,
@@ -29,7 +40,11 @@ export default defineConfig({
     },
   },
   // Ad landers (/l/…) are noindex: only reachable from ads, so they stay out of the sitemap too.
-  integrations: [sitemap({ filter: (page) => !page.includes("/og/") && !page.includes("/l/") })],
+  integrations: [
+    sitemap({
+      filter: (page) => !page.includes("/og/") && !page.includes("/l/") && !(oneDomain && isHome(page)),
+    }),
+  ],
   // Never inline scripts into HTML: the CSP allows script files from self only.
   vite: { plugins: [tailwindcss()], build: { assetsInlineLimit: 0 } },
 });

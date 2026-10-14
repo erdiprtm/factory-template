@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-import { analyticsClientId, appUrl, metaPixelId, product } from "../lib/site";
+import { analyticsClientId, appUrl, homeUrl, metaPixelId, product } from "../lib/site";
 
 interface Props {
   title: string;
@@ -51,12 +51,12 @@ const year = new Date().getFullYear();
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded-md focus:bg-background focus:p-2">Langsung ke konten</a>
     <header class="border-b border-border">
       <nav class="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4" aria-label="Utama">
-        <a href="/" class="text-lg font-bold">{product.name}</a>
+        <a href={homeUrl} class="text-lg font-bold">{product.name}</a>
         {
           !minimal && (
             <div class="flex items-center gap-1 text-sm sm:gap-4">
               <a href="/harga/" class="rounded-md px-2 py-2 text-muted-foreground hover:text-foreground">Harga</a>
-              <a href="/#faq" class="hidden rounded-md px-2 py-2 text-muted-foreground hover:text-foreground sm:inline">FAQ</a>
+              <a href="/harga/#faq" class="hidden rounded-md px-2 py-2 text-muted-foreground hover:text-foreground sm:inline">FAQ</a>
               <a href={`${appUrl}/sign-in`} data-event="signup_started" class="rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground hover:opacity-90">Masuk</a>
             </div>
           )

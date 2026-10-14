@@ -22,7 +22,7 @@ Write `specs/<slug>.plan.md`: one section per core feature (max 3) covering scre
 - **App:** `apps/app/src/features/<feature>/`, plus a route file in `src/app/(app)/`. Use `@factory/ui` components and `useI18n()`. Put the feature's strings in `apps/app/src/features/messages.ts` (both `id` and `en`, feature-prefixed keys), never in `src/core/i18n`. No browser-only APIs outside `*.web.tsx`.
 - **Uploads from the web app:** the app's CSP blocks `fetch(blob:)`, so turn a picked file into base64 and then a `Blob` (or `FormData`) in memory before posting it (D-044, D-049).
 - **User data (UU PDP):** every product table is exported and deleted with the account. Add it to `apps/api/src/features/user-data.ts` (`exportProductData`, `deleteProductData`), or give it `ON DELETE CASCADE` to `user.id` and still export it.
-- **Site:** landing copy in `apps/site/src/pages/index.astro` (marked PRODUCT-OWNED), SEO pages in `apps/site/src/content/seo/`.
+- **Site:** landing copy in `apps/site/src/pages/index.astro` (marked PRODUCT-OWNED), SEO pages in `apps/site/src/content/seo/` (served at `/artikel/<slug>/`).
 - **The product's look, without touching `packages/ui` or `core/`:**
   - Tokens go in `product.config.ts` `brand.tokens` (D-052): colors, `radius` and `radii` per element, `controlHeight`, `shadow`, `density`, `weights`, and bundled `fonts`. Put the font files in `apps/app/assets/fonts/` and `apps/site/public/fonts/`. Then run `pnpm theme`.
   - Component variants go in `apps/app/src/features/theme.ts` (D-053): class overrides per Button variant/size/label, Card, Badge, Input and Text variant, merged last with `cn()`.

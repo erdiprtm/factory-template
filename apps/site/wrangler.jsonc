@@ -11,7 +11,12 @@
     "not_found_handling": "404-page",
     "html_handling": "auto-trailing-slash"
   },
+  // One domain (D-068, D-069; docs/SETUP_HUMAN.md "Satu domain"): the app Worker owns the host
+  // (Custom Domain, set in the dashboard) and "routes" here send the site's paths to this Worker, e.g.
+  //   { "pattern": "app.example.id/harga*", "zone_name": "example.id" }
+  // test/one-domain.test.ts lists any that are missing or that would shadow an app screen.
   "env": {
-    "preview": {}
+    // Routes are inherited: previews never take the production domain.
+    "preview": { "routes": [] }
   }
 }

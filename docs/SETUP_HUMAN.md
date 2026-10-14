@@ -412,6 +412,34 @@ Biaya per panggilan tercatat di tabel `ai_usage` (micro-USD dari harga resmi). B
 
 ---
 
+## 12. Satu domain — app dan situs di satu alamat (per produk, opsional)
+
+Dengan pola ini app dan situs memakai satu alamat yang sama, misalnya `fit.domainmu.id`:
+
+- **Pelanggan:** mengetik domain itu dan langsung masuk ke app (sudah login).
+- **Orang baru:** yang belum login melihat halaman landing (`/mulai/`). Pengalihannya diatur oleh `domain.anonymousHome` (D-068).
+- **Halaman situs:** harga, artikel, lander iklan, dan halaman legal tetap dilayani oleh Worker situs.
+
+**Yang dikerjakan agent (di repo produk):**
+
+- `product.config.ts`: `domain: { app: "fit.domainmu.id", site: "fit.domainmu.id", anonymousHome: "/mulai/" }`.
+- `apps/api/wrangler.jsonc`: domain itu ditaruh paling depan di `AUTH_HOSTS`, supaya tautan di email memakai domain itu.
+- `apps/site/wrangler.jsonc`: `routes` untuk setiap path situs. Tes `apps/site/test/one-domain.test.ts` menyebutkan rute yang kurang atau yang menutupi layar app.
+
+**Yang kamu kerjakan (sekali per produk, setelah PR di atas merge):**
+
+1. **Hapus record DNS lama** untuk alamat itu, kalau ada (misalnya A record ke hosting lama). Caranya di Cloudflare: domain → **DNS** → **Records**.
+2. **Pasang Custom Domain ke Worker app** (bukan Worker situs): **Workers & Pages** → Worker `<slug>` → **Settings** → **Domains & Routes** → **Add** → **Custom domain** → isi alamatnya → **Add domain**.
+   - Lakukan ini **di dashboard saja**, jangan di `apps/api/wrangler.jsonc`. Kalau ditulis di sana, `wrangler dev` mengubah semua request lokal ke alamat produksi, sehingga login lokal dan E2E rusak.
+3. **Google login**: di Google Cloud (langkah 4 di atas), buat client baru untuk produk ini, atau tambahkan redirect URI di client yang sudah ada:
+   `https://fit.domainmu.id/api/auth/callback/google`
+4. **Cek**: buka alamatnya di jendela *incognito*.
+   - Harus muncul halaman landing (`/mulai/`).
+   - Setelah login, membuka alamat yang sama masuk ke app.
+   - `/harga/` menampilkan halaman harga dari situs.
+
+---
+
 ## Ringkasan: yang perlu disimpan di password manager
 
 | Dari | Nilai | Dipakai di fase |

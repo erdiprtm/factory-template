@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-14: One domain as a template pattern (D-069), Myna Fit feedback round 3 item 3
+
+- SEO pages at `/artikel/<slug>/`; FAQ link `/harga/#faq`; production builds use `product.domain`.
+- The landing at `domain.anonymousHome`; previews take no routes.
+- `apps/site/test/one-domain.test.ts` lists missing or shadowing routes. SETUP_HUMAN section 12 has the human steps.
+
+---
+
 ## 2026-10-14: One domain: the landing page at "/" for visitors without a session (D-068), Myna Fit feedback round 3 item 1
 
 - `domain.anonymousHome` (e.g. `/mulai/`). A page load of `/` without a session cookie on the production domain gets a 302 there, keeping the query string, and so does the app's guard at `/`.

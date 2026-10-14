@@ -5,13 +5,25 @@ export { product };
 const idr = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 export const formatIdr = idr;
 
-/** Where "Masuk" / "Mulai" buttons go. CI sets PUBLIC_APP_URL; falls back to the configured domain. */
-export const appUrl: string =
-  import.meta.env.PUBLIC_APP_URL ??
-  (product.domain.app ? `https://${product.domain.app}` : "https://factory-template.erdiprtm.workers.dev");
-
 /** "production" only on the production build; previews and local show the legal TEMPLATE banner. */
 export const isProduction = import.meta.env.PUBLIC_APP_ENV === "production";
+
+/**
+ * Where "Masuk" / "Mulai" buttons go: the app's own domain on production builds once it has one
+ * (D-069), else CI's PUBLIC_APP_URL (workers.dev, previews), else the configured domain.
+ */
+export const appUrl: string =
+  isProduction && product.domain.app
+    ? `https://${product.domain.app}`
+    : (import.meta.env.PUBLIC_APP_URL ??
+      (product.domain.app ? `https://${product.domain.app}` : "https://factory-template.erdiprtm.workers.dev"));
+
+/** App and site on one host (D-068, D-069): "/" there is the app's, the landing lives at anonymousHome. */
+export const oneDomain = product.domain.app !== null && product.domain.site === product.domain.app;
+
+/** The site's home link: the landing's own path on a one-domain production build, else "/". */
+export const homeUrl: string =
+  isProduction && oneDomain && product.domain.anonymousHome ? product.domain.anonymousHome : "/";
 
 /** OpenPanel client ID, only on production builds: previews and dev send nothing. */
 export const analyticsClientId = (isProduction && product.analytics.openpanelClientId) || undefined;
