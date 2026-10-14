@@ -30,6 +30,21 @@
         "app": "https://myna-fit.erdiprtm.workers.dev",
         "site": "https://myna-fit-site.erdiprtm.workers.dev"
       }
+    },
+    {
+      "slug": "myna-flow",
+      "name": "Myna Flow",
+      "repo": "erdiprtm/myna-flow",
+      "status": "building",
+      "spec": "https://github.com/erdiprtm/myna-flow/blob/main/docs/SPEC.md",
+      "launchDate": null,
+      "reviewDate": null,
+      "metricTargets": {},
+      "killCriteria": "fewer than 30 paying users, or blended CAC above Rp300.000 after at least Rp3.000.000 of ad spend. Then stop the ads and rework the funnel or positioning with Erdi.",
+      "urls": {
+        "app": "https://myna-flow.erdiprtm.workers.dev",
+        "site": "https://myna-flow-site.erdiprtm.workers.dev"
+      }
     }
   ]
 }
