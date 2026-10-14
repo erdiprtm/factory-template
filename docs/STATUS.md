@@ -4,6 +4,9 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: `brand.darkMode` for light-only products (D-076), Myna Fit feedback round 5 item 3
+
+- `darkMode: false`: no `colors.dark` needed, no `.dark` CSS, no Tampilan row in Akun, app never dark, site loads no `/theme.js`, and app and site say `color-scheme: light`. Default `true` changes nothing.
 ## 2026-10-14: Secret steps that work from the Run button (D-072), Myna Fit feedback round 4 item 3
 
 - SETUP_HUMAN 2a and every secret step: one `pbpaste | pnpm --filter @factory/api exec wrangler versions secret put …` command per block, `--env=""` for production. The same rule is in CLAUDE.md for agents.

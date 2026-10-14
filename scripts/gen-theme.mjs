@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Generates files derived from product.config.ts:
-// - design-token CSS (light + dark): apps/app/global.css (Tailwind v3 directives + tokens) and
+// - design-token CSS (light + dark, or light only with brand.darkMode false, D-076): apps/app/global.css (Tailwind v3 directives + tokens) and
 //   apps/site/src/styles/tokens.css (tokens only);
 // - apps/app/src/core/product.generated.json: the validated config (Zod defaults applied). Metro
 //   serves it in place of product.config.ts, so the app bundle doesn't ship Zod (D-031);
@@ -65,8 +65,11 @@ export function sizeVars(tokens) {
   };
 }
 
-/** The token block: light in :root, dark in .dark:root (class on <html>). */
-export function renderTokens(tokens) {
+/**
+ * The token block: light in :root, dark in .dark:root (class on <html>). darkMode false (D-076):
+ * light only, no .dark block.
+ */
+export function renderTokens(tokens, darkMode = true) {
   const block = (colors) =>
     Object.entries(colors)
       .map(([k, v]) => `    --${kebab(k)}: ${hexToHslChannels(v)};`)
@@ -78,19 +81,22 @@ export function renderTokens(tokens) {
     `    --radius: ${tokens.radius};`,
     ...Object.entries(sizeVars(tokens)).map(([k, v]) => `    --${k}: ${v};`),
     "  }",
-    "  .dark:root {",
-    block(tokens.colors.dark),
-    "  }",
+    ...(darkMode ? ["  .dark:root {", block(tokens.colors.dark), "  }"] : []),
     "}",
     "",
   ].join("\n");
 }
 
 /** apps/app/global.css: Tailwind v3 directives (NativeWind) + tokens. */
-export function renderTheme(tokens) {
-  return [HEADER, "@tailwind base;", "@tailwind components;", "@tailwind utilities;", "", renderTokens(tokens)].join(
-    "\n",
-  );
+export function renderTheme(tokens, darkMode = true) {
+  return [
+    HEADER,
+    "@tailwind base;",
+    "@tailwind components;",
+    "@tailwind utilities;",
+    "",
+    renderTokens(tokens, darkMode),
+  ].join("\n");
 }
 
 const formatOf = (file) =>
@@ -139,8 +145,8 @@ export function renderAppFonts(tokens) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const { default: product } = await import("../product.config.ts");
   const files = {
-    [OUTPUTS.app]: renderTheme(product.brand.tokens),
-    [OUTPUTS.site]: `${HEADER}\n${renderFontFaces(product.brand.tokens)}${renderTokens(product.brand.tokens)}`,
+    [OUTPUTS.app]: renderTheme(product.brand.tokens, product.brand.darkMode),
+    [OUTPUTS.site]: `${HEADER}\n${renderFontFaces(product.brand.tokens)}${renderTokens(product.brand.tokens, product.brand.darkMode)}`,
     [OUTPUTS.appConfig]: `${JSON.stringify(product, null, 2)}\n`,
     [OUTPUTS.appFonts]: renderAppFonts(product.brand.tokens),
   };
