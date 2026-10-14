@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-14: Local E2E with 2 workers and 10 s expects (D-071), Myna Fit feedback round 4 item 2
+
+- A busy laptop no longer fails random specs on 5 s timeouts. `PW_WORKERS` overrides the worker count. CI is unchanged.
+
+---
+
 ## 2026-10-14: One domain as a template pattern (D-069), Myna Fit feedback round 3 item 3
 
 - SEO pages at `/artikel/<slug>/`; FAQ link `/harga/#faq`; production builds use `product.domain`.
