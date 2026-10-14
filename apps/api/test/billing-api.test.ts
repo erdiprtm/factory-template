@@ -91,6 +91,7 @@ describe("checkout → webhook → access", () => {
     expect(await db.select().from(entitlements).where(eq(entitlements.paymentId, paymentId))).toHaveLength(1);
     expect((await get(PAID, cookie)).status).toBe(200);
     expect(capturedEmails().last(email)?.subject).toMatch(/Pembayaran .* berhasil/);
+    expect(capturedEmails().last(email)?.replyTo).toBe(config.legal.contactEmail);
 
     const history = await (await get("/api/billing/history", cookie)).json<{ payments: { id: string }[] }>();
     expect(history.payments.map((p) => p.id)).toContain(paymentId);
@@ -128,6 +129,7 @@ describe("cron", () => {
     expect(first.expired).toBeGreaterThanOrEqual(1);
     expect((await db.select().from(payments).where(eq(payments.id, paymentId)).get())?.status).toBe("expired");
     expect(capturedEmails().last(email)?.subject).toMatch(/berakhir dalam 7 hari/);
+    expect(capturedEmails().last(email)?.replyTo).toBe(config.legal.contactEmail);
 
     await runScheduled(env, now);
     const sent = await db

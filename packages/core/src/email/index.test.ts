@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CaptureProvider, emailProvider, ResendProvider } from "./index";
+import { CaptureProvider, capturedEmails, emailProvider, ResendProvider } from "./index";
 
 describe("emailProvider", () => {
   it("captures in development and test", () => {
@@ -12,6 +12,45 @@ describe("emailProvider", () => {
   });
   it("uses Resend when a key is set", () => {
     expect(emailProvider({ APP_ENV: "production", RESEND_API_KEY: "re_x" })).toBeInstanceOf(ResendProvider);
+  });
+});
+
+describe("Reply-To (D-067)", () => {
+  const sent = () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: "1" }), { status: 200 }));
+    const body = () => JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+    return { fetchMock, body };
+  };
+  const mail = { to: "u@x.id", subject: "Hi", text: "t" };
+
+  it("Resend gets reply_to when set and no such field when unset", async () => {
+    const a = sent();
+    await new ResendProvider("k", "f", a.fetchMock).send({ ...mail, replyTo: "halo@brand.id" });
+    expect(a.body().reply_to).toBe("halo@brand.id");
+    const b = sent();
+    await new ResendProvider("k", "f", b.fetchMock).send(mail);
+    expect(b.body()).not.toHaveProperty("reply_to");
+  });
+
+  it("MAIL_REPLY_TO wins over the default; the default applies when it's unset or empty; none = no header", async () => {
+    const capture = capturedEmails();
+    const env = { APP_ENV: "test" };
+    await emailProvider({ ...env, MAIL_REPLY_TO: "cs@brand.id" }, "halo@brand.id").send(mail);
+    expect(capture.last("u@x.id")?.replyTo).toBe("cs@brand.id");
+    await emailProvider({ ...env, MAIL_REPLY_TO: "" }, "halo@brand.id").send(mail);
+    expect(capture.last("u@x.id")?.replyTo).toBe("halo@brand.id");
+    await emailProvider(env).send(mail);
+    expect(capture.last("u@x.id")?.replyTo).toBeUndefined();
+    // An email that names its own Reply-To keeps it.
+    await emailProvider(env, "halo@brand.id").send({ ...mail, replyTo: "billing@brand.id" });
+    expect(capture.last("u@x.id")?.replyTo).toBe("billing@brand.id");
+  });
+
+  it("the dev log shows it", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    await emailProvider({ APP_ENV: "development" }, "halo@brand.id").send(mail);
+    expect(log.mock.calls.at(-1)?.[0]).toContain("reply-to=halo@brand.id");
+    log.mockRestore();
   });
 });
 
