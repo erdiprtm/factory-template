@@ -1,5 +1,6 @@
 import registry from "../../../../factory.json";
 import product from "../../../../product.config";
+import { aiProcessorLine, fillTemplate } from "./legal";
 import { appUrlFor } from "./urls.mjs";
 
 export { product };
@@ -49,8 +50,9 @@ export function fillPlaceholders(text: string): string {
     planList: product.plans.map((p) => `${p.label} (${idr(p.priceIdr)})`).join(", "),
     refundPolicy: product.legal.refundPolicy,
     productDataDescription: product.legal.productDataDescription,
+    aiProcessor: aiProcessorLine(product.ai),
   };
-  return text.replace(/\{\{(\w+)\}\}/g, (match, key: string) => values[key] ?? match);
+  return fillTemplate(text, values);
 }
 
 export const faqs = [

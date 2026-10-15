@@ -4,6 +4,15 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: AI providers OpenRouter (D-083) and Gemini direct (D-084), Myna Fit scan accuracy
+
+- `ai.provider` is now `"openai" | "openrouter" | "gemini"` (`"openai"` unchanged). OpenRouter: one key for comparing models, `fallbackModels`, private routing by default (`data_collection: "deny"`, `require_parameters`, ZDR on with `legal.sensitiveDataConsent`), cost from OpenRouter's `usage.cost`. Gemini: the Interactions API, `store: false`, `thinking` and `mediaResolution`, no tools or search grounding.
+- Both re-validate the answer against the schema on the server (`schemaError`): a non-conforming answer is `bad_output`. Safety blocks are `refused`. Budgets, `ai_usage` rows, the mock in CI/preview and "no key → 503 in production" work as before. `aiProvider()` stays the one place a provider is built.
+- The privacy policy's processor list names the configured AI processor (`{{aiProcessor}}`).
+- **Human (per product using one):** OpenRouter privacy settings + key with a credit limit (`SETUP_HUMAN.md` 11b), or a paid "Myna Health" Gemini project with a spend cap (11c). Lawyer: Gemini terms note in D-084.
+
+---
+
 ## 2026-10-15: One filled button on the payment success screen (D-081)
 
 - While the install card shows, "Ke beranda" is outlined, so "Pasang" is the one primary action.

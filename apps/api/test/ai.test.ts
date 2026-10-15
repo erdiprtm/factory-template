@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { mockProvider } from "@factory/core/ai";
+import { type AiProvider, mockProvider } from "@factory/core/ai";
 import {
   ANONYMOUS_AI_USAGE_DAYS,
   aiCallsSince,
@@ -10,6 +10,7 @@ import {
 } from "@factory/core/ai/usage";
 import { anonKey } from "@factory/core/quota";
 import { schema } from "@factory/db";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
 import { aiProvider } from "../src/core/ai";
@@ -111,6 +112,72 @@ describe("AI provider choice", () => {
     expect(aiProvider({ APP_ENV: "preview" }, mock, ai)?.name).toBe("mock");
     expect(aiProvider({ APP_ENV: "production" }, mock, ai)).toBeNull();
     expect(aiProvider({ APP_ENV: "development", OPENAI_API_KEY: "sk-x" }, mock, null)).toBeNull();
+  });
+
+  // OpenRouter (D-083) and Gemini (D-084): the same rule, each with its own key only.
+  const openrouter = {
+    provider: "openrouter" as const,
+    model: "google/gemini-3.8-flash",
+    fallbackModels: [],
+    routing: { requireParameters: true, dataCollection: "deny" as const, zdr: true },
+    prices: {},
+    tier: "default" as const,
+    perUserPerDay: 20,
+    anonymousPerDay: 300,
+  };
+  const gemini = {
+    provider: "gemini" as const,
+    model: "gemini-3.8-flash",
+    tier: "default" as const,
+    perUserPerDay: 20,
+    anonymousPerDay: 300,
+  };
+
+  it("uses OpenRouter or Gemini with their own key, the mock without it outside production, nothing in production", () => {
+    expect(aiProvider({ APP_ENV: "production", OPENROUTER_API_KEY: "or-x" }, mock, openrouter)?.name).toBe(
+      "openrouter",
+    );
+    expect(aiProvider({ APP_ENV: "production", GEMINI_API_KEY: "g-x" }, mock, gemini)?.name).toBe("gemini");
+    for (const ai of [openrouter, gemini]) {
+      expect(aiProvider({ APP_ENV: "preview" }, mock, ai)?.name).toBe("mock");
+      expect(aiProvider({ APP_ENV: "development" }, mock, ai)?.name).toBe("mock");
+      expect(aiProvider({ APP_ENV: "production" }, mock, ai)).toBeNull();
+      // Another provider's key never stands in.
+      expect(aiProvider({ APP_ENV: "production", OPENAI_API_KEY: "sk-x" }, mock, ai)).toBeNull();
+    }
+    expect(aiProvider({ APP_ENV: "production", GEMINI_API_KEY: "g-x" }, mock, ai)).toBeNull();
+  });
+
+  it("builds the configured provider with AI_MODEL and an injected fetch, and logs its cost per call", async () => {
+    const urls: string[] = [];
+    const fetch = (async (url: RequestInfo | URL, init?: RequestInit) => {
+      urls.push(String(url));
+      const model = JSON.parse(String(init?.body)).model;
+      return new Response(
+        JSON.stringify({
+          model,
+          choices: [{ finish_reason: "stop", message: { content: '{"label":"nasi"}' } }],
+          usage: { prompt_tokens: 100, completion_tokens: 20, cost: 0.000321 },
+        }),
+      );
+    }) as typeof globalThis.fetch;
+    const p = aiProvider(
+      { APP_ENV: "production", OPENROUTER_API_KEY: "or-x", AI_MODEL: "openai/gpt-6-luna" },
+      mock,
+      openrouter,
+      { fetch },
+    );
+    const req = { system: "s", text: "t", schema: { name: "t", schema: { type: "object" } } };
+    const user = `user-${crypto.randomUUID()}`;
+    for (let i = 0; i < 2; i++) {
+      const result = await (p as AiProvider).json(req);
+      expect(result).toMatchObject({ ok: true, model: "openai/gpt-6-luna", costMicroUsd: 321 });
+      await recordAiUsage(db, { userId: user, feature: "or_test", result });
+    }
+    expect(urls).toEqual(Array(2).fill("https://openrouter.ai/api/v1/chat/completions"));
+    expect(await aiCallsSince(db, user, since())).toBe(2);
+    const rows = await db.select().from(schema.aiUsage).where(eq(schema.aiUsage.userId, user));
+    expect(rows.map((r) => r.costMicroUsd)).toEqual([321, 321]);
   });
 
   it("answers 503 on a feature-capped route when the product has no AI", async () => {

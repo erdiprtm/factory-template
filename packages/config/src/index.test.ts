@@ -148,4 +148,65 @@ describe("defineProduct", () => {
       }
     });
   });
+
+  describe("ai providers (D-083, D-084)", () => {
+    const withAi = (ai: unknown, sensitiveDataConsent = false) =>
+      defineProduct({ ...base, legal: { ...base.legal, sensitiveDataConsent }, ai } as ProductConfigInput);
+
+    it("openai keeps its shape and defaults", () => {
+      expect(withAi({ provider: "openai", model: "gpt-6-luna" }).ai).toEqual({
+        provider: "openai",
+        model: "gpt-6-luna",
+        tier: "default",
+        perUserPerDay: 20,
+        anonymousPerDay: 300,
+      });
+    });
+
+    it("openrouter: private routing by default, zdr on with sensitive data", () => {
+      const ai = withAi({ provider: "openrouter", model: "google/gemini-3.8-flash" }).ai;
+      expect(ai).toMatchObject({
+        provider: "openrouter",
+        fallbackModels: [],
+        prices: {},
+        tier: "default",
+        routing: { requireParameters: true, dataCollection: "deny", zdr: false },
+      });
+      const health = withAi({ provider: "openrouter", model: "google/gemini-3.8-flash" }, true).ai;
+      expect(health?.provider === "openrouter" && health.routing.zdr).toBe(true);
+      // An explicit choice wins, and re-parsing a parsed config gives the same result.
+      const off = withAi({ provider: "openrouter", model: "google/gemini-3.8-flash", routing: { zdr: false } }, true);
+      expect(off.ai?.provider === "openrouter" && off.ai.routing.zdr).toBe(false);
+      expect(defineProduct(JSON.parse(JSON.stringify(off))).ai).toEqual(off.ai);
+    });
+
+    it("openrouter: rejects bad slugs and free models", () => {
+      for (const model of ["gemini-3.8-flash", "Google/Gemini", "google/gemini-3.8-flash:free"])
+        expect(() => withAi({ provider: "openrouter", model }), model).toThrow(/Invalid product.config.ts/);
+      expect(() =>
+        withAi({ provider: "openrouter", model: "google/gemini-3.8-flash", fallbackModels: ["x/y:free"] }),
+      ).toThrow(/free OpenRouter models/);
+    });
+
+    it("gemini: a Gemini model id with the documented knobs", () => {
+      expect(
+        withAi({ provider: "gemini", model: "gemini-3.8-flash", thinking: "low", mediaResolution: "high" }).ai,
+      ).toEqual({
+        provider: "gemini",
+        model: "gemini-3.8-flash",
+        thinking: "low",
+        mediaResolution: "high",
+        tier: "default",
+        perUserPerDay: 20,
+        anonymousPerDay: 300,
+      });
+      for (const bad of [
+        { model: "gpt-6-luna" },
+        { model: "gemini-3.8-flash", thinking: "max" },
+        { model: "gemini-3.8-flash", tier: "fast" },
+      ])
+        expect(() => withAi({ provider: "gemini", ...bad }), JSON.stringify(bad)).toThrow(/Invalid product.config.ts/);
+      expect(() => withAi({ provider: "anthropic", model: "x" })).toThrow(/Invalid product.config.ts/);
+    });
+  });
 });

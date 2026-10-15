@@ -454,6 +454,46 @@ Biaya per panggilan tercatat di tabel `ai_usage` (micro-USD dari harga resmi). B
 
 ---
 
+## 11b. OpenRouter — satu key untuk banyak model (per produk, hanya kalau `ai.provider` = `"openrouter"`, D-083)
+
+Dipakai untuk membandingkan model (misalnya Gemini lawan GPT) dengan satu key. Tanpa key: lokal dan preview memakai jawaban tiruan, produksi menjawab "sedang tidak tersedia".
+
+1. Buka <https://openrouter.ai> → masuk → **Credits** → isi saldo (misalnya US$10). Pembelian lewat kartu kena biaya sekitar 5,5%. Kalau saldo habis, OpenRouter menolak (402) dan log mencatat `quota`.
+2. **Privasi** (<https://openrouter.ai/settings/privacy>). Wajib, karena produk mengirim foto dan data pengguna:
+   - **Matikan** semua pilihan yang mengizinkan penyedia yang **boleh melatih model** dengan data kamu (untuk model berbayar dan gratis).
+   - **Nyalakan ZDR** (Zero Data Retention: penyedia tidak menyimpan data) untuk semua grup model, terutama kalau produk memakai data kesehatan. Kode juga meminta ZDR di setiap panggilan (`routing.zdr`), tapi pengaturan akun adalah pengaman kedua.
+   - **Matikan** "OpenRouter Use of Inputs/Outputs" (diskon 1% tidak sebanding).
+   - Di **Observability**, pastikan **Private Input & Output Logging** **mati**, supaya isi permintaan tidak tersimpan di log OpenRouter.
+3. **Settings → API Keys → Create key**. Beri nama `<slug>-production`. Isi **credit limit** (batas belanja key ini, misalnya US$20, reset bulanan kalau pilihannya ada). Key hanya muncul sekali. **Jangan kirim ke chat.** Salin key-nya, lalu Run di repo produk (cara di langkah 2a):
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put OPENROUTER_API_KEY --env=""
+   ```
+   Untuk mencoba model sungguhan di preview (opsional, memakai saldo), buat key kedua `<slug>-preview` dengan limit kecil dan jalankan yang sama dengan `--env preview`.
+4. Secret baru aktif pada rilis produksi berikutnya lewat CI.
+
+Biaya per panggilan diambil dari jawaban OpenRouter sendiri (`usage.cost`) dan tercatat di `ai_usage`.
+
+---
+
+## 11c. Gemini API langsung dari Google (per produk, hanya kalau `ai.provider` = `"gemini"`, D-084)
+
+Satu pemroses data lebih sedikit dan tanpa biaya perantara. **Hanya pakai key dari project berbayar.** Di tingkat gratis, Google boleh memakai isi permintaan untuk melatih model dan **manusia bisa membacanya**. Syarat Google melarang data pribadi dikirim ke layanan gratis.
+
+1. Buka <https://aistudio.google.com> → **Projects** → buat (atau impor dari Google Cloud) project bernama **"Myna Health"** (atau nama perusahaan/produk).
+2. Di kolom **Billing Tier** project itu → **Set up billing** → pilih atau buat akun Cloud Billing perusahaan. Pilih **Prepay** kalau ditawarkan (minimal US$5; saldo habis = permintaan ditolak, tidak ada tagihan kejutan). Kalau saldo habis, log mencatat `quota`.
+3. **Pastikan berbayar:** di halaman **API keys**, kolom **Plan** untuk project itu harus **Paid**. Kalau masih Free, jangan lanjut.
+4. **Batas belanja:** halaman **Spend** → **Monthly spend cap** → **Edit spend cap** (misalnya US$20). Fitur ini masih eksperimental dan bisa telat sekitar 10 menit, jadi pasang juga **budget alert** di Google Cloud Console → **Billing** → **Budgets & alerts** (email di 50%, 90%, 100%).
+5. **API keys → Create API key** di project berbayar itu. Key hanya muncul sekali. **Jangan kirim ke chat.** Salin key-nya, lalu Run di repo produk (cara di langkah 2a):
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put GEMINI_API_KEY --env=""
+   ```
+   Untuk mencoba di preview (opsional, memakai saldo), jalankan yang sama dengan `--env preview`.
+6. Secret baru aktif pada rilis produksi berikutnya lewat CI.
+
+Kode mengirim `store: false`, jadi Google tidak menyimpan percakapan (tanpa itu disimpan 55 hari). Google tetap menyimpan log terbatas untuk mendeteksi penyalahgunaan. **Untuk pengacara:** syarat Gemini API menyebut layanan untuk keperluan profesional/bisnis, pengguna 18+, dan bukan untuk nasihat medis. Lihat D-084.
+
+---
+
 ## 12. Satu domain — app dan situs di satu alamat (per produk, opsional)
 
 Dengan pola ini app dan situs memakai satu alamat yang sama, misalnya `fit.domainmu.id`:
@@ -504,5 +544,7 @@ Tidak perlu akun atau kunci apa pun. Coba di URL preview PR atau di produksi (ha
 | OpenPanel | Client ID | 6–7 |
 | Sentry | DSN web, DSN api | 7 |
 | OpenAI (per produk) | API key (project produk) | saat produk memakai AI |
+| OpenRouter (per produk) | API key dengan credit limit | saat `ai.provider` = `"openrouter"` |
+| Google AI Studio (per produk) | Gemini API key (project berbayar) | saat `ai.provider` = `"gemini"` |
 
 Nama variabel persisnya akan ada di `.dev.vars.example` saat fasenya tiba.

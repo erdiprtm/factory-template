@@ -1,9 +1,23 @@
 // AI provider adapter (D-045): one JSON answer from text + an optional image, behind an interface,
-// so products never call a model API directly. OpenAI's Responses API first; a mock for local dev,
-// tests and E2E. Pure apart from the injected fetch.
+// so products never call a model API directly. OpenAI's Responses API, OpenRouter (D-083) and the
+// Gemini API (D-084); a mock for local dev, tests and E2E. Pure apart from the injected fetch.
 //
 // Products ask the model to recognise or extract, never to supply facts or numbers shown to users
-// (CLAUDE.md product guardrails): those come from curated data in the product.
+// (CLAUDE.md product guardrails): those come from curated data in the product. No provider is ever
+// given tools or search grounding, and the user's text never goes inside the instructions.
+
+import { type AiPrice, base64, priceMicroUsd } from "./wire";
+
+export {
+  type GeminiResolution,
+  type GeminiThinking,
+  geminiBody,
+  geminiFailureOf,
+  geminiProvider,
+} from "./gemini";
+export { type OpenRouterRouting, openRouterBody, openRouterFailureOf, openRouterProvider } from "./openrouter";
+export { geminiSchema, schemaError } from "./schema";
+export type { AiPrice } from "./wire";
 
 export type AiTier = "default" | "fast";
 
@@ -31,8 +45,20 @@ export type AiUsage = { inputTokens: number; cachedInputTokens: number; outputTo
 /** Why a call gave no answer. quota = the provider account is out of credit (a human tops it up). */
 export type AiFailure = "quota" | "rate_limited" | "unavailable" | "bad_request" | "bad_output" | "refused";
 
+/**
+ * costMicroUsd: the call's cost as the provider reported it (OpenRouter, D-083), in micro-USD, or
+ * null when it reported none and no price is known. Absent = priced from the tables below.
+ */
 export type AiResult =
-  | { ok: true; output: unknown; model: string; tier: AiTier; usage: AiUsage; latencyMs: number }
+  | {
+      ok: true;
+      output: unknown;
+      model: string;
+      tier: AiTier;
+      usage: AiUsage;
+      latencyMs: number;
+      costMicroUsd?: number | null;
+    }
   | {
       ok: false;
       error: AiFailure;
@@ -41,41 +67,63 @@ export type AiResult =
       usage: AiUsage | null;
       latencyMs: number;
       detail?: string;
+      costMicroUsd?: number | null;
     };
 
+export type AiProviderName = "openai" | "openrouter" | "gemini" | "mock";
+
 export interface AiProvider {
-  readonly name: "openai" | "mock";
+  readonly name: AiProviderName;
   json(req: AiJsonRequest): Promise<AiResult>;
 }
 
 // ---- Prices ---------------------------------------------------------------------------------
 // USD per 1M tokens, standard tier, short context. Source: OpenAI pricing page, read 2026-10-12.
 // Fast mode costs exactly twice these. Re-check before changing a product's model.
-export const OPENAI_PRICES: Readonly<Record<string, { input: number; cachedInput: number; output: number }>> = {
+export const OPENAI_PRICES: Readonly<Record<string, AiPrice>> = {
   "gpt-6-luna": { input: 0.1, cachedInput: 0.01, output: 0.5 },
   "gpt-6-sol": { input: 2, cachedInput: 0.2, output: 10 },
   "gpt-6.1-sol": { input: 2, cachedInput: 0.1, output: 10 },
   "gpt-6-astra": { input: 10, cachedInput: 1, output: 50 },
 };
 
+// Gemini API, Paid tier, standard (not Batch/Flex), USD per 1M tokens; output includes thinking
+// tokens. Source: ai.google.dev/gemini-api/docs/pricing, read 2026-10-15. Some prices change on a
+// date, so each model lists periods (`since`: first day, UTC). gemini-3.1-pro-preview: the
+// ≤200k-token prompt price (our calls are far below). Re-check before changing a product's model.
+export const GEMINI_PRICES: Readonly<Record<string, readonly (AiPrice & { since?: string })[]>> = {
+  "gemini-3.8-flash": [
+    { input: 0.75, cachedInput: 0.075, output: 3.75 },
+    { since: "2027-01-01", input: 1.5, cachedInput: 0.15, output: 7.5 },
+  ],
+  "gemini-3.6-flash": [
+    { input: 0.75, cachedInput: 0.075, output: 3.75 },
+    { since: "2027-01-01", input: 1.5, cachedInput: 0.15, output: 7.5 },
+  ],
+  "gemini-3.5-flash-lite": [{ input: 0.3, cachedInput: 0.03, output: 2.5 }],
+  "gemini-4-argon": [
+    { input: 2, cachedInput: 0.1, output: 10 },
+    { since: "2026-12-01", input: 4, cachedInput: 0.2, output: 20 },
+  ],
+  "gemini-3.1-pro-preview": [{ input: 2, cachedInput: 0.2, output: 12 }],
+};
+
+/** A Gemini model's price on a day, or undefined for an unknown model. */
+export function geminiPrice(model: string, at: Date): AiPrice | undefined {
+  const day = at.toISOString().slice(0, 10);
+  return GEMINI_PRICES[model]?.filter((p) => !p.since || p.since <= day).at(-1);
+}
+
 /** Cost of one call in micro-USD (1e-6 USD), or null for a model without a known price. */
-export function costMicroUsd(model: string, tier: AiTier, usage: AiUsage): number | null {
-  const p = OPENAI_PRICES[model];
+export function costMicroUsd(model: string, tier: AiTier, usage: AiUsage, at = new Date()): number | null {
+  const p = OPENAI_PRICES[model] ?? geminiPrice(model, at);
   if (!p) return null;
-  const uncached = Math.max(0, usage.inputTokens - usage.cachedInputTokens);
-  const usd = (uncached * p.input + usage.cachedInputTokens * p.cachedInput + usage.outputTokens * p.output) / 1e6;
-  return Math.round(usd * (tier === "fast" ? 2 : 1) * 1e6);
+  return priceMicroUsd(p, usage, tier === "fast" ? 2 : 1);
 }
 
 // ---- OpenAI ---------------------------------------------------------------------------------
 
 const OPENAI_RESPONSES = "https://api.openai.com/v1/responses";
-
-function base64(bytes: Uint8Array): string {
-  let s = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(s);
-}
 
 /** The Responses API request body (exported for tests). Not stored at OpenAI (`store: false`). */
 export function openAiBody(model: string, tier: AiTier, req: AiJsonRequest) {

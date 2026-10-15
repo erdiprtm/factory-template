@@ -1,5 +1,14 @@
+import type { ProductConfig } from "@factory/config";
 import { config } from "@factory/config/product";
-import { type AiJsonRequest, type AiProvider, type AiResult, mockProvider, openAiProvider } from "@factory/core/ai";
+import {
+  type AiJsonRequest,
+  type AiProvider,
+  type AiResult,
+  geminiProvider,
+  mockProvider,
+  openAiProvider,
+  openRouterProvider,
+} from "@factory/core/ai";
 import { aiCallsSince, anonymousAiCallsSince, recordAiUsage } from "@factory/core/ai/usage";
 import { anonKey } from "@factory/core/quota";
 import { schema } from "@factory/db";
@@ -11,27 +20,67 @@ import { anonIdOf } from "./access";
 import type { SessionUser } from "./auth";
 
 export type AiEnv = {
-  /** OpenAI API key (Wrangler secret; SETUP_HUMAN step 11). Without it: the mock outside production. */
+  /** OpenAI API key, for ai.provider "openai" (Wrangler secret; SETUP_HUMAN step 11). */
   OPENAI_API_KEY?: string;
+  /** OpenRouter API key, for ai.provider "openrouter" (D-083; SETUP_HUMAN step 11b). */
+  OPENROUTER_API_KEY?: string;
+  /** Gemini API key from a paid project, for ai.provider "gemini" (D-084; SETUP_HUMAN step 11c). */
+  GEMINI_API_KEY?: string;
   /** Overrides product.config.ts ai.model without a code change (e.g. to try a new model). */
   AI_MODEL?: string;
   APP_ENV: string;
 };
 
+/** product.config.ts `ai` (a test or `pnpm ai:eval` may pass another). No provider = "openai". */
+export type AiSettings =
+  | NonNullable<ProductConfig["ai"]>
+  | { provider?: "openai"; model: string; tier: "default" | "fast" };
+
 /**
- * The product's AI provider (D-045): OpenAI when OPENAI_API_KEY is set, otherwise the product's
- * mock in development, test and preview. Production without a key gets null, and the route answers
- * 503: a missing key must never fall back to fake results in front of paying users.
+ * The product's AI provider (D-045, D-083, D-084), the one place a provider is built from config:
+ * the configured provider when its key is set, otherwise the product's mock in development, test
+ * and preview. Production without the key gets null, and the route answers 503: a missing key must
+ * never fall back to fake results in front of paying users. Only the configured provider's key
+ * counts: an OpenAI key doesn't make a Gemini product call OpenAI.
  */
 export function aiProvider(
   env: AiEnv,
   mock: (req: AiJsonRequest) => unknown,
-  ai: { model: string; tier: "default" | "fast" } | null = config.ai,
+  ai: AiSettings | null = config.ai,
+  opts: { fetch?: typeof fetch } = {},
 ): AiProvider | null {
   if (!ai) return null;
-  const key = env.OPENAI_API_KEY?.trim();
-  if (key) return openAiProvider({ apiKey: key, model: env.AI_MODEL?.trim() || ai.model, tier: ai.tier });
-  return env.APP_ENV === "production" ? null : mockProvider(mock);
+  const model = env.AI_MODEL?.trim() || ai.model;
+  const real = (): AiProvider | null => {
+    if (ai.provider === "openrouter") {
+      const apiKey = env.OPENROUTER_API_KEY?.trim();
+      return apiKey
+        ? openRouterProvider({
+            apiKey,
+            model,
+            fallbackModels: ai.fallbackModels,
+            routing: ai.routing,
+            prices: ai.prices,
+            fetch: opts.fetch,
+          })
+        : null;
+    }
+    if (ai.provider === "gemini") {
+      const apiKey = env.GEMINI_API_KEY?.trim();
+      return apiKey
+        ? geminiProvider({
+            apiKey,
+            model,
+            thinking: ai.thinking,
+            mediaResolution: ai.mediaResolution,
+            fetch: opts.fetch,
+          })
+        : null;
+    }
+    const apiKey = env.OPENAI_API_KEY?.trim();
+    return apiKey ? openAiProvider({ apiKey, model, tier: ai.tier, fetch: opts.fetch }) : null;
+  };
+  return real() ?? (env.APP_ENV === "production" ? null : mockProvider(mock));
 }
 
 const DAY_MS = 86_400_000;
