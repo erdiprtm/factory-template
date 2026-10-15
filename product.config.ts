@@ -76,6 +76,8 @@ export default defineProduct({
     methods: ["QRIS", "DANA", "SHOPEEPAY", "OVO", "VIRTUAL_ACCOUNT"],
   },
   legal: { companyName: "PT Contoh Studio", contactEmail: "halo@example.com", sensitiveDataConsent: false },
+  // The sign-in email also carries a 6-digit code, for people who open the link in another app (D-079).
+  auth: { emailCode: true },
   admin: { emails: [] },
   // Template's own OpenPanel project. /new-product clears it: each product gets its own project.
   analytics: { openpanelClientId: "30b591cb-a810-42a6-a9cc-97f12a263446" },

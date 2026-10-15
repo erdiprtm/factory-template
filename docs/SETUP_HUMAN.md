@@ -365,6 +365,10 @@ Sumber: <https://resend.com/pricing>, <https://resend.com/docs/knowledge-base/40
 
 ---
 
+## 7b. Masuk lewat kode 6 digit (otomatis, tidak perlu disiapkan)
+
+Masuk lewat kode 6 digit di email, untuk yang membuka tautan dari aplikasi email. Email masuk sekarang berisi tautan **dan** kode 6 digit. Orang yang membuka tautan dari aplikasi email (Gmail, Outlook) sering masuk di browser aplikasi itu, bukan di Chrome/Safari tempat mereka mulai. Mereka cukup mengetik kodenya di halaman "Cek email kamu", lalu langsung masuk di sana. Kode berlaku 5 menit, maksimal 3 percobaan. Kalau tautan atau kode sudah dipakai, yang satunya otomatis tidak berlaku lagi (D-079). Produk bisa mematikannya dengan `auth.emailCode: false`.
+
 ## 8. Expo Go di HP (dikerjakan di Phase 1)
 
 Aplikasinya dibuat dengan Expo, jadi nanti bisa jadi aplikasi iOS/Android dari kode yang sama. Di Phase 1, agent perlu bukti bahwa aplikasinya juga jalan di HP.

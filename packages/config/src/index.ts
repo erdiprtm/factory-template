@@ -222,6 +222,9 @@ export const productSchema = z.object({
   // Sentry DSN (public: browsers carry it; it can only submit events). Unset = monitoring off.
   // Errors are reported from production and preview only, with PII scrubbed (@factory/core/monitoring).
   monitoring: z.object({ sentryDsn: z.url().nullable().default(null) }).default({ sentryDsn: null }),
+  // Sign-in (D-079). emailCode: the sign-in email carries a 6-digit code next to the magic link,
+  // typed where the visitor started (an email app's browser keeps its own cookies). On by default.
+  auth: z.object({ emailCode: z.boolean().default(true) }).default({ emailCode: true }),
   // The paid funnel (sell engine Module 5, D-037): the first real result comes before the paywall.
   // freeUses: free uses of the core action per user, enforced by the API (requireAccessOrFreeUse).
   // paywallPlacement: when the paywall is offered: right after the quiz and sign-in, under the first

@@ -1517,6 +1517,50 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **For Myna Fit.** After syncing this, delete `apps/app/src/features/i18n/template-fixtures.ts`.
 - **Check.** Both tests pass on the template, with `quizExample` gone from `apps/app/test`. They were also run on a clone of Myna Fit's sync branch (`chore/sync-template-20261015`: `single` + `quiz_first` + `darkMode: false`, its own messages), with this branch's two test files and its fixture file deleted. The app typecheck passed, and so did all 56 app tests in 21 files.
 
+## D-079: The sign-in email also carries a 6-digit code (`auth.emailCode`) (2026-10-15)
+
+- **Problem (Myna Fit, on a real Android phone).** Erdi opened the magic link from the Gmail app. It signed him in inside Gmail's in-app browser. "Open in browser" then showed Chrome signed out: the session cookie stays in the webview's jar, and the one-time link can't be reused. This isn't a leak, but it costs conversion and trust, often minutes after paying. Installed home-screen apps on iOS (D-080) have their own cookie storage too.
+- **Decision.** One email with both the link and a 6-digit code, and the code is typed where the visitor started. It's on by default; a product turns it off with `auth.emailCode: false`.
+  - **Server** (`apps/api/src/core/auth.ts`). Better Auth's `emailOTP` plugin (docs read 2026-10-15, plugin source checked in 1.7.6):
+    - `otpLength` 6, `expiresIn` 300 s, `allowedAttempts` 3 (then `TOO_MANY_ATTEMPTS`);
+    - `storeOTP: "hashed"` (SHA-256);
+    - its built-in rate limit on `/sign-in/email-otp` (3 per minute per IP) when rate limits are on.
+    - Every other email-otp route is in `disabledPaths`, so codes can come only from the sign-in email.
+  - **How both get into one email.** The docs don't say how email-otp and magic-link combine. So the code is created **in the magic-link send path**: one request, one email.
+    - A resend deletes the previous code first, so there's one active code per address.
+    - The code is written in the plugin's own stored format (`<sha256 base64url>:<attempts>` under `sign-in-otp-<email>`). The plugin's `createVerificationOTP` couldn't be called from inside the send path: the direct API call can't resolve the dynamic `baseURL`. `test/sign-in-code.test.ts` signs in with these codes, so a plugin format change fails the tests.
+  - **Whichever is used first wins.** The send path also records which link goes with the code, as the link's hashed token. A session-create hook then deletes both the code and that link for the address. A used link ends the code, and a used code ends the link.
+  - **Send limits.**
+    - Better Auth's per-IP limit on `/sign-in/magic-link` (3 per minute).
+    - New: **5 emails per address per 15 minutes**. Over the cap nothing is sent, and the answer is the same `{"status":true}`. Every address gets that answer (sign-up is open), so it can't probe which emails exist.
+  - **The send is awaited.** The plugin advises against awaiting, but that advice is about timing revealing whether an account exists. Here every address gets an email, so timing says nothing, and a failure still shows "Gagal mengirim tautan".
+  - **Email** (`magicLinkEmail`): "Ketuk tautan ini untuk masuk ke {name}, atau masukkan kode 482913 di halaman masuk.", the link, the code, and the rules (link 15 minutes, code 5 minutes, one cancels the other). An HTML version has the button in the product's primary colour and large, spaced digits. Indonesian and English. `wrangler dev` prints the code like the link.
+  - **App** ("Cek email kamu", `core/auth/code-form.tsx`):
+    - a 6-digit field (`inputMode="numeric"`, `autoComplete="one-time-code"`, `textContentType="oneTimeCode"`);
+    - a pasted or suggested code signs in at once;
+    - the address is shown, with "Ganti email";
+    - "Kirim ulang" after 30 s (the same request, so a new code);
+    - copy for a wrong or expired code, and for too many tries.
+    - Signing in with the code only refreshes `/api/me`. The screen then continues exactly as after the link: the protected area's `afterSignIn`, `/consent` and the claim of anonymous data.
+  - **Not done (optional in the request):** a note for people signed in inside a known in-app browser ("Mau lanjut di Chrome/Safari?"). The code already covers it; add the note if real use shows people need it.
+- **Tests.**
+  - API (`test/sign-in-code.test.ts`, 11 tests, skipped when the setting is off):
+    - one request sends one email with a link and a 6-digit code (in the HTML too);
+    - the code signs in with no cookies;
+    - it's stored hashed;
+    - after 3 wrong codes, the right one gets 403 `TOO_MANY_ATTEMPTS`;
+    - an expired code gets `OTP_EXPIRED`;
+    - a used link ends the code, and a used code ends the link;
+    - a resend rotates the code;
+    - over the per-address cap, the same answer comes back and nothing is sent;
+    - known and unknown addresses get the same answer;
+    - the plugin's send route returns 404.
+  - App render (`test/sign-in-code-render.test.tsx`): numeric and one-time-code attributes, 6 max; a paste signs in; wrong and locked copy; resend cooldown; "Ganti email".
+  - E2E (`sign-in-code.spec.ts`, config-agnostic):
+    - the code typed in the browser that asked signs in, and the link opened in a context with no cookies then fails;
+    - a wrong code shows the error and doesn't sign in, and the link still works in the same browser.
+    - `sign-in.spec` ("a used magic link can't sign in twice") is unchanged and green.
+
 ## D-080: Installable web app, offered after payment (2026-10-15)
 
 - **Problem (Myna Fit feedback, part 2).** People who paid open the product from a browser tab they lose. The app had no web app manifest, so Chrome never offered to install it, and iPhone users had no icon to add.
