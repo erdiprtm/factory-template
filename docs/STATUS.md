@@ -8,6 +8,10 @@ Progress log, newest entry on top.
 
 - Runs the product's eval photos (`evals/`, gitignored) through one or more provider/model configs via the real `aiProvider` and the product's own request and scorer (`apps/api/src/features/ai-eval.ts`), and writes a table: top-1/top-3, macros in range, schema failures, p50/p90 latency, Rp per scan.
 - Local only, keys from the shell, cost estimate first and `--yes` above Rp 20.000. Guide: `docs/AI_EVAL.md`; human step: `SETUP_HUMAN.md` 11b.
+## 2026-10-15: Hybrid nutrition guardrail and `checkMacros` (D-082), Myna Fit AI accuracy feedback item 1
+
+- Numbers come from the label, then curated data (exact or alias match), then a labelled, code-checked, editable "Perkiraan AI" estimate. No "similar food" fallbacks, and every number shows its source.
+- `@factory/core/nutrition` `checkMacros` holds the plausibility rules.
 
 ---
 
