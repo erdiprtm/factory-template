@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: D-074's tests work in product repos (D-078), Myna Fit sync blocker
+
+- The consent render test mocks the separate style, and the single-consent test uses core keys only. TEMPLATE_SYNC has a note on render tests in products.
+
+---
+
 ## 2026-10-15: The template landing passes /design-review (D-077)
 
 - One filled CTA per viewport, 44 px header targets, problem plus points, "Cara kerjanya", and a closing CTA with the hero's label.

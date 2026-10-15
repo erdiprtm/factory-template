@@ -49,7 +49,7 @@ pnpm setup-secrets    # shared CI secrets (factory.secrets.json) from the human'
 ## Definition of done
 
 - `pnpm verify` green (never claim success without running it).
-- Tests added for new logic.
+- Tests added for new logic. Template tests must hold in every product repo: use core message keys only (never the example product's), and mock `product.config` when a test needs a specific setting (D-028, D-078).
 - All UI strings through i18n keys (`id` default, `en` secondary). No hardcoded copy.
 - `docs/STATUS.md` updated. Non-trivial choices recorded in `docs/DECISIONS.md`.
 - PR opened with a passing preview URL.

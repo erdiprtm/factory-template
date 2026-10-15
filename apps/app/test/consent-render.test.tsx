@@ -2,6 +2,11 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 // D-058: the consent rule proven by rendering core's form WITH a product slot filled (D-054).
+// Separate boxes, whatever this product's legal.consentStyle: the single box is single-consent.test.tsx.
+vi.mock("../../../product.config", async (orig) => {
+  const real = ((await orig()) as { default: { legal: object } }).default;
+  return { default: { ...real, legal: { ...real.legal, consentStyle: "separate" } } };
+});
 vi.mock("../src/features/slots", () => ({
   slots: {
     consentHeader: ({ title }: { title: string }) => <span data-testid="custom-header">{`★ ${title}`}</span>,
