@@ -13,6 +13,13 @@ import { fileURLToPath } from "node:url";
 
 const git = (args, opts = {}) => execFileSync("git", args, { encoding: "utf8", ...opts });
 
+/**
+ * Files the product owns although the template edits its own copy (D-088): a sync never applies the
+ * template's changes to them. STATUS is each repo's own progress log; applying the template's
+ * entries only produced conflicts the product always resolved by keeping its own file.
+ */
+export const PRODUCT_OWNED = ["docs/STATUS.md"];
+
 /** Paths git apply refused because the product already moved or removed them (or added them itself). */
 const MISSING =
   /^error: (.+?): (does not exist in index|already exists in index|already exists in working directory|No such file or directory)$/gm;
@@ -31,19 +38,26 @@ export function templateSync({ cwd = process.cwd(), ref = "template/main", fetch
   const base = readFileSync(versionFile, "utf8").trim();
   if (fetch) git(["fetch", "template"], { cwd, stdio: ["ignore", "ignore", "inherit"] });
   const target = git(["rev-parse", ref], { cwd }).trim();
-  if (target === base) return { base, target, conflicts: [], manual: [], upToDate: true };
+  if (target === base) return { base, target, conflicts: [], manual: [], skipped: [], upToDate: true };
   // --no-renames: a template rename is "delete old + add new", so a product that already made the
   // move only skips those two paths instead of failing the whole patch.
   const patch = git(["diff", "--binary", "--no-renames", base, target], { cwd, maxBuffer: 256 * 1024 * 1024 });
-  if (patch.trim() === "") return { base, target, conflicts: [], manual: [], upToDate: true };
+  if (patch.trim() === "") return { base, target, conflicts: [], manual: [], skipped: [], upToDate: true };
 
+  const touched = git(["diff", "--name-only", "--no-renames", base, target], { cwd }).split("\n").filter(Boolean);
+  const skipped = PRODUCT_OWNED.filter((p) => touched.includes(p));
+  // Only product-owned files changed in this range: nothing to apply, and that's fine.
+  if (touched.every((p) => skipped.includes(p))) {
+    writeFileSync(versionFile, `${target}\n`);
+    return { base, target, conflicts: [], manual: [], skipped, upToDate: false };
+  }
   const manual = [];
   let conflicts = [];
   // git apply is all or nothing: one path it can't place stops every file. Leave such paths out,
   // list them for the human, and retry with the rest.
   for (;;) {
     // --exclude takes a glob: escape it, or "[slug].astro" would be a character class.
-    const exclude = manual.map((p) => `--exclude=${p.replace(/[[\]*?\\]/g, "\\$&")}`);
+    const exclude = [...skipped, ...manual].map((p) => `--exclude=${p.replace(/[[\]*?\\]/g, "\\$&")}`);
     try {
       git(["apply", "--3way", "--index", "--whitespace=nowarn", ...exclude], {
         cwd,
@@ -68,7 +82,7 @@ export function templateSync({ cwd = process.cwd(), ref = "template/main", fetch
       `Nothing from template ${base.slice(0, 7)}..${target.slice(0, 7)} was applied (the patch isn't empty); .template-version unchanged.${manual.length > 0 ? `\nLeft out: ${manual.join(", ")}` : ""}`,
     );
   writeFileSync(versionFile, `${target}\n`);
-  return { base, target, conflicts, manual: manual.sort(), upToDate: false };
+  return { base, target, conflicts, manual: manual.sort(), skipped, upToDate: false };
 }
 
 /** What to do with a path left out: take the template's file, or delete it if the template did. */
@@ -92,6 +106,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (r.upToDate) console.log(`Already at template ${r.target.slice(0, 7)}.`);
   else {
     console.log(`Applied template ${r.base.slice(0, 7)}..${r.target.slice(0, 7)}; .template-version updated.`);
+    for (const p of r.skipped) console.log(`skipped: ${p} (product-owned)`);
     if (r.conflicts.length > 0)
       console.log(
         `Resolve these by the ownership rule (docs/TEMPLATE_SYNC.md), then git add them:\n- ${r.conflicts.join("\n- ")}`,

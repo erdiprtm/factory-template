@@ -1707,3 +1707,41 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **Usage and cost.** `inputTokens = total_input_tokens`, `cachedInputTokens = total_cached_tokens`, `outputTokens = total_output_tokens + total_thought_tokens` (the thinking page: thinking is billed as output and reported separately). We assume `total_input_tokens` includes cached tokens, as `promptTokenCount` does in generateContent; the reference doesn't say. Cost from `GEMINI_PRICES` (paid tier, standard, USD per 1M, from the pricing page): gemini-3.8-flash and 3.6-flash 0.75 / 0.075 cached / 3.75 out until 2026-12-31, then 1.50 / 0.15 / 7.50 from 2027-01-01; 3.5-flash-lite 0.30 / 0.03 / 2.50; gemini-4-argon 2 / 0.10 / 10, then 4 / 0.20 / 20 from 2026-12-01; 3.1-pro-preview 2 / 0.20 / 12 (≤ 200k prompt). Prices are periods with a start day, priced at the call's time. A measured-size scan (1,400 in, 300 out + 500 thinking) costs 4,050 micro-USD now.
 - **Secret** `GEMINI_API_KEY`, from a project with Cloud Billing ("Paid" in AI Studio). Never a free-tier key in production: the terms let Google use free-tier prompts to improve products, human reviewers may read them, and they say not to submit personal information to Unpaid Services. `SETUP_HUMAN.md` 11d: paid "Myna Health" project, Prepay, monthly spend cap (experimental, ~10 min latency) plus a Cloud budget alert. The privacy policy names "Google (Gemini API, layanan berbayar)".
 - **For the lawyer** (Gemini API Additional Terms, effective 2026-03-23, read 2026-10-15): the Services are for "professional or business purposes, not for consumer use"; users must be 18+ and apps must not be directed at or likely accessed by minors; no clinical use or medical advice, and medical content is informational only; paid-tier prompts are logged for a limited time for abuse monitoring and may be stored in any country where Google has facilities. Please confirm that a consumer app built and operated by a business (PT) on the paid API fits "business purposes", what the product needs for the age term (an 18+ statement in the S&K or an age check at signup) and whether the "bukan pengganti tenaga profesional" notice meets the medical term, and that the processing-location wording in the privacy policy is enough.
+
+## D-087: Tabs are found by their target, so products label /account freely (2026-10-16)
+
+- **Problem (Myna Fit, 15c item 3).** Myna Fit's tabs are Beranda / Nutrisi / Gym / Profil, the product owner's choice. `navTabs` already keeps a product's own `/account` tab, but `admin.spec.ts` and `sign-in.spec.ts` clicked `navItem(page, "Akun")`. Any other label failed the template's own E2E, so Myna Fit shipped "Akun" against the owner's decision.
+- **Decision.**
+  - Every tab in core's bottom bar and top bar gets `testID = navTestId(href)`:
+    - `/` → `nav-home`;
+    - `/account` → `nav-account`;
+    - `/admin` → `nav-admin`;
+    - `/gym/plan` → `nav-gym-plan`.
+  - E2E's `navItem(page, href)` takes the target (`"/account"`), not the label.
+  - `/build-from-spec` and `docs/TEMPLATE_SYNC.md` say the `/account` label is product-chosen.
+- **Test.** `apps/app/test/nav-render.test.tsx` renders both bars with a product tab list that labels `/account` "Profil". `nav-account` is found, shows "Profil" (no "Akun"), and navigates to `/account`; `nav-admin` is there for admins. The id rule is unit-tested.
+
+## D-088: The template sync never touches the product's docs/STATUS.md (2026-10-16)
+
+- **Problem (Myna Fit P-034, P-036, P-038).** Every sync applied the template's STATUS entries to the product's own `docs/STATUS.md` and conflicted. The product always kept its own file, so this step was pure friction.
+- **Decision.**
+  - `scripts/template-sync.mjs` has `PRODUCT_OWNED = ["docs/STATUS.md"]`. Those paths are excluded from the apply and printed as `skipped: docs/STATUS.md (product-owned)`.
+  - A range that changed only product-owned files still records the new `.template-version`, because there's nothing else to apply.
+  - `docs/DECISIONS.md` keeps syncing: it applies cleanly, and template decisions explain template code.
+  - `docs/TEMPLATE_SYNC.md` lists what the sync leaves to the product:
+    - STATUS;
+    - the privacy page's `{{aiProcessor}}` line, which must stay on its own line (`legal.test.ts` checks it);
+    - tab labels.
+- **Test.** `scripts/template-sync.test.mjs`: a product STATUS that differs from the template's gets no conflict and stays byte-for-byte the same, while the rest applies. A STATUS-only range moves `.template-version`.
+
+## D-090: One E2E run at a time (2026-10-16)
+
+- **Problem (Myna Fit).** An E2E run kept going in the background after its Claude session closed. The next run's `e2e-state.mjs` emptied `.wrangler/e2e` under it, and migrations failed with `table consents already exists`, which doesn't hint at the cause. `port-free.mjs` passed because the old run hadn't bound :8788 yet.
+- **Decision.**
+  - `scripts/e2e-state.mjs` takes `apps/api/.wrangler/e2e.lock`, written with the PID of the run's shell: its parent process, which lives as long as `wrangler dev`.
+  - If a live process holds the lock, the new run stops with "Another E2E run is in progress (PID n). Stop it or wait: kill n".
+  - A lock whose process is gone is taken over, so there's no cleanup step and no stale-lock trap. `EPERM` counts as alive.
+- **Tests** (`scripts/e2e-state.test.mjs`):
+  - with a live holder, the next run is refused and the lock is unchanged;
+  - after the holder ends, the lock is taken over;
+  - the script exits 1 with the message while a separate live process (`sleep`) holds the lock.
