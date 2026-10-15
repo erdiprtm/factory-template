@@ -9,6 +9,11 @@ Progress log, newest entry on top.
 - The two render tests that reset modules per case (`account-theme-render`, `pwa-install-render`) import their heavy modules in a `beforeAll` with its own timeout. `test/setup.ts` also cleans up before each case, so a timed-out case can't cascade into "Found multiple elements". Under 16 busy loops the first case went from up to 15.8 s to at most 1.6 s.
 - `apps/api` tests rerun once, only the files whose workerd worker didn't start with `ECONNRESET` and only when nothing else failed (`scripts/vitest-pool-retry.mjs`).
 - `pnpm test` runs every package's tests even after one fails (`turbo --continue=dependencies-successful`) and still exits non-zero; `verify` still stops before build and E2E.
+## 2026-10-16: Tabs by target, sync skips STATUS, one E2E run at a time (D-087, D-088, D-090), Myna Fit feedback
+
+- Tabs have `nav-<path>` test ids, so products label `/account` freely ("Profil").
+- `template-sync` skips the product's `docs/STATUS.md`. TEMPLATE_SYNC notes the privacy page's `{{aiProcessor}}` line.
+- E2E holds a PID lock: a second run stops with a clear message instead of emptying the first one's database.
 
 ---
 

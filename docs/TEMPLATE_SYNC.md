@@ -43,6 +43,12 @@ Never rebase or force-push. The `main` ruleset forbids it, and merges keep the h
 | `apps/app/public/index.html`, `manifest.webmanifest`, `apple-touch-icon.png`, `icons/**` | Regenerate | Take either side, then `pnpm theme` (D-080) |
 | `CLAUDE.md` | Template | Keep the product's header section at the top |
 
+## Files the sync leaves to the product (D-088)
+
+- **`docs/STATUS.md`** is each repo's own progress log. `scripts/template-sync.mjs` never applies the template's changes to it and prints `skipped: docs/STATUS.md (product-owned)`. `docs/DECISIONS.md` still syncs: template decisions explain template code.
+- **Privacy page (`apps/site/src/content/legal/privasi.md`)** is product content, but keep the line `{{aiProcessor}}` on a line of its own. The template fills it from `ai.provider` (D-083, D-084), and `apps/site/test/legal.test.ts` checks it's there, so a rewritten page without it fails the sync's verify. Myna Fit keeps its own processor table and adds the line under it.
+- **Tab labels** are the product's (`apps/app/src/features/nav.ts`), `/account` included ("Profil", "Akun"…). Template tests find tabs by target (`nav-account`, D-087), never by label.
+
 ## Render tests in a product repo (D-058, D-078)
 
 The template's app tests render React Native components in jsdom: `react-native` → react-native-web, with `react-native-svg` stubbed. Two things in product code break them:

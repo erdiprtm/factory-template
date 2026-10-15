@@ -39,6 +39,11 @@ export async function expectAccess(page: Page, access: boolean): Promise<void> {
 }
 
 /** A nav entry: a link in the top bar, or a tab in the bottom bar products get on phones (D-048). */
-export function navItem(page: Page, name: string) {
-  return page.getByRole("link", { name }).or(page.getByRole("tab", { name }));
+/**
+ * A tab (bottom bar or top bar) by its target, never its label (D-087): products relabel tabs,
+ * /account included ("Profil", "Akun"…). "/" → nav-home, "/account" → nav-account.
+ */
+export function navItem(page: Page, href: string) {
+  const slug = href.replace(/^\/+|\/+$/g, "").replaceAll("/", "-");
+  return page.getByTestId(`nav-${slug || "home"}`);
 }

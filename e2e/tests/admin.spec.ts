@@ -5,13 +5,13 @@ import { navItem, signIn } from "./support";
 test("admin sees metrics and grants access", async ({ page, request }) => {
   const member = `e2e-member-${Date.now()}@example.com`;
   await signIn(page, request, member);
-  await expect(navItem(page, "Admin")).toHaveCount(0);
-  await navItem(page, "Akun").click();
+  await expect(navItem(page, "/admin")).toHaveCount(0);
+  await navItem(page, "/account").click();
   await page.getByRole("button", { name: "Keluar" }).click();
   await expect(page).toHaveURL(/\/sign-in$/); // sign-out finished before signing in again
 
   await signIn(page, request, "admin@example.com");
-  await navItem(page, "Admin").click();
+  await navItem(page, "/admin").click();
   await expect(page.getByText("Pendapatan per bulan")).toBeVisible();
   await page.getByLabel("Email pengguna").fill(member);
   await page.getByLabel("Jumlah hari").fill("14");

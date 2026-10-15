@@ -8,7 +8,7 @@ import { productTabs } from "../../features/nav";
 import { slots } from "../../features/slots";
 import { useMe } from "../auth/use-me";
 import { type MessageKey, useI18n } from "../i18n";
-import { isActiveTab, type NavTab, navTabs, withCoreIcons } from "./tabs";
+import { isActiveTab, type NavTab, navTabs, navTestId, withCoreIcons } from "./tabs";
 
 /** Wide web screens get the top bar; phones and native get the bottom tab bar. */
 export const WIDE = 768;
@@ -40,6 +40,7 @@ export function TopNav() {
           return (
             <Pressable
               key={tab.href}
+              testID={navTestId(tab.href)}
               role="link"
               accessibilityState={{ selected: active }}
               onPress={() => router.push(tab.href as never)}
@@ -75,6 +76,7 @@ export function BottomNav() {
         return (
           <Pressable
             key={tab.href}
+            testID={navTestId(tab.href)}
             role="tab"
             accessibilityState={{ selected: active }}
             onPress={() => router.push(tab.href as never)}
