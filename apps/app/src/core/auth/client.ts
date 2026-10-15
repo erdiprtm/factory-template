@@ -1,4 +1,4 @@
-import { magicLinkClient } from "better-auth/client/plugins";
+import { emailOTPClient, magicLinkClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { apiBaseUrl } from "../api-base";
 
@@ -8,5 +8,6 @@ export const authClient = createAuthClient({
   baseURL: apiBaseUrl(),
   basePath: "/api/auth",
   fetchOptions: { credentials: "include" },
-  plugins: [magicLinkClient()],
+  // emailOTPClient: signing in with the code from the sign-in email (D-079).
+  plugins: [magicLinkClient(), emailOTPClient()],
 });
