@@ -70,7 +70,11 @@ export type CoreSlots = {
   quizSummaryBody?: ComponentType<QuizSummaryBodySlotProps>;
   /** Back from the payment provider (D-058). Core polls the status and decides the state. */
   billingReturn?: ComponentType<BillingReturnSlotProps>;
-  signInHeader?: ComponentType<HeaderSlotProps & { productName: string }>;
+  /**
+   * `stage` (display only, D-086): "email" while asking for the address, "sent" on "Cek email kamu",
+   * so a slot can hide what doesn't fit there (e.g. a "no account yet? try the quiz" link).
+   */
+  signInHeader?: ComponentType<HeaderSlotProps & { productName: string; stage: "email" | "sent" }>;
   /** /consent and the pre-signup consent gate. The checkboxes and button stay core's. */
   consentHeader?: ComponentType<HeaderSlotProps & { where: "account" | "anonymous" }>;
   pricingIntro?: ComponentType<HeaderSlotProps>;
