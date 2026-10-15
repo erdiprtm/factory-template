@@ -452,6 +452,21 @@ Tanpa langkah ini produk tetap jalan di lokal dan preview dengan jawaban **tirua
 
 Biaya per panggilan tercatat di tabel `ai_usage` (micro-USD dari harga resmi). Batas per pengguna per hari dan anggaran harian pengunjung anonim diatur di `product.config.ts` → `ai`.
 
+### 11b. Membandingkan model dengan foto sendiri (`pnpm ai:eval`, opsional, D-085)
+
+Untuk memilih model berdasarkan akurasi yang diukur, bukan tebakan. Panduan lengkap (bahasa Inggris): `docs/AI_EVAL.md`.
+
+1. Kumpulkan 20–50 foto asli (piring campur, jajanan, kemasan depan dan label gizi) ke folder `evals/` di repo produk, plus `evals/expected.json`. Folder ini **tidak ikut ke GitHub** (gitignored). Pakai foto sendiri, atau foto orang lain **hanya dengan izinnya**, dan jangan ada wajah atau data pribadi di foto.
+2. Buat key khusus eval di project OpenAI produk (batas anggaran kecil, misalnya US$5). Salin key-nya, lalu Run di Terminal yang sama (key hanya ada di jendela Terminal itu, tidak disimpan ke file):
+   ```bash
+   export OPENAI_API_KEY="$(pbpaste)"
+   ```
+3. Run (perkiraan biaya muncul dulu; di atas Rp 20.000 perlu `--yes`):
+   ```bash
+   pnpm ai:eval
+   ```
+4. Tabel hasil ada di layar dan di `evals/results/`. Tutup jendela Terminal setelah selesai.
+
 ---
 
 ## 12. Satu domain — app dan situs di satu alamat (per produk, opsional)

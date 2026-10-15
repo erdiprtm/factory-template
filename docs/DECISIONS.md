@@ -1638,6 +1638,33 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - the portion range is checked;
   - NaN, negative or zero values are rejected.
 
+## D-085: `pnpm ai:eval`, models compared on the product's own photos (2026-10-15)
+
+- **Why (Myna Fit feedback item 3).** A product chose its model by feel. Nothing measured whether a cheaper model, a new provider or a prompt change recognised its real photos as well, so a regression would reach users first.
+- **What.** `pnpm ai:eval` (`scripts/ai-eval.mjs`, guide `docs/AI_EVAL.md`) runs the product's eval set through one or more configs and prints a Markdown table (stdout and `evals/results/<date>.md`): top-1, top-3 (when the model gives alternatives), macros in range, schema failure or refusal, other errors, median and p90 latency, Rp per scan and total. Below it, each photo's first answer per config.
+- **Same path as production.**
+  - Providers come from the real factory, `aiProvider(env, mock, ai)` in `apps/api/src/core/ai.ts`, with each config as the `ai` object. So a provider added there (D-083/D-084) works in the eval with no change here. `AI_MODEL` is ignored (each config names its model).
+  - Each `models.json` entry (or `--model provider:model[:fast]`) is validated with the real `product.config.ts` `ai` schema, made strict, so a typo fails instead of silently comparing the default.
+  - The request and the scorer are product-owned: `apps/api/src/features/ai-eval.ts` exports `aiEval` (`request`, `score`, `mock`, `expectedUsage`). A product imports its scan route's own request builder there. The template ships an example (meal photo → ranked dish names), marked PRODUCT-OWNED.
+  - Pure logic (matching, ranges, percentiles, cost, the table) is `@factory/core/ai/eval`.
+- **Loading TypeScript.** The repo's TS uses extensionless imports and workspace packages, which Node's own type stripping can't load. The script uses Vite's SSR loader through `vitest/node`'s `createViteServer` (vitest is already a root devDependency), so **no new dependency**.
+- **Scoring.**
+  - A name counts when it equals an expected item or alias after lowercasing and removing accents and punctuation. Matching is otherwise exact, so the set's aliases decide (no fuzzy match that would hide a wrong dish such as "nasi" for "nasi goreng").
+  - Top-1/top-3 count a hit against any expected item in the photo (mixed plates list every dish).
+  - Macro ranges are inclusive, and a failed call misses all of its ranges. Failed calls count against accuracy too.
+  - "Schema fail / refused" = the call went through without a usable answer (`bad_output`, `refused`, or `score` returned `null`). Quota, rate limits and outages are "Other errors", so they don't read as a weak model.
+  - Latency is nearest-rank p50/p90 of the adapter's `latencyMs`.
+- **Cost.** Real usage × `costMicroUsd` (list prices, before PPN). Unknown prices show `n/a`, never a guess. **USD 1 = Rp 16.500 is an assumption** (`--usd-idr` overrides it).
+- **Safety.**
+  - Local only: keys from the shell's environment, never `.dev.vars`. With `CI` set it refuses unless `--allow-ci`; it is not in `pnpm verify`.
+  - The estimate (`expectedUsage` × prices × photos × configs) is printed first. Above `--max-rp` (default Rp 20.000), or with any unknown price, nothing runs without `--yes`.
+  - A config without its key would get the factory's mock, a fake score, so the run stops and names the missing key instead. `{ "provider": "mock" }` is the explicit free dry run.
+  - Calls run one at a time.
+- **Privacy.** `evals/` is gitignored: photos can be personal. The guide asks for own photos or consent, and no faces or personal data in the frame (`SETUP_HUMAN.md` 11b).
+- **Tests.**
+  - `scripts/ai-eval.test.mjs`: on committed 1–4 px PNGs (`scripts/fixtures/ai-eval/`), with a fake provider and the fixture's own product module (not the product's, D-078), the exact table: hit, alias hit, top-3-only hit, schema failure, outage, macro ranges, latency and rupiah. Also the cost gate (exit 2 and no provider without `--yes`), unknown prices, the CI refusal, the missing-key refusal, and config validation.
+  - `packages/core/src/ai/eval.test.ts`: alias and accent matching, ranks, macro ranges, percentiles, estimates and `n/a` prices.
+
 ## D-086: The sign-in header slot knows the stage; Akun's selected choice isn't a filled button (2026-10-15)
 
 - **Problem (Myna Fit `/design-review`, low priority).**

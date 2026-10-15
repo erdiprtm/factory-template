@@ -1,0 +1,10 @@
+[
+  { "file": "siomay-1.png", "items": [{ "name": "Siomay", "aliases": ["somay"] }], "macros": { "protein": [10, 25] } },
+  {
+    "file": "nasi-goreng.png",
+    "items": [{ "name": "Nasi goreng" }],
+    "macros": { "protein": [5, 15], "carbs": [40, 80] }
+  },
+  { "file": "gado-gado.png", "items": [{ "name": "Gado-gado", "aliases": ["gado gado"] }] },
+  { "file": "teh-botol.png", "items": [{ "name": "Teh botol" }, { "name": "Teh manis" }] }
+]
