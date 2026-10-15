@@ -4,9 +4,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // D-080: the "Pasang di HP" card. Rendered per browser (user agent, display mode, a captured
 // beforeinstallprompt), with pwa.promptAfter mocked, so it holds whatever the product configured.
 // Strings come from core keys via t(), so a product's own locale or productPwa.offer doesn't matter.
-// Each case re-imports the modules (vi.resetModules), which is slow on a busy machine.
-vi.setConfig({ testTimeout: 30_000 });
-
 const tracked = vi.hoisted(() => [] as [string, Record<string, unknown> | undefined][]);
 vi.mock("../src/core/analytics", () => ({
   track: (event: string, props?: Record<string, unknown>) => tracked.push([event, props]),

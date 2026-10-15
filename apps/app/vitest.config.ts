@@ -23,5 +23,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./test/setup.ts"],
+    // Render tests re-import react-native-web per case (vi.resetModules): on a busy machine one
+    // case took over vitest's 5 s default and failed for no reason (D-080).
+    testTimeout: 20_000,
   },
 });
