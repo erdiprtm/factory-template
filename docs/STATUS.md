@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: Hybrid nutrition guardrail and `checkMacros` (D-082), Myna Fit AI accuracy feedback item 1
+
+- Numbers come from the label, then curated data (exact or alias match), then a labelled, code-checked, editable "Perkiraan AI" estimate. No "similar food" fallbacks, and every number shows its source.
+- `@factory/core/nutrition` `checkMacros` holds the plausibility rules.
+
+---
+
 ## 2026-10-15: One filled button on the payment success screen (D-081)
 
 - While the install card shows, "Ke beranda" is outlined, so "Pasang" is the one primary action.

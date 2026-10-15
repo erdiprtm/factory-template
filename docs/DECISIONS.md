@@ -1602,3 +1602,38 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **Problem.** D-080's review noted two filled buttons on "Pembayaran berhasil": core's "Ke beranda" and the install card's "Pasang". That breaks `/design-review`'s one-primary-per-viewport rule (D-075).
 - **Decision.** `InstallOffer` takes `onShownChange`. While the card is on screen, "Ke beranda" is outlined, so "Pasang" is the one primary. Once the card is hidden ("Nanti saja", already installed, nothing to offer), "Ke beranda" is filled again. A product's `billingReturn` slot gets the same `InstallOffer` underneath and keeps its own buttons.
 - **Test.** `pwa-install-render.test.tsx`: the callback reports `true` when the card shows and `false` after "Nanti saja".
+
+## D-082: Nutrition numbers: label and curated data first, then a labelled and checked AI estimate (2026-10-15)
+
+- **Problem (Myna Fit, real-phone testing).** Meal scans users couldn't trust:
+  - siomay read as "semur";
+  - an L-Men drink with "14 g protein" printed large on the front shown as 1 g;
+  - snack nori with almost no protein.
+  - The rule "numbers come only from curated data" pushed the product to drop an incomplete label and show the nearest curated food ("mirip: X") with confident, wrong numbers.
+- **Decision (Erdi, product owner):** "user itu mau kepastian; estimasi juga bentuk kepastian, selama masuk akal". The guardrail becomes **hybrid** for every product (CLAUDE.md "Product guardrails"):
+  1. **Sources in order.**
+     - The photographed label, including front-of-pack claims.
+     - Then curated data: branded products, then foods and recipes, on an exact or alias match only.
+  2. **Otherwise an AI estimate**, only if it's:
+     - labelled "Perkiraan AI";
+     - plausibility-checked in code (a failing one shows "cek lagi" and asks the user to confirm or edit, never silently);
+     - editable;
+     - general information only (no medical claims, red flags still go to professionals).
+  3. **No "similar food" fallback** with confident numbers for a different food.
+  4. **Every number shows its source** (Label / Data kurasi / Perkiraan AI). Stored items keep the source and the model or dataset version.
+- **`@factory/core/nutrition` `checkMacros({ grams, kcal, protein, carbs, fat }, options)`** returns `{ ok, problems[] }`:
+  - finite, non-negative numbers and grams > 0;
+  - grams within the kind's range (default 1–2000; products pass e.g. `[5, 500]` for snacks);
+  - protein, carbs and fat each ≤ grams, and their sum ≤ grams;
+  - kcal ≤ 900 per 100 g;
+  - kcal within 25% (at least 25 kcal) of 4·P + 4·C + 9·F.
+
+  Use it on AI estimates before showing them, and on labels read from photos (a misread digit fails too).
+- **Where it's worded:** CLAUDE.md, FACTORY_BLUEPRINT.md, SPEC_TEMPLATE.md, `/build-from-spec`, `/spec-interview` and `/design-review` (rubric line F4).
+- **Unchanged:** the scan pipeline stays product-owned. The AI adapter's contract (D-045: strict schema, server-side re-validation, no tools, budgets) doesn't change; D-083 and D-084 add providers.
+- **Tests:** `packages/core/src/nutrition/index.test.ts` covers:
+  - real foods pass (siomay, a protein drink, butter);
+  - macros heavier than the item and impossible density are flagged;
+  - an Atwater mismatch is flagged, with an absolute floor for small items;
+  - the portion range is checked;
+  - NaN, negative or zero values are rejected.
