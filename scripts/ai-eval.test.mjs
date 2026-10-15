@@ -11,6 +11,11 @@ const FIXTURE = "scripts/fixtures/ai-eval";
 const PRODUCT = `${FIXTURE}/product.mjs`;
 const load = (rel) => import(path.resolve(ROOT, rel));
 const { strictAiSchema: aiSchema } = await import("../packages/config/src/index.ts");
+// Warm the modules main() loads (the API's AI module pulls Hono and Drizzle), so the first test's
+// 5 s timeout isn't spent on a cold import while `pnpm verify` runs everything in parallel.
+await Promise.all(
+  ["apps/api/src/core/ai.ts", "packages/core/src/ai/index.ts", "packages/core/src/ai/eval.ts", PRODUCT].map(load),
+);
 
 const usage = { inputTokens: 1000, cachedInputTokens: 0, outputTokens: 1000 };
 // The fixture PNGs are 1×1 … 4×4; the low byte of the IHDR width picks the answer.
@@ -167,6 +172,10 @@ describe("ai:eval", () => {
     await gemProvider.json(req);
     // An eval config has no legal section: zdr falls back to the product's sensitiveDataConsent.
     expect(typeof bodies[0].provider.zdr).toBe("boolean");
-    expect(bodies[1]).toMatchObject({ model: "gemini-3.8-flash", store: false, generation_config: { thinking_level: "low" } });
+    expect(bodies[1]).toMatchObject({
+      model: "gemini-3.8-flash",
+      store: false,
+      generation_config: { thinking_level: "low" },
+    });
   });
 });
