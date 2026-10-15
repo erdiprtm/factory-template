@@ -50,7 +50,8 @@ export default defineProduct({
           accent: "#1e3a8a",
           accentForeground: "#e0e7ff",
           destructive: "#ef4444",
-          destructiveForeground: "#ffffff",
+          // Dark text on the lighter red: 4.9:1 (white was 3.8:1, under WCAG's 4.5, D-077).
+          destructiveForeground: "#0b1120",
           border: "#1e293b",
           input: "#334155",
           ring: "#60a5fa",

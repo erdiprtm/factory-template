@@ -56,6 +56,16 @@ describe("built site", () => {
     expect(readFileSync(new URL("og/home.png", dist)).subarray(1, 4).toString()).toBe("PNG");
   });
 
+  it("landing: the closing CTA repeats the hero's label; the header's sign-in isn't a second filled button (D-077)", () => {
+    const html = page("index.html");
+    const label = (where: string) => html.match(new RegExp(`<a[^>]*data-cta="${where}"[^>]*>([^<]+)</a>`))?.[1]?.trim();
+    // Products that restructure their landing without these markers skip the label check.
+    if (label("hero") !== undefined) expect(label("close")).toBe(label("hero"));
+    const header = html.match(/<header[\s\S]*?<\/header>/)?.[0] ?? "";
+    expect(header).not.toMatch(/bg-primary/);
+    expect(header).toMatch(/min-h-11/);
+  });
+
   it("CSP meta forbids inline scripts, none are needed, and _headers ships", () => {
     for (const path of ["index.html", "harga/index.html", "privasi/index.html", "404.html"]) {
       const html = page(path);

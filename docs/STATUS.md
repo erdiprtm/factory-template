@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: The template landing passes /design-review (D-077)
+
+- One filled CTA per viewport, 44 px header targets, problem plus points, "Cara kerjanya", and a closing CTA with the hero's label.
+- Dark destructive contrast is 4.9:1. The example screen has loading and error states.
+
+---
+
 ## 2026-10-15: One consent checkbox, inside the quiz (D-074), Myna Fit feedback round 5 item 1
 
 - `legal.consentStyle: "single"` gives one checkbox with document links; one tick records every document at its version.
