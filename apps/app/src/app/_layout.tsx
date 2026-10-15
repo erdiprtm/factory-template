@@ -15,6 +15,7 @@ import { I18nProvider } from "../core/i18n";
 import { initMarketing } from "../core/marketing";
 import { MarketingBanner } from "../core/marketing-banner";
 import { captureError, initMonitoring } from "../core/monitoring";
+import { initPwa } from "../core/pwa/install";
 import { darkModeEnabled, useRestoreTheme, useThemePreference } from "../core/theme";
 import { variants } from "../features/theme";
 
@@ -29,6 +30,8 @@ export default function RootLayout() {
   // First-touch attribution from this visit's URL. During the first render, before child
   // layouts (whose effects run first) can redirect and drop the query string.
   useState(currentTouch);
+  // Installable app (D-080): hold the browser's install event, note opens from the home screen.
+  useState(initPwa);
   useRestoreTheme();
   useEffect(() => {
     void initMonitoring();

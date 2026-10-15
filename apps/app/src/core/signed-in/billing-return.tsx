@@ -8,6 +8,7 @@ import { api } from "../api";
 import { useRefreshMe } from "../auth/use-me";
 import { useI18n } from "../i18n";
 import { metaTrack } from "../marketing";
+import { InstallOffer } from "../pwa/install-card";
 
 const POLL_MS = 2000;
 const TIMEOUT_MS = 90_000;
@@ -70,6 +71,7 @@ export function BillingReturn() {
           homeLabel={t("billing.return.home")}
           onHome={() => router.replace("/")}
         />
+        {state === "paid" ? <InstallOffer placement="payment" /> : null}
       </CenteredScreen>
     );
   }
@@ -85,6 +87,8 @@ export function BillingReturn() {
           <Text>{t("billing.return.home")}</Text>
         </Button>
       ) : null}
+      {/* pwa.promptAfter "payment" (D-080): "Pasang di HP", right after the success. */}
+      {state === "paid" ? <InstallOffer placement="payment" /> : null}
     </CenteredScreen>
   );
 }

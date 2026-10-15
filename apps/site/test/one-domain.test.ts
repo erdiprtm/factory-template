@@ -1,7 +1,15 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import product from "../../../product.config";
-import { appSegmentsOf, type OneDomainInput, oneDomainProblems, readJsonc, sameFiles } from "./one-domain";
+import {
+  appPublicSegments,
+  appSegmentsOf,
+  type OneDomainInput,
+  oneDomainProblems,
+  PWA_APP_PATHS,
+  readJsonc,
+  sameFiles,
+} from "./one-domain";
 
 // One domain (D-068, D-069): app and site on the same host. Runs on this product's real files when
 // domain.site equals domain.app (after `astro build`, dist/); the checker itself is tested always.
@@ -27,7 +35,7 @@ describe("one domain: this product's routing", () => {
       // The app's screens, its API and build folders, and its public files (served at the root).
       appSegments: [
         ...appSegmentsOf(new URL("../../app/src/app/", import.meta.url)),
-        ...readdirSync(appPublic).filter((name) => !name.startsWith("_") && !sharedWithApp.has(name)),
+        ...appPublicSegments(appPublic, sharedWithApp),
         "api",
         "_expo",
         "assets",
@@ -102,6 +110,28 @@ describe("one-domain checker", () => {
     expect(problems.some((p) => p.includes("env.preview"))).toBe(true);
     expect(problems).toContain("route other.id/x is not on fit.example.id");
     expect(problems).toContain("route other.id/x needs the zone_name of fit.example.id");
+  });
+
+  it("names a route that takes the installable app's manifest, icons or /sw.js (D-080)", () => {
+    const site = {
+      ...good.site,
+      routes: [...(good.site.routes ?? []), r("/manifest.webmanifest"), r("/icons*"), r("/sw.js")],
+    };
+    const problems = oneDomainProblems({ ...good, site, appSegments: [...good.appSegments, ...PWA_APP_PATHS] });
+    expect(problems).toContain("a route shadows the app's /manifest.webmanifest");
+    expect(problems).toContain("a route shadows the app's /icons");
+    expect(problems).toContain("a route shadows the app's /sw.js");
+  });
+
+  it("counts the app's public files, the PWA ones included, as app paths", () => {
+    const segments = appPublicSegments(new URL("../../app/public/", import.meta.url), new Map());
+    for (const p of PWA_APP_PATHS) expect(segments).toContain(p);
+    expect(segments).toContain("robots.txt");
+    expect(segments).not.toContain("_headers");
+    if (product.pwa.enabled) {
+      const files = readdirSync(new URL("../../app/public/", import.meta.url));
+      for (const p of ["manifest.webmanifest", "icons", "apple-touch-icon.png"]) expect(files).toContain(p);
+    }
   });
 
   it("reads this repo's app screens", () => {

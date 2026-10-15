@@ -39,6 +39,8 @@ Never rebase or force-push. The `main` ruleset forbids it, and merges keep the h
 | `pnpm-lock.yaml` | Regenerate | Take either side, then `pnpm install` |
 | `apps/app/global.css`, `apps/site/src/styles/tokens.css`, `apps/app/src/core/product.generated.json`, `apps/app/src/core/fonts.generated.ts` | Regenerate | Take either side, then `pnpm theme`: they are generated from the product's `product.config.ts` |
 | `apps/app/assets/fonts/**`, `apps/site/public/fonts/**` | Product | The product's bundled font files (D-052) |
+| `apps/app/assets/icon.png` (or the product's `pwa.icon` / `pwa.maskableIcon`) | Product | The installable app's source icon (D-080) |
+| `apps/app/public/index.html`, `manifest.webmanifest`, `apple-touch-icon.png`, `icons/**` | Regenerate | Take either side, then `pnpm theme` (D-080) |
 | `CLAUDE.md` | Template | Keep the product's header section at the top |
 
 ## Render tests in a product repo (D-058, D-078)

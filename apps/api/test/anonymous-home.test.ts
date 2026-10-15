@@ -17,6 +17,9 @@ describe("anonymous home (one domain, D-068)", () => {
     expect(res?.headers.get("cache-control")).toBe("no-store");
     expect(res?.headers.get("vary")).toBe("Cookie");
     expect(visit("https://fit.example.id/")?.headers.get("location")).toBe("/mulai/");
+    // The installed app's start_url (D-080): signed out, it lands on the landing with source=pwa kept.
+    expect(visit("https://fit.example.id/?source=pwa")?.headers.get("location")).toBe("/mulai/?source=pwa");
+    expect(visit("https://fit.example.id/?source=pwa", { cookie: "better-auth.session_token=x" })).toBeNull();
     // Other cookies (consent, analytics) don't count as a session.
     expect(visit("https://fit.example.id/", { cookie: "theme=dark; op_id=1" })?.status).toBe(302);
     expect(visit("https://fit.example.id/", {}, "HEAD")?.status).toBe(302);

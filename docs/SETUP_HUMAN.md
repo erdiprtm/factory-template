@@ -478,6 +478,18 @@ Dengan pola ini app dan situs memakai satu alamat yang sama, misalnya `fit.domai
 
 ---
 
+## 13. Mencoba app terpasang di HP (ikon di layar utama, D-080)
+
+Tidak perlu akun atau kunci apa pun. Coba di URL preview PR atau di produksi (harus HTTPS; `localhost` di laptop tidak bisa dibuka dari HP).
+
+- **Android (Chrome):** buka alamat app, ketuk sekali di halaman dan tunggu sekitar 30 detik. Lalu menu **⋮** → **Instal aplikasi** (atau **Tambahkan ke layar utama**). Kalau produk memakai `pwa.promptAfter: "payment"`, kartu "Pasang … di HP-mu" muncul sendiri setelah pembayaran sandbox berhasil; tombol **Pasang** membuka dialog instal Chrome.
+- **iPhone (Safari):** buka alamat app → ketuk ikon **Bagikan** (kotak dengan panah ke atas) → **Tambah ke Layar Utama** → **Tambah**.
+  - App yang dibuka dari ikon di iPhone punya penyimpanan sendiri, terpisah dari Safari. Jadi **perlu masuk sekali lagi** di dalamnya. Dengan kode 6 digit dari email (D-079), cukup salin kodenya dari aplikasi email, tanpa membuka tautan di Safari.
+- **Dari Instagram/Facebook/LINE/Gmail:** browser di dalam aplikasi itu tidak bisa memasang. Kartunya menampilkan "Buka di Chrome/Safari untuk memasang" dengan tombol **Salin tautan**.
+- Ikon diambil dari `apps/app/assets/icon.png` (PNG persegi, minimal 512 px, idealnya 1024). Ganti file itu, lalu jalankan `pnpm theme`.
+
+---
+
 ## Ringkasan: yang perlu disimpan di password manager
 
 | Dari | Nilai | Dipakai di fase |

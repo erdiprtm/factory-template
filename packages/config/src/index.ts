@@ -326,6 +326,31 @@ export const productSchema = z.object({
     })
     .nullable()
     .default(null),
+  // Installable web app (D-080): `pnpm theme` writes the manifest, the head tags and every icon
+  // size from one source icon. promptAfter: when the app offers "Pasang di HP": on the payment
+  // success screen, under the first result (UpgradePrompt), or never (Akun still has the link).
+  pwa: z
+    .object({
+      enabled: z.boolean().default(true),
+      /** Source icon, relative to apps/app: a square PNG of at least 512 px (1024 is best). */
+      icon: z
+        .string()
+        .regex(/^[\w-]+(\/[\w-]+)*\.png$/, "a PNG path relative to apps/app, like assets/icon.png")
+        .default("assets/icon.png"),
+      /**
+       * Optional full-bleed source for Android's maskable icon (logo inside the centre 80%). Unset:
+       * made from `icon`, scaled to 80% on its own corner colour (or the background colour).
+       */
+      maskableIcon: z
+        .string()
+        .regex(/^[\w-]+(\/[\w-]+)*\.png$/, "a PNG path relative to apps/app")
+        .nullable()
+        .default(null),
+      /** The name under the home-screen icon (about 12 characters show). Unset = product name. */
+      shortName: z.string().min(1).max(30).nullable().default(null),
+      promptAfter: z.enum(["payment", "first_result", "never"]).default("never"),
+    })
+    .default({ enabled: true, icon: "assets/icon.png", maskableIcon: null, shortName: null, promptAfter: "never" }),
   // Meta Pixel ID (public: browsers carry it). Unset = no Pixel, no Conversions API, no marketing
   // consent banner. The CAPI access token is a Worker secret (META_CAPI_TOKEN), never here. D-034.
   marketing: z

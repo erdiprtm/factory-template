@@ -56,6 +56,21 @@ export const id = {
   "billing.return.timeout":
     "Pembayaran belum terkonfirmasi. Kalau sudah bayar, akses aktif otomatis dalam beberapa menit.",
   "billing.return.home": "Ke beranda",
+  // Installable web app (D-080). {name} = the product name. Products reword the offer with
+  // productPwa.offer in features/messages.ts.
+  "pwa.offer": "Pasang {name} di HP-mu, biar sekali ketuk.",
+  "pwa.install": "Pasang",
+  "pwa.later": "Nanti saja",
+  "pwa.account": "Pasang di HP",
+  "pwa.ios.title": "Cara memasang di iPhone:",
+  "pwa.ios.step1": "Ketuk ikon Bagikan (kotak dengan panah ke atas) di bilah Safari.",
+  "pwa.ios.step2": "Gulir, lalu pilih “Tambah ke Layar Utama”.",
+  "pwa.ios.step3": "Ketuk “Tambah”. Ikon {name} muncul di layar utama.",
+  "pwa.ios.signIn": "Saat pertama dibuka dari ikon, masuk sekali lagi dengan email kamu.",
+  "pwa.inapp": "Buka di Chrome/Safari untuk memasang.",
+  "pwa.inappHint": "Salin tautan ini, lalu tempel di Chrome atau Safari.",
+  "pwa.copy": "Salin tautan",
+  "pwa.copied": "Tautan disalin.",
   "example.run": "Jalankan fitur contoh",
   "example.title": "Fitur contoh",
   "nav.home": "Beranda",

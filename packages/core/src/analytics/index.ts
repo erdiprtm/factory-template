@@ -65,6 +65,12 @@ export const STANDARD_EVENTS = [
   "app_cta_shown",
   "app_store_clicked",
   "app_signed_in",
+  // Installable web app (D-080): the "Pasang" card, the browser's install, opens from the home screen
+  "pwa_prompt_shown",
+  "pwa_prompt_accepted",
+  "pwa_prompt_dismissed",
+  "pwa_installed",
+  "pwa_open",
 ] as const;
 
 export type StandardEvent = (typeof STANDARD_EVENTS)[number];
