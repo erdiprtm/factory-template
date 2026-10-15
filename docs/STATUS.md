@@ -9,7 +9,21 @@ Progress log, newest entry on top.
 - `ai.provider` is now `"openai" | "openrouter" | "gemini"` (`"openai"` unchanged). OpenRouter: one key for comparing models, `fallbackModels`, private routing by default (`data_collection: "deny"`, `require_parameters`, ZDR on with `legal.sensitiveDataConsent`), cost from OpenRouter's `usage.cost`. Gemini: the Interactions API, `store: false`, `thinking` and `mediaResolution`, no tools or search grounding.
 - Both re-validate the answer against the schema on the server (`schemaError`): a non-conforming answer is `bad_output`. Safety blocks are `refused`. Budgets, `ai_usage` rows, the mock in CI/preview and "no key → 503 in production" work as before. `aiProvider()` stays the one place a provider is built.
 - The privacy policy's processor list names the configured AI processor (`{{aiProcessor}}`).
-- **Human (per product using one):** OpenRouter privacy settings + key with a credit limit (`SETUP_HUMAN.md` 11b), or a paid "Myna Health" Gemini project with a spend cap (11c). Lawyer: Gemini terms note in D-084.
+- **Human (per product using one):** OpenRouter privacy settings + key with a credit limit (`SETUP_HUMAN.md` 11c), or a paid "Myna Health" Gemini project with a spend cap (11d). Lawyer: Gemini terms note in D-084.
+
+---
+
+## 2026-10-15: `pnpm ai:eval`, models compared on the product's own photos (D-085), Myna Fit feedback item 3
+
+- Runs the product's eval photos (`evals/`, gitignored) through one or more provider/model configs via the real `aiProvider` and the product's own request and scorer (`apps/api/src/features/ai-eval.ts`), and writes a table: top-1/top-3, macros in range, schema failures, p50/p90 latency, Rp per scan.
+- Local only, keys from the shell, cost estimate first and `--yes` above Rp 20.000. Guide: `docs/AI_EVAL.md`; human step: `SETUP_HUMAN.md` 11b.
+## 2026-10-15: Sign-in slot stage; Akun choices are not primary buttons (D-086)
+
+- `signInHeader` gets `stage` (email/sent). Akun selected language and theme use the secondary style.
+## 2026-10-15: Hybrid nutrition guardrail and `checkMacros` (D-082), Myna Fit AI accuracy feedback item 1
+
+- Numbers come from the label, then curated data (exact or alias match), then a labelled, code-checked, editable "Perkiraan AI" estimate. No "similar food" fallbacks, and every number shows its source.
+- `@factory/core/nutrition` `checkMacros` holds the plausibility rules.
 
 ---
 

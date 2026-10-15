@@ -8,6 +8,7 @@
     "./files": "./src/files/index.ts",
     "./ai": "./src/ai/index.ts",
     "./ai/usage": "./src/ai/usage.ts",
+    "./ai/eval": "./src/ai/eval.ts",
     "./economics": "./src/economics/index.ts",
     "./economics/metrics": "./src/economics/metrics.ts",
     "./consents": "./src/consents/index.ts",
@@ -25,7 +26,8 @@
     "./quota": "./src/quota/index.ts",
     "./quiz/store": "./src/quiz/store.ts",
     "./meta": "./src/meta/index.ts",
-    "./meta/events": "./src/meta/events.ts"
+    "./meta/events": "./src/meta/events.ts",
+    "./nutrition": "./src/nutrition/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",

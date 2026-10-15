@@ -1,4 +1,4 @@
-import type { ProductConfig } from "@factory/config";
+import type { AiConfigParsed, ProductConfig } from "@factory/config";
 import { config } from "@factory/config/product";
 import {
   type AiJsonRequest,
@@ -22,18 +22,22 @@ import type { SessionUser } from "./auth";
 export type AiEnv = {
   /** OpenAI API key, for ai.provider "openai" (Wrangler secret; SETUP_HUMAN step 11). */
   OPENAI_API_KEY?: string;
-  /** OpenRouter API key, for ai.provider "openrouter" (D-083; SETUP_HUMAN step 11b). */
+  /** OpenRouter API key, for ai.provider "openrouter" (D-083; SETUP_HUMAN step 11c). */
   OPENROUTER_API_KEY?: string;
-  /** Gemini API key from a paid project, for ai.provider "gemini" (D-084; SETUP_HUMAN step 11c). */
+  /** Gemini API key from a paid project, for ai.provider "gemini" (D-084; SETUP_HUMAN step 11d). */
   GEMINI_API_KEY?: string;
   /** Overrides product.config.ts ai.model without a code change (e.g. to try a new model). */
   AI_MODEL?: string;
   APP_ENV: string;
 };
 
-/** product.config.ts `ai` (a test or `pnpm ai:eval` may pass another). No provider = "openai". */
+/**
+ * product.config.ts `ai`, or one parsed alone by `pnpm ai:eval` (D-085), whose OpenRouter zdr may
+ * be unset: then it follows this product's legal.sensitiveDataConsent. No provider = "openai".
+ */
 export type AiSettings =
   | NonNullable<ProductConfig["ai"]>
+  | AiConfigParsed
   | { provider?: "openai"; model: string; tier: "default" | "fast" };
 
 /**
@@ -59,7 +63,7 @@ export function aiProvider(
             apiKey,
             model,
             fallbackModels: ai.fallbackModels,
-            routing: ai.routing,
+            routing: { ...ai.routing, zdr: ai.routing.zdr ?? config.legal.sensitiveDataConsent },
             prices: ai.prices,
             fetch: opts.fetch,
           })

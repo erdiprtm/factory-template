@@ -9,6 +9,7 @@
 //   (and is billed), so that's what the log records;
 // - `usage.cost` (USD credits) comes back on every response: that's the recorded cost.
 import type { AiFailure, AiJsonRequest, AiProvider, AiResult, AiUsage } from "./index";
+import { listPrice } from "./prices";
 import { schemaError } from "./schema";
 import { type AiPrice, base64, callSignal, failed, priceMicroUsd } from "./wire";
 
@@ -96,7 +97,7 @@ export function openRouterProvider(opts: {
   model: string;
   fallbackModels?: readonly string[];
   routing: OpenRouterRouting;
-  /** USD per 1M tokens per slug: used only when a response reports no cost. */
+  /** USD per 1M tokens per slug: used only when a response reports no cost (then list prices). */
   prices?: Readonly<Record<string, AiPrice>>;
   fetch?: typeof fetch;
   timeoutMs?: number;
@@ -127,7 +128,7 @@ export function openRouterProvider(opts: {
             outputTokens: body.usage.completion_tokens ?? 0,
           }
         : null;
-      const price = opts.prices?.[model];
+      const price = opts.prices?.[model] ?? listPrice(model);
       const cost =
         typeof body.usage?.cost === "number"
           ? Math.round(body.usage.cost * 1e6)

@@ -57,7 +57,7 @@ Keep it to one page. Max 3 core features in v1. Everything else goes under "Out 
 ## Notes for writing a good spec
 
 - **Data the product stores:** if anything is health-related or otherwise sensitive under UU PDP, say so. It turns on `legal.sensitiveDataConsent` in `product.config.ts`.
-- **Content & data sources:** numbers shown to users (nutrition, health, prices) must come from curated data stored in the product, never from model memory (CLAUDE.md product guardrails).
+- **Content & data sources:** which numbers are shown (nutrition, health, prices) and their sources in order: the photographed label, curated data in the product (exact or alias matches), then, only if allowed for this product, a labelled "Perkiraan AI" estimate checked with `checkMacros` and editable by the user. Name the curated datasets and their versions (CLAUDE.md product guardrails, D-082).
 - **Kill criteria:** a measurable condition and a date, e.g. "fewer than 20 paying users by day 60". It is copied into `factory.json`.
 - **Plans & prices:** become `plans` in `product.config.ts`. Integer IDR, exactly two durations (6 and 12 months).
 - **Core loop & funnel:** one core loop only; anything else is out of scope for v1. It becomes `funnel` in `product.config.ts` (the free uses and paywall placement), `apps/app/src/features/quiz.ts`, and the first landers (`apps/site/src/content/landers/`). `/spec-interview` fills it in one question at a time.

@@ -42,7 +42,7 @@ describe("slots can't bypass core rules", () => {
     type ConsentHeaderProps = ComponentProps<NonNullable<CoreSlots["consentHeader"]>>;
     expectTypeOf<keyof ConsentHeaderProps>().toEqualTypeOf<keyof HeaderSlotProps | "where">();
     expectTypeOf<keyof ComponentProps<NonNullable<CoreSlots["signInHeader"]>>>().toEqualTypeOf<
-      "title" | "subtitle" | "productName"
+      "title" | "subtitle" | "productName" | "stage"
     >();
   });
 

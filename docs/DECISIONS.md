@@ -1603,6 +1603,78 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **Decision.** `InstallOffer` takes `onShownChange`. While the card is on screen, "Ke beranda" is outlined, so "Pasang" is the one primary. Once the card is hidden ("Nanti saja", already installed, nothing to offer), "Ke beranda" is filled again. A product's `billingReturn` slot gets the same `InstallOffer` underneath and keeps its own buttons.
 - **Test.** `pwa-install-render.test.tsx`: the callback reports `true` when the card shows and `false` after "Nanti saja".
 
+## D-082: Nutrition numbers: label and curated data first, then a labelled and checked AI estimate (2026-10-15)
+
+- **Problem (Myna Fit, real-phone testing).** Meal scans users couldn't trust:
+  - siomay read as "semur";
+  - an L-Men drink with "14 g protein" printed large on the front shown as 1 g;
+  - snack nori with almost no protein.
+  - The rule "numbers come only from curated data" pushed the product to drop an incomplete label and show the nearest curated food ("mirip: X") with confident, wrong numbers.
+- **Decision (Erdi, product owner):** "user itu mau kepastian; estimasi juga bentuk kepastian, selama masuk akal". The guardrail becomes **hybrid** for every product (CLAUDE.md "Product guardrails"):
+  1. **Sources in order.**
+     - The photographed label, including front-of-pack claims.
+     - Then curated data: branded products, then foods and recipes, on an exact or alias match only.
+  2. **Otherwise an AI estimate**, only if it's:
+     - labelled "Perkiraan AI";
+     - plausibility-checked in code (a failing one shows "cek lagi" and asks the user to confirm or edit, never silently);
+     - editable;
+     - general information only (no medical claims, red flags still go to professionals).
+  3. **No "similar food" fallback** with confident numbers for a different food.
+  4. **Every number shows its source** (Label / Data kurasi / Perkiraan AI). Stored items keep the source and the model or dataset version.
+- **`@factory/core/nutrition` `checkMacros({ grams, kcal, protein, carbs, fat }, options)`** returns `{ ok, problems[] }`:
+  - finite, non-negative numbers and grams > 0;
+  - grams within the kind's range (default 1–2000; products pass e.g. `[5, 500]` for snacks);
+  - protein, carbs and fat each ≤ grams, and their sum ≤ grams;
+  - kcal ≤ 900 per 100 g;
+  - kcal within 25% (at least 25 kcal) of 4·P + 4·C + 9·F.
+
+  Use it on AI estimates before showing them, and on labels read from photos (a misread digit fails too).
+- **Where it's worded:** CLAUDE.md, FACTORY_BLUEPRINT.md, SPEC_TEMPLATE.md, `/build-from-spec`, `/spec-interview` and `/design-review` (rubric line F4).
+- **Unchanged:** the scan pipeline stays product-owned. The AI adapter's contract (D-045: strict schema, server-side re-validation, no tools, budgets) doesn't change; D-083 and D-084 add providers.
+- **Tests:** `packages/core/src/nutrition/index.test.ts` covers:
+  - real foods pass (siomay, a protein drink, butter);
+  - macros heavier than the item and impossible density are flagged;
+  - an Atwater mismatch is flagged, with an absolute floor for small items;
+  - the portion range is checked;
+  - NaN, negative or zero values are rejected.
+
+## D-085: `pnpm ai:eval`, models compared on the product's own photos (2026-10-15)
+
+- **Why (Myna Fit feedback item 3).** A product chose its model by feel. Nothing measured whether a cheaper model, a new provider or a prompt change recognised its real photos as well, so a regression would reach users first.
+- **What.** `pnpm ai:eval` (`scripts/ai-eval.mjs`, guide `docs/AI_EVAL.md`) runs the product's eval set through one or more configs and prints a Markdown table (stdout and `evals/results/<date>.md`): top-1, top-3 (when the model gives alternatives), macros in range, schema failure or refusal, other errors, median and p90 latency, Rp per scan and total. Below it, each photo's first answer per config.
+- **Same path as production.**
+  - Providers come from the real factory, `aiProvider(env, mock, ai)` in `apps/api/src/core/ai.ts`, with each config as the `ai` object. So a provider added there (D-083/D-084) works in the eval with no change here. `AI_MODEL` is ignored (each config names its model).
+  - Each `models.json` entry (or `--model provider:model[:fast]`) is validated with the real `product.config.ts` `ai` schema, made strict, so a typo fails instead of silently comparing the default.
+  - The request and the scorer are product-owned: `apps/api/src/features/ai-eval.ts` exports `aiEval` (`request`, `score`, `mock`, `expectedUsage`). A product imports its scan route's own request builder there. The template ships an example (meal photo → ranked dish names), marked PRODUCT-OWNED.
+  - Pure logic (matching, ranges, percentiles, cost, the table) is `@factory/core/ai/eval`.
+- **Loading TypeScript.** The repo's TS uses extensionless imports and workspace packages, which Node's own type stripping can't load. The script uses Vite's SSR loader through `vitest/node`'s `createViteServer` (vitest is already a root devDependency), so **no new dependency**.
+- **Scoring.**
+  - A name counts when it equals an expected item or alias after lowercasing and removing accents and punctuation. Matching is otherwise exact, so the set's aliases decide (no fuzzy match that would hide a wrong dish such as "nasi" for "nasi goreng").
+  - Top-1/top-3 count a hit against any expected item in the photo (mixed plates list every dish).
+  - Macro ranges are inclusive, and a failed call misses all of its ranges. Failed calls count against accuracy too.
+  - "Schema fail / refused" = the call went through without a usable answer (`bad_output`, `refused`, or `score` returned `null`). Quota, rate limits and outages are "Other errors", so they don't read as a weak model.
+  - Latency is nearest-rank p50/p90 of the adapter's `latencyMs`.
+- **Cost.** Real usage × `costMicroUsd` (list prices, before PPN). Unknown prices show `n/a`, never a guess. **USD 1 = Rp 16.500 is an assumption** (`--usd-idr` overrides it).
+- **Safety.**
+  - Local only: keys from the shell's environment, never `.dev.vars`. With `CI` set it refuses unless `--allow-ci`; it is not in `pnpm verify`.
+  - The estimate (`expectedUsage` × prices × photos × configs) is printed first. Above `--max-rp` (default Rp 20.000), or with any unknown price, nothing runs without `--yes`.
+  - A config without its key would get the factory's mock, a fake score, so the run stops and names the missing key instead. `{ "provider": "mock" }` is the explicit free dry run.
+  - Calls run one at a time.
+- **Privacy.** `evals/` is gitignored: photos can be personal. The guide asks for own photos or consent, and no faces or personal data in the frame (`SETUP_HUMAN.md` 11b).
+- **Tests.**
+  - `scripts/ai-eval.test.mjs`: on committed 1–4 px PNGs (`scripts/fixtures/ai-eval/`), with a fake provider and the fixture's own product module (not the product's, D-078), the exact table: hit, alias hit, top-3-only hit, schema failure, outage, macro ranges, latency and rupiah. Also the cost gate (exit 2 and no provider without `--yes`), unknown prices, the CI refusal, the missing-key refusal, and config validation.
+  - `packages/core/src/ai/eval.test.ts`: alias and accent matching, ranks, macro ranges, percentiles, estimates and `n/a` prices.
+
+## D-086: The sign-in header slot knows the stage; Akun's selected choice isn't a filled button (2026-10-15)
+
+- **Problem (Myna Fit `/design-review`, low priority).**
+  - The `signInHeader` slot got only `title`/`subtitle`. Myna Fit's "Belum punya akun? Bikin program gym-ku" link kept showing on "Cek email kamu", while someone was signing in.
+  - On Akun, the selected language (and theme) choice was a filled `bg-primary` button, in the same viewport as "Perpanjang", the real primary. That fails the rubric's B2.
+- **Decision.**
+  - `signInHeader` gets `stage: "email" | "sent"`, display-only like the rest of its props. `slots.test.tsx` pins the prop list.
+  - Akun's `Segmented` shows the selected choice as `bg-secondary` with a primary border and semibold text (`role="radio"` with `aria-checked`, 44 px targets), so "Perpanjang" stays the one filled button.
+- **Tests:** `sign-in-slot-render.test.tsx` renders the sign-in screen with a slot that hides a link unless `stage` is "email". The link is gone once the email is sent. The slot props type test includes `stage`.
+
 ## D-083: OpenRouter as an AI provider (2026-10-15)
 
 - **Why.** Myna Fit's meal scans on `gpt-6-luna` were inaccurate; the Lovable version on Gemini 3.8 Flash felt better. To compare models with one key (and fall back between them), the adapter (D-045) gets OpenRouter.
@@ -1618,7 +1690,7 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **Answer.** OpenRouter says some providers treat the schema only as a strong hint. So the parsed answer is re-validated on the server (`schemaError` in `@factory/core/ai/schema.ts`: type, enum, const, properties, required, additionalProperties, items, prefixItems, min/max items, minimum/maximum, min/max length, anyOf). A non-conforming answer is `bad_output` with the path in `detail`, and is still logged with its cost.
 - **Failures.** 402 → `quota` (top up credits); 429 → `rate_limited`; 403 with `error_type` `content_policy_violation`/`refusal` → `refused`; 408 and 5xx (502 model down, 503 no provider meets the routing, 524, 529) → `unavailable`; other 4xx → `bad_request`. Errors inside a 200 (a body with only `error`, or a choice with `finish_reason: "error"`) are handled too; `message.refusal` or `content_filter` → `refused`; empty content or `finish_reason: "length"` → `bad_output`.
 - **Cost.** The usage-accounting page says usage comes back on every response (`usage: { include: true }` is deprecated): `prompt_tokens`, `completion_tokens`, `prompt_tokens_details.cached_tokens` and `cost` in credits, which are USD-denominated (FAQ). That `cost` × 1e6 is the recorded `ai_usage.cost_micro_usd` (`AiResult.costMicroUsd`, new and optional; `recordAiUsage` prefers it). Only when a response has no `cost` is the config's `prices` table used, else null. Credit purchases add about 5.5% (Stripe), not in the per-call cost.
-- **Privacy.** OpenRouter doesn't store prompts unless the account opts into logging. Per request, `data_collection: "deny"` and (with sensitive data) `zdr: true`; the ZDR page says account, guardrail and request ZDR combine as OR, so a request can add but never remove it. `SETUP_HUMAN.md` 11b turns training providers, OpenRouter's own use of inputs and I/O logging off, ZDR on, and sets a credit limit on the key. The privacy policy names "OpenRouter (perute model) dan penyedia yang menjalankan modelnya".
+- **Privacy.** OpenRouter doesn't store prompts unless the account opts into logging. Per request, `data_collection: "deny"` and (with sensitive data) `zdr: true`; the ZDR page says account, guardrail and request ZDR combine as OR, so a request can add but never remove it. `SETUP_HUMAN.md` 11c turns training providers, OpenRouter's own use of inputs and I/O logging off, ZDR on, and sets a credit limit on the key. The privacy policy names "OpenRouter (perute model) dan penyedia yang menjalankan modelnya".
 - **Secret** `OPENROUTER_API_KEY`. No key: the mock in development, test and preview; null (503) in production. Only the configured provider's key counts.
 
 ## D-084: Gemini API called directly (2026-10-15)
@@ -1633,5 +1705,5 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **Schema.** The structured-output guide lists the supported keywords: type (incl. `["string", "null"]`), title, description, properties, required, additionalProperties, enum, format (date-time/date/time), minimum, maximum, items, prefixItems, minItems, maxItems; its examples also use anyOf. `geminiSchema` keeps those, turns `const` into a one-value enum and drops the rest (pattern, minLength, other formats…). The guide says to validate in the app, and the full original schema re-validates every answer (`schemaError`), so dropped constraints are still enforced.
 - **Answer and failures.** The text of the `model_output` steps is parsed. Status `incomplete` (cut off) or no text → `bad_output`; non-conforming → `bad_output`. The api-errors page's "generation blocked" codes (`safety`, `prohibited_content`, `spii`, `image_safety`, `content_blocked`, …), in an HTTP error or an interaction's `errors` (codes may be URIs; the last segment is matched) → **`refused`**. Products treat `refused` and `bad_output` the same way as an unclear photo ("coba foto lain / ketik manual"). Other `failed` → `unavailable`. HTTP: 402 `payment_required`, 429 `quota_exceeded` and 400 `failed_precondition` (e.g. billing disabled) → `quota` (a human fixes the account); other 429 → `rate_limited`; 408/499/5xx → `unavailable`; other 4xx → `bad_request`.
 - **Usage and cost.** `inputTokens = total_input_tokens`, `cachedInputTokens = total_cached_tokens`, `outputTokens = total_output_tokens + total_thought_tokens` (the thinking page: thinking is billed as output and reported separately). We assume `total_input_tokens` includes cached tokens, as `promptTokenCount` does in generateContent; the reference doesn't say. Cost from `GEMINI_PRICES` (paid tier, standard, USD per 1M, from the pricing page): gemini-3.8-flash and 3.6-flash 0.75 / 0.075 cached / 3.75 out until 2026-12-31, then 1.50 / 0.15 / 7.50 from 2027-01-01; 3.5-flash-lite 0.30 / 0.03 / 2.50; gemini-4-argon 2 / 0.10 / 10, then 4 / 0.20 / 20 from 2026-12-01; 3.1-pro-preview 2 / 0.20 / 12 (≤ 200k prompt). Prices are periods with a start day, priced at the call's time. A measured-size scan (1,400 in, 300 out + 500 thinking) costs 4,050 micro-USD now.
-- **Secret** `GEMINI_API_KEY`, from a project with Cloud Billing ("Paid" in AI Studio). Never a free-tier key in production: the terms let Google use free-tier prompts to improve products, human reviewers may read them, and they say not to submit personal information to Unpaid Services. `SETUP_HUMAN.md` 11c: paid "Myna Health" project, Prepay, monthly spend cap (experimental, ~10 min latency) plus a Cloud budget alert. The privacy policy names "Google (Gemini API, layanan berbayar)".
+- **Secret** `GEMINI_API_KEY`, from a project with Cloud Billing ("Paid" in AI Studio). Never a free-tier key in production: the terms let Google use free-tier prompts to improve products, human reviewers may read them, and they say not to submit personal information to Unpaid Services. `SETUP_HUMAN.md` 11d: paid "Myna Health" project, Prepay, monthly spend cap (experimental, ~10 min latency) plus a Cloud budget alert. The privacy policy names "Google (Gemini API, layanan berbayar)".
 - **For the lawyer** (Gemini API Additional Terms, effective 2026-03-23, read 2026-10-15): the Services are for "professional or business purposes, not for consumer use"; users must be 18+ and apps must not be directed at or likely accessed by minors; no clinical use or medical advice, and medical content is informational only; paid-tier prompts are logged for a limited time for abuse monitoring and may be stored in any country where Google has facilities. Please confirm that a consumer app built and operated by a business (PT) on the paid API fits "business purposes", what the product needs for the age term (an 18+ statement in the S&K or an age check at signup) and whether the "bukan pengganti tenaga profesional" notice meets the medical term, and that the processing-location wording in the privacy policy is enough.

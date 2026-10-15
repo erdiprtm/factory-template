@@ -66,7 +66,69 @@ const providerSlug = z.string().regex(/^[a-z0-9][a-z0-9._/-]{0,60}$/, "an OpenRo
 /** USD per 1M tokens. */
 const aiPrice = z.object({ input: z.number().min(0), cachedInput: z.number().min(0), output: z.number().min(0) });
 
-const productObject = z.object({
+/** product.config.ts `ai` without null (D-045, D-083, D-084); see the comment at `ai` below. */
+export const aiSchema = z.discriminatedUnion("provider", [
+  z.object({
+    provider: z.literal("openai"),
+    model: z.string().regex(/^[a-z0-9][a-z0-9.-]{1,60}$/),
+    tier: z.enum(["default", "fast"]).default("default"),
+    ...aiCaps,
+  }),
+  z.object({
+    provider: z.literal("openrouter"),
+    model: openRouterSlug,
+    fallbackModels: z.array(openRouterSlug).max(3).default([]),
+    routing: z
+      .object({
+        /** Only providers that support every parameter sent (response_format above all). */
+        requireParameters: z.boolean().default(true),
+        /** "deny": only providers that don't collect (store or train on) the data. */
+        dataCollection: z.enum(["deny", "allow"]).default("deny"),
+        /** Zero Data Retention endpoints only. Unset = legal.sensitiveDataConsent (resolved by defineProduct). */
+        zdr: z.boolean().optional(),
+        /** Provider slugs allowed (only) or tried first (order). */
+        only: z.array(providerSlug).min(1).optional(),
+        order: z.array(providerSlug).min(1).optional(),
+        /** Whether other providers may serve when the preferred ones can't (OpenRouter default: true). */
+        allowFallbacks: z.boolean().optional(),
+      })
+      .default({ requireParameters: true, dataCollection: "deny" }),
+    prices: z.record(openRouterSlug, aiPrice).default({}),
+    tier: z.literal("default").default("default"),
+    ...aiCaps,
+  }),
+  z.object({
+    provider: z.literal("gemini"),
+    model: z.string().regex(/^gemini-[a-z0-9][a-z0-9.-]{0,60}$/, 'a Gemini model id like "gemini-3.8-flash"'),
+    thinking: z.enum(["minimal", "low", "medium", "high"]).optional(),
+    mediaResolution: z.enum(["low", "medium", "high", "ultra_high"]).optional(),
+    tier: z.literal("default").default("default"),
+    ...aiCaps,
+  }),
+]);
+
+/** aiSchema refusing unknown keys (a typo fails): `pnpm ai:eval`'s model configs (D-085). */
+export const strictAiSchema = z.discriminatedUnion(
+  "provider",
+  aiSchema.options.map((o) => o.strict()) as unknown as typeof aiSchema.options,
+);
+
+/** An `ai` config as parsed (routing.zdr possibly unset). */
+export type AiConfigParsed = z.output<typeof aiSchema>;
+/** An `ai` config with OpenRouter's zdr resolved: what defineProduct returns. */
+export type AiConfig = AiConfigParsed extends infer A
+  ? A extends { provider: "openrouter"; routing: infer R }
+    ? Omit<A, "routing"> & { routing: Omit<R, "zdr"> & { zdr: boolean } }
+    : A
+  : never;
+
+/** Zero Data Retention by default whenever the product handles sensitive (health) data (D-083). */
+export function resolveAi(ai: AiConfigParsed, legal: { sensitiveDataConsent: boolean }): AiConfig {
+  if (ai.provider !== "openrouter") return ai as AiConfig;
+  return { ...ai, routing: { ...ai.routing, zdr: ai.routing.zdr ?? legal.sensitiveDataConsent } } as AiConfig;
+}
+
+export const productSchema = z.object({
   slug,
   name: z.string().min(1),
   tagline: z.string().min(1),
@@ -343,48 +405,7 @@ const productObject = z.object({
   //   tokens per slug) is only used when a response carries none.
   // - "gemini" (D-084): model = a Gemini API model id ("gemini-3.8-flash"); thinking = the
   //   documented thinking_level (unset = the model's default); mediaResolution = image detail.
-  ai: z
-    .discriminatedUnion("provider", [
-      z.object({
-        provider: z.literal("openai"),
-        model: z.string().regex(/^[a-z0-9][a-z0-9.-]{1,60}$/),
-        tier: z.enum(["default", "fast"]).default("default"),
-        ...aiCaps,
-      }),
-      z.object({
-        provider: z.literal("openrouter"),
-        model: openRouterSlug,
-        fallbackModels: z.array(openRouterSlug).max(3).default([]),
-        routing: z
-          .object({
-            /** Only providers that support every parameter sent (response_format above all). */
-            requireParameters: z.boolean().default(true),
-            /** "deny": only providers that don't collect (store or train on) the data. */
-            dataCollection: z.enum(["deny", "allow"]).default("deny"),
-            /** Zero Data Retention endpoints only. Unset = legal.sensitiveDataConsent. */
-            zdr: z.boolean().optional(),
-            /** Provider slugs allowed (only) or tried first (order). */
-            only: z.array(providerSlug).min(1).optional(),
-            order: z.array(providerSlug).min(1).optional(),
-            /** Whether other providers may serve when the preferred ones can't (OpenRouter default: true). */
-            allowFallbacks: z.boolean().optional(),
-          })
-          .default({ requireParameters: true, dataCollection: "deny" }),
-        prices: z.record(openRouterSlug, aiPrice).default({}),
-        tier: z.literal("default").default("default"),
-        ...aiCaps,
-      }),
-      z.object({
-        provider: z.literal("gemini"),
-        model: z.string().regex(/^gemini-[a-z0-9][a-z0-9.-]{0,60}$/, 'a Gemini model id like "gemini-3.8-flash"'),
-        thinking: z.enum(["minimal", "low", "medium", "high"]).optional(),
-        mediaResolution: z.enum(["low", "medium", "high", "ultra_high"]).optional(),
-        tier: z.literal("default").default("default"),
-        ...aiCaps,
-      }),
-    ])
-    .nullable()
-    .default(null),
+  ai: aiSchema.nullable().default(null),
   // Installable web app (D-080): `pnpm theme` writes the manifest, the head tags and every icon
   // size from one source icon. promptAfter: when the app offers "Pasang di HP": on the payment
   // success screen, under the first result (UpgradePrompt), or never (Akun still has the link).
@@ -423,21 +444,8 @@ const productObject = z.object({
     .default({ metaPixelId: null }),
 });
 
-/** An OpenRouter product's routing with zdr resolved (D-083). */
-type ResolvedAi<A> = A extends { provider: "openrouter"; routing: infer R }
-  ? Omit<A, "routing"> & { routing: Omit<R, "zdr"> & { zdr: boolean } }
-  : A;
-
-export const productSchema = productObject.transform((c) => {
-  type Ai = ResolvedAi<NonNullable<typeof c.ai>>;
-  if (c.ai?.provider !== "openrouter") return c as Omit<typeof c, "ai"> & { ai: Ai | null };
-  // Zero Data Retention by default whenever the product handles sensitive (health) data.
-  const routing = { ...c.ai.routing, zdr: c.ai.routing.zdr ?? c.legal.sensitiveDataConsent };
-  return { ...c, ai: { ...c.ai, routing } as Ai };
-});
-
 export type ProductConfigInput = z.input<typeof productSchema>;
-export type ProductConfig = z.output<typeof productSchema>;
+export type ProductConfig = Omit<z.output<typeof productSchema>, "ai"> & { ai: AiConfig | null };
 export type Plan = ProductConfig["plans"][number];
 
 /** Validates product.config.ts at load time, so a bad config fails the build. */
@@ -446,5 +454,6 @@ export function defineProduct(config: ProductConfigInput): ProductConfig {
   if (!result.success) {
     throw new Error(`Invalid product.config.ts:\n${z.prettifyError(result.error)}`);
   }
-  return result.data;
+  const c = result.data;
+  return { ...c, ai: c.ai ? resolveAi(c.ai, c.legal) : null };
 }

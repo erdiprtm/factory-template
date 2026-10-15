@@ -163,12 +163,15 @@ describe("OpenRouter provider", () => {
     expect(r.usage).toEqual({ inputTokens: 1700, cachedInputTokens: 0, outputTokens: 900 });
   });
 
-  it("prices from the config table only when the response has no cost", async () => {
+  it("without a reported cost: the config's price, then the underlying model's list price, else null", async () => {
     const body = chat(JSON.stringify(good));
     const noCost = { ...body, usage: { prompt_tokens: 1000, completion_tokens: 1000 } };
     const prices = { "google/gemini-3.8-flash": { input: 1, cachedInput: 0.1, output: 4 } };
     expect((await openRouter(fakeFetch([{ body: noCost }]).fetch, prices).json(req)).costMicroUsd).toBe(5000);
-    expect((await openRouter(fakeFetch([{ body: noCost }]).fetch).json(req)).costMicroUsd).toBeNull();
+    const luna = { ...noCost, model: "openai/gpt-6-luna" }; // 1,000 × $0.10 + 1,000 × $0.50 per 1M
+    expect((await openRouter(fakeFetch([{ body: luna }]).fetch).json(req)).costMicroUsd).toBe(600);
+    const unknown = { ...noCost, model: "acme/unknown-1" };
+    expect((await openRouter(fakeFetch([{ body: unknown }]).fetch).json(req)).costMicroUsd).toBeNull();
   });
 
   it("rejects an answer that doesn't match the schema (a provider took it as a hint)", async () => {

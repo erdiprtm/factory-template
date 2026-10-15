@@ -1,0 +1,1 @@
+[{ "provider": "openai", "model": "gpt-6-luna" }, { "provider": "mock" }]
