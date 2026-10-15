@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: One filled button on the payment success screen (D-081)
+
+- While the install card shows, "Ke beranda" is outlined, so "Pasang" is the one primary action.
+
+---
+
 ## 2026-10-15: Installable web app, offered after payment (D-080), Myna Fit feedback part 2
 
 - `pnpm theme` writes the manifest, the static head tags (`apps/app/public/index.html`) and the 192/512/maskable/apple-touch icons from one source icon (`pwa.icon`), with no image library. There's no service worker: Chrome doesn't need one to install.

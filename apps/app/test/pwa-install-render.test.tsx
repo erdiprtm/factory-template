@@ -128,6 +128,15 @@ describe("install offer (D-080)", () => {
     expect(screen.getByTestId("pwa-offer")).toBeTruthy();
   });
 
+  it("tells the host screen when it's on screen, so that screen keeps one filled button (D-081)", async () => {
+    const { InstallOffer, show, t } = await load("payment", UA.iphone);
+    const shown = vi.fn();
+    show(<InstallOffer placement="payment" onShownChange={shown} />);
+    expect(shown).toHaveBeenLastCalledWith(true);
+    fireEvent.click(screen.getByText(t("pwa.later")));
+    expect(shown).toHaveBeenLastCalledWith(false);
+  });
+
   it("Nanti saja hides it for 14 days, then it may show again", async () => {
     const { InstallOffer, install, show, t } = await load("payment", UA.iphone);
     const view = show(<InstallOffer placement="payment" />);

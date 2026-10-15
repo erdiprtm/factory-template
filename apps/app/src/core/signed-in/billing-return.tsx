@@ -20,6 +20,7 @@ export function BillingReturn() {
   const router = useRouter();
   const refreshMe = useRefreshMe();
   const [timedOut, setTimedOut] = useState(false);
+  const [offering, setOffering] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setTimedOut(true), TIMEOUT_MS);
@@ -71,7 +72,7 @@ export function BillingReturn() {
           homeLabel={t("billing.return.home")}
           onHome={() => router.replace("/")}
         />
-        {state === "paid" ? <InstallOffer placement="payment" /> : null}
+        {state === "paid" ? <InstallOffer placement="payment" onShownChange={setOffering} /> : null}
       </CenteredScreen>
     );
   }
@@ -83,12 +84,13 @@ export function BillingReturn() {
         {text}
       </Text>
       {done ? (
-        <Button onPress={() => router.replace("/")}>
+        // With the install card on screen, its "Pasang" is the one filled button (D-081).
+        <Button variant={offering ? "outline" : "default"} onPress={() => router.replace("/")}>
           <Text>{t("billing.return.home")}</Text>
         </Button>
       ) : null}
       {/* pwa.promptAfter "payment" (D-080): "Pasang di HP", right after the success. */}
-      {state === "paid" ? <InstallOffer placement="payment" /> : null}
+      {state === "paid" ? <InstallOffer placement="payment" onShownChange={setOffering} /> : null}
     </CenteredScreen>
   );
 }

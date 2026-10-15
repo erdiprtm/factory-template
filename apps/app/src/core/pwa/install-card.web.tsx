@@ -64,13 +64,21 @@ function Steps({ kind }: { kind: InstallKind }) {
  * or "first_result" (core's UpgradePrompt, under the product's first result). Products may render
  * it elsewhere too. "Nanti saja" hides it for 14 days.
  */
-export function InstallOffer({ placement }: { placement: InstallPlacement }) {
+export function InstallOffer({
+  placement,
+  onShownChange,
+}: {
+  placement: InstallPlacement;
+  /** Told whether the card is on screen, so the host screen can keep ONE filled button (D-081). */
+  onShownChange?: (shown: boolean) => void;
+}) {
   const { t, locale } = useI18n();
   const kind = useInstallKind();
   const [hidden, setHidden] = useState(() => offerDismissed());
   const [guide, setGuide] = useState(false);
   const show = product.pwa.promptAfter === placement && kind !== null && !hidden;
   const shown = useRef(false);
+  useEffect(() => onShownChange?.(show), [show, onShownChange]);
   useEffect(() => {
     if (!show || shown.current) return;
     shown.current = true;
