@@ -29,6 +29,7 @@ pnpm db:migrate:local # apply migrations to the local D1;  pnpm db:seed:local lo
 pnpm theme            # regenerate files derived from product.config.ts (theme CSS, the app's validated config JSON, and the installable app's manifest, head tags and icons, D-080) after ANY config change
 pnpm --filter @factory/site dev   # site at :4321 (SEO pages: add src/content/seo/<slug>.md, served at /artikel/<slug>/)
 pnpm setup-secrets    # shared CI secrets (factory.secrets.json) from the human's machine; --dry-run first (docs/SECRETS.md)
+pnpm ai:eval          # compare AI models on the product's own photos (evals/, gitignored); local only, keys from the shell, --yes above Rp 20.000 (docs/AI_EVAL.md)
 ```
 
 - Migrations: see `packages/db/README.md`. Local only: `--local`. Remote databases are migrated **only by CI**.

@@ -27,7 +27,8 @@
     "db:seed:local": "pnpm --filter @factory/api db:seed:local",
     "e2e": "pnpm --filter @factory/e2e e2e",
     "theme": "node scripts/gen-theme.mjs",
-    "setup-secrets": "node scripts/setup-secrets.mjs"
+    "setup-secrets": "node scripts/setup-secrets.mjs",
+    "ai:eval": "node scripts/ai-eval.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

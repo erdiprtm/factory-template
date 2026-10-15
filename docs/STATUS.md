@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: `pnpm ai:eval`, models compared on the product's own photos (D-085), Myna Fit feedback item 3
+
+- Runs the product's eval photos (`evals/`, gitignored) through one or more provider/model configs via the real `aiProvider` and the product's own request and scorer (`apps/api/src/features/ai-eval.ts`), and writes a table: top-1/top-3, macros in range, schema failures, p50/p90 latency, Rp per scan.
+- Local only, keys from the shell, cost estimate first and `--yes` above Rp 20.000. Guide: `docs/AI_EVAL.md`; human step: `SETUP_HUMAN.md` 11b.
+
+---
+
 ## 2026-10-15: One filled button on the payment success screen (D-081)
 
 - While the install card shows, "Ke beranda" is outlined, so "Pasang" is the one primary action.

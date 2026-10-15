@@ -23,6 +23,9 @@ test-results/
 .env.shared
 *.env.shared
 
+# AI eval sets (D-085): photos can be personal and stay on this machine (docs/AI_EVAL.md)
+evals/
+
 # personal Claude Code overrides
 .claude/settings.local.json
 
