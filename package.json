@@ -19,7 +19,7 @@
     "lint": "biome ci .",
     "format": "biome check --write .",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test && vitest run --dir scripts",
+    "test": "turbo run test --continue=dependencies-successful; t=$?; vitest run --dir scripts && exit $t",
     "check:migrations": "node scripts/check-migrations.mjs",
     "verify": "pnpm lint && pnpm check:migrations && node scripts/gen-theme.mjs --check && pnpm typecheck && pnpm test && pnpm build && node scripts/check-bundle-secrets.mjs && pnpm e2e",
     "db:generate": "pnpm --filter @factory/db generate",
