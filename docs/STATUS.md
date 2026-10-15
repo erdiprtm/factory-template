@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-16: tests reliable on a loaded laptop (D-089)
+
+- The two render tests that reset modules per case (`account-theme-render`, `pwa-install-render`) import their heavy modules in a `beforeAll` with its own timeout. `test/setup.ts` also cleans up before each case, so a timed-out case can't cascade into "Found multiple elements". Under 16 busy loops the first case went from up to 15.8 s to at most 1.6 s.
+- `apps/api` tests rerun once, only the files whose workerd worker didn't start with `ECONNRESET` and only when nothing else failed (`scripts/vitest-pool-retry.mjs`).
+- `pnpm test` runs every package's tests even after one fails (`turbo --continue=dependencies-successful`) and still exits non-zero; `verify` still stops before build and E2E.
+
+---
+
 ## 2026-10-15: AI providers OpenRouter (D-083) and Gemini direct (D-084), Myna Fit scan accuracy
 
 - `ai.provider` is now `"openai" | "openrouter" | "gemini"` (`"openai"` unchanged). OpenRouter: one key for comparing models, `fallbackModels`, private routing by default (`data_collection: "deny"`, `require_parameters`, ZDR on with `legal.sensitiveDataConsent`), cost from OpenRouter's `usage.cost`. Gemini: the Interactions API, `store: false`, `thinking` and `mediaResolution`, no tools or search grounding.

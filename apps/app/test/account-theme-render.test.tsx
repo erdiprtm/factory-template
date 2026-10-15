@@ -1,5 +1,5 @@
 import { render, renderHook, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 // D-076: brand.darkMode false = a light-only product. Akun shows no Tampilan row, and the app never
 // applies the dark scheme, whatever an earlier build stored on this device.
@@ -25,6 +25,13 @@ async function load(darkMode: boolean) {
   );
   return theme;
 }
+
+// D-089: transform Akun and react-native-web once, with a timeout of its own, so a cold import on a
+// busy machine isn't charged to the first case. load()'s vi.resetModules then re-evaluates them,
+// which is cheap once they're transformed.
+beforeAll(async () => {
+  await Promise.all([import("../src/core/signed-in/account"), import("../src/core/i18n"), import("../src/core/theme")]);
+}, 120_000);
 
 afterEach(() => {
   scheme.set.length = 0;

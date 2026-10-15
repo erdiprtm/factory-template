@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 // D-080: the "Pasang di HP" card. Rendered per browser (user agent, display mode, a captured
 // beforeinstallprompt), with pwa.promptAfter mocked, so it holds whatever the product configured.
@@ -59,6 +59,17 @@ function firePrompt(outcome: "accepted" | "dismissed" = "accepted") {
   });
   return event;
 }
+
+// D-089: transform the card and react-native-web once, with a timeout of its own, so a cold import
+// on a busy machine isn't charged to the first case. load()'s vi.resetModules then re-evaluates
+// them, which is cheap once they're transformed.
+beforeAll(async () => {
+  await Promise.all([
+    import("../src/core/pwa/install"),
+    import("../src/core/pwa/install-card"),
+    import("../src/core/i18n"),
+  ]);
+}, 120_000);
 
 afterEach(() => {
   tracked.length = 0;
