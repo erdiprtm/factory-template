@@ -362,7 +362,7 @@ The agent must write a `CLAUDE.md` at the repo root containing at least:
 - **Hard rules:** ship to production only through CI (never `wrangler deploy` to production from a laptop), no real payment keys in code or repo, no secrets in code, never bypass `requireAccess()` for paid features, never weaken webhook verification, never add browser-only APIs outside `*.web.tsx`, never show web prices or web checkout links in native builds.
 - **Product guardrails** (apply to all products made by this factory):
   - Wellness, education, and information products give **general guidance, never diagnosis, prescriptions, or personalized medical, legal, or financial advice**. Health-adjacent products show a clear "bukan pengganti tenaga profesional" notice and route red-flag situations to professionals.
-  - Nutrition or health numbers shown to users must come from **curated data stored in the product**, never from model memory. AI may phrase and combine; it must not invent facts or numbers.
+  - Nutrition or health numbers shown to users come from the photographed label or curated data in the product first (exact or alias matches only). Otherwise a labelled ("Perkiraan AI"), code-checked (`checkMacros`) and editable AI estimate is allowed. Never confident numbers for a different "similar" food, and every number shows its source (D-082, amended from "curated data only").
   - Tone: friendly, plain Bahasa Indonesia; never shaming users about their bodies, food, or habits.
 - **Available playbooks** (`/new-product`, `/build-from-spec`, etc.) and when to use each.
 - **Where things are:** short map of the repo.
