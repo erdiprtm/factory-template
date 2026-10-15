@@ -64,6 +64,19 @@ export function oneDomainProblems(i: OneDomainInput): string[] {
   return problems;
 }
 
+/**
+ * The installable app's files (D-080), always the app's even before `pnpm theme` writes them (or
+ * when pwa.enabled is false): a site route must never take the manifest, the icons, or /sw.js (kept
+ * for a service worker; there is none today).
+ */
+export const PWA_APP_PATHS = ["manifest.webmanifest", "icons", "apple-touch-icon.png", "sw.js"];
+
+/** The app's top-level public entries (served at the root) that the site doesn't share, plus PWA_APP_PATHS. */
+export function appPublicSegments(appPublic: URL, sharedWithApp: Map<string, boolean>): string[] {
+  const own = readdirSync(appPublic).filter((name) => !name.startsWith("_") && !sharedWithApp.has(name));
+  return [...new Set([...own, ...PWA_APP_PATHS])];
+}
+
 /** Top-level URL segments of an Expo Router app dir: groups like (app) and layouts add none. */
 export function appSegmentsOf(dir: URL): string[] {
   const out = new Set<string>();

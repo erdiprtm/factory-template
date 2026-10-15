@@ -31,6 +31,7 @@ import { formatDate, formatIdr } from "../format";
 import { type Locale, type MessageKey, useI18n } from "../i18n";
 import { setMarketingChoice } from "../marketing";
 import { setMonitoringUser } from "../monitoring";
+import { InstallAccountLink } from "../pwa/install-card";
 import { darkModeEnabled, type ThemePreference, useThemePreference } from "../theme";
 
 export function Account() {
@@ -138,6 +139,8 @@ export function Account() {
       </Card>
 
       <Preferences />
+      {/* "Pasang di HP" (D-080): only where this browser can install the app. */}
+      <InstallAccountLink />
       <Privacy />
     </Screen>
   );

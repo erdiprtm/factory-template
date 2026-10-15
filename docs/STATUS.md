@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: Installable web app, offered after payment (D-080), Myna Fit feedback part 2
+
+- `pnpm theme` writes the manifest, the static head tags (`apps/app/public/index.html`) and the 192/512/maskable/apple-touch icons from one source icon (`pwa.icon`), with no image library. There's no service worker: Chrome doesn't need one to install.
+- `pwa.promptAfter: "payment" | "first_result" | "never"`: a calm "Pasang di HP" card (Android prompt, iPhone Share guide, in-app browser copy link). "Nanti saja" hides it for 14 days, and Akun has the link. Events: `pwa_prompt_*`, `pwa_installed`, `pwa_open`.
+
+---
+
 ## 2026-10-15: 6-digit sign-in code in the sign-in email (D-079), Myna Fit real-device feedback part 1
 
 - Masuk lewat kode 6 digit di email, untuk yang membuka tautan dari aplikasi email.

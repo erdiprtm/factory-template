@@ -148,6 +148,13 @@
     }
   },
   "ai": null,
+  "pwa": {
+    "enabled": true,
+    "icon": "assets/icon.png",
+    "maskableIcon": null,
+    "shortName": null,
+    "promptAfter": "never"
+  },
   "marketing": {
     "metaPixelId": "1134506435670666"
   }

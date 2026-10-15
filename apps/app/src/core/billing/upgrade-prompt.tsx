@@ -5,6 +5,7 @@ import { Platform, View } from "react-native";
 import { track } from "../analytics";
 import { useMe } from "../auth/use-me";
 import { useI18n } from "../i18n";
+import { InstallOffer } from "../pwa/install-card";
 import { setAfterSignIn } from "../quiz/storage";
 import { paywallPlacement } from "./placement";
 import { PlanCards } from "./plans";
@@ -38,7 +39,14 @@ export function UpgradePrompt() {
       </Card>
     );
   }
-  return <SignedInOffer />;
+  return (
+    <>
+      <SignedInOffer />
+      {/* pwa.promptAfter "first_result" (D-080), signed-in only: an iPhone home-screen app starts
+          signed out, and a visitor's result would stay behind in Safari. */}
+      {me.data?.user ? <InstallOffer placement="first_result" /> : null}
+    </>
+  );
 }
 
 function SignedInOffer() {

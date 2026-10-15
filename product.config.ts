@@ -85,6 +85,11 @@ export default defineProduct({
   monitoring: {
     sentryDsn: "https://b5f9d8f1ce9efa50576995836b63637d@o4512236547801088.ingest.us.sentry.io/4512236556124160",
   },
+  // Installable web app (D-080). icon: a square PNG of at least 512 px under apps/app (product-owned);
+  // `pnpm theme` makes the 192/512/maskable/apple-touch sizes and the manifest from it.
+  // promptAfter: "payment" (the card on the payment success screen), "first_result" (under
+  // UpgradePrompt) or "never" (only the "Pasang di HP" link in Akun). Run `pnpm theme` after changing it.
+  pwa: { enabled: true, icon: "assets/icon.png", promptAfter: "never" },
   // The template's own TEST Pixel (an Events Manager dataset), for the sell-engine acceptance test.
   // /new-product clears it, like the OpenPanel and Sentry IDs: each product gets its own Pixel (D-034).
   marketing: { metaPixelId: "1134506435670666" },

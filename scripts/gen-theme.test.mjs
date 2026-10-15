@@ -1,13 +1,23 @@
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { defineProduct } from "../packages/config/src/index.ts";
+import product from "../product.config.ts";
 import {
+  fillFor,
   fontKey,
   hexToHslChannels,
+  PWA_FILES,
+  PWA_START_URL,
   renderAppFonts,
   renderFontFaces,
+  renderIcons,
+  renderIndexHtml,
+  renderManifest,
   renderTheme,
   renderTokens,
   sizeVars,
 } from "./gen-theme.mjs";
+import { pngSize } from "./png.mjs";
 
 describe("gen-theme", () => {
   it("converts hex to HSL channels", () => {
@@ -117,5 +127,89 @@ describe("gen-theme", () => {
     // The site keeps one family with a face per weight.
     expect(renderFontFaces(tokens).match(/font-family: "Plus Jakarta Sans";/g)).toHaveLength(5);
     expect(renderFontFaces(tokens)).toContain("font-weight: 800;");
+  });
+});
+
+describe("installable web app (D-080)", () => {
+  const base = { ...product, pwa: { ...product.pwa, enabled: true, shortName: null } };
+
+  it("the manifest has everything Chrome needs to install, colours from the brand", () => {
+    const m = renderManifest(base);
+    expect(m.name).toBe(product.name);
+    expect(m.short_name).toBe(product.name);
+    expect(m.lang).toBe(product.locale.default);
+    expect(m.start_url).toBe(PWA_START_URL);
+    expect(m.start_url).toBe("/?source=pwa");
+    expect(m.scope).toBe("/");
+    expect(m.display).toBe("standalone");
+    expect(m.theme_color).toBe(product.brand.tokens.colors.light.primary);
+    expect(m.background_color).toBe(product.brand.tokens.colors.light.background);
+    expect(m).not.toHaveProperty("prefer_related_applications");
+    const sizes = m.icons.map((i) => `${i.sizes} ${i.purpose}`);
+    expect(sizes).toEqual(["192x192 any", "512x512 any", "512x512 maskable"]);
+    expect(renderManifest({ ...base, pwa: { ...base.pwa, shortName: "Fit" } }).short_name).toBe("Fit");
+  });
+
+  it("index.html carries the manifest, theme-color and Apple tags only when enabled", () => {
+    const html = renderIndexHtml({ ...base, name: 'A & "B"' });
+    expect(html).toContain(`<html lang="${product.locale.default}">`);
+    expect(html).toContain("<title>A &amp; &quot;B&quot;</title>");
+    expect(html).toContain('<link rel="manifest" href="/manifest.webmanifest" />');
+    expect(html).toContain(`<meta name="theme-color" content="${product.brand.tokens.colors.light.primary}" />`);
+    expect(html).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png" />');
+    expect(html).toContain('<meta name="apple-mobile-web-app-capable" content="yes" />');
+    expect(html).toContain('<div id="root"></div>');
+    const off = renderIndexHtml({ ...base, pwa: { ...base.pwa, enabled: false } });
+    expect(off).not.toContain("manifest");
+    expect(off).not.toContain("apple-");
+  });
+
+  it("makes every size from one source; transparent sources get the background behind padded icons", () => {
+    const src = { width: 512, height: 512, data: new Uint8Array(512 * 512 * 4) }; // fully transparent
+    const icons = renderIcons(src, "#ffffff");
+    const dims = Object.fromEntries(Object.entries(icons).map(([k, v]) => [k, `${v.width}x${v.height}`]));
+    expect(dims).toEqual({
+      [PWA_FILES.icon192]: "192x192",
+      [PWA_FILES.icon512]: "512x512",
+      [PWA_FILES.maskable]: "512x512",
+      [PWA_FILES.appleTouch]: "180x180",
+    });
+    expect(fillFor(src, "#ffffff")).toEqual([255, 255, 255]);
+    // Maskable and apple-touch are opaque (full-bleed); the "any" icons keep transparency.
+    expect([...icons[PWA_FILES.maskable].data.subarray(0, 4)]).toEqual([255, 255, 255, 255]);
+    expect([...icons[PWA_FILES.appleTouch].data.subarray(0, 4)]).toEqual([255, 255, 255, 255]);
+    expect(icons[PWA_FILES.icon192].data[3]).toBe(0);
+  });
+
+  it("config: on by default, offered nowhere until the product picks a moment", () => {
+    const { pwa: _drop, ...input } = product;
+    const parsed = defineProduct({ ...input, brand: { ...input.brand } });
+    expect(parsed.pwa).toEqual({
+      enabled: true,
+      icon: "assets/icon.png",
+      maskableIcon: null,
+      shortName: null,
+      promptAfter: "never",
+    });
+    expect(() => defineProduct({ ...input, pwa: { promptAfter: "soon" } })).toThrow();
+    expect(() => defineProduct({ ...input, pwa: { icon: "/abs/icon.svg" } })).toThrow();
+  });
+
+  it.skipIf(!product.pwa.enabled)("this product's generated files are there, at the stated sizes (pnpm theme)", () => {
+    const pub = new URL("../apps/app/public/", import.meta.url);
+    const manifest = JSON.parse(readFileSync(new URL("manifest.webmanifest", pub), "utf8"));
+    expect(manifest).toEqual(renderManifest(product));
+    for (const icon of manifest.icons) {
+      const file = new URL(icon.src.slice(1), pub);
+      expect(existsSync(file), icon.src).toBe(true);
+      const { width, height } = pngSize(readFileSync(file));
+      expect(`${width}x${height}`).toBe(icon.sizes);
+    }
+    expect(manifest.icons.some((i) => i.purpose === "maskable")).toBe(true);
+    expect(pngSize(readFileSync(new URL("apple-touch-icon.png", pub)))).toEqual({ width: 180, height: 180 });
+    const source = pngSize(readFileSync(new URL(`../apps/app/${product.pwa.icon}`, import.meta.url)));
+    expect(source.width).toBe(source.height);
+    expect(source.width).toBeGreaterThanOrEqual(512);
+    expect(readFileSync(new URL("index.html", pub), "utf8")).toBe(renderIndexHtml(product));
   });
 });
