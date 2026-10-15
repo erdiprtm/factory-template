@@ -65,3 +65,12 @@ export function withCoreIcons<K extends string>(
     return icon ? { ...t, icon } : t;
   });
 }
+
+/**
+ * A tab's test id from its target, never its label (D-087): "/" → "nav-home", "/account" →
+ * "nav-account". The label of /account (and every product tab) is the product's choice.
+ */
+export function navTestId(href: string): string {
+  const slug = href.replace(/^\/+|\/+$/g, "").replaceAll("/", "-");
+  return `nav-${slug || "home"}`;
+}

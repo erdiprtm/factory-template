@@ -129,6 +129,38 @@ describe("template-sync", () => {
     expect(run.stdout).toContain("- [slug].astro: the template removed it");
   });
 
+  it("never applies the template's docs/STATUS.md to the product's own (D-088)", () => {
+    const tpl = repo();
+    mkdirSync(join(tpl, "docs"));
+    write(tpl, "docs/STATUS.md", "# Status\n\n## template entry 1\n");
+    write(tpl, "core.ts", "a = 1\n");
+    const v1 = commit(tpl, "v1");
+    const prod = repo();
+    mkdirSync(join(prod, "docs"));
+    write(prod, "docs/STATUS.md", "# Status\n\n## product entry\n");
+    write(prod, "core.ts", "a = 1\n");
+    write(prod, ".template-version", `${v1}\n`);
+    commit(prod, "create");
+    write(tpl, "docs/STATUS.md", "# Status\n\n## template entry 2\n\n## template entry 1\n");
+    write(tpl, "core.ts", "a = 2\n");
+    const v2 = commit(tpl, "v2");
+    git(prod, "remote", "add", "template", tpl);
+    git(prod, "fetch", "-q", "template");
+    const r = templateSync({ cwd: prod, fetch: false });
+    expect(r).toMatchObject({ conflicts: [], manual: [], skipped: ["docs/STATUS.md"] });
+    expect(readFileSync(join(prod, "docs/STATUS.md"), "utf8")).toBe("# Status\n\n## product entry\n");
+    expect(readFileSync(join(prod, "core.ts"), "utf8")).toBe("a = 2\n");
+    expect(readFileSync(join(prod, ".template-version"), "utf8").trim()).toBe(v2);
+
+    // A range that only touched STATUS still moves .template-version (nothing else to apply).
+    write(tpl, "docs/STATUS.md", "# Status\n\n## template entry 3\n");
+    const v3 = commit(tpl, "v3");
+    git(prod, "fetch", "-q", "template");
+    const only = templateSync({ cwd: prod, fetch: false });
+    expect(only.skipped).toEqual(["docs/STATUS.md"]);
+    expect(readFileSync(join(prod, ".template-version"), "utf8").trim()).toBe(v3);
+  });
+
   it("refuses to guess without .template-version", () => {
     const prod = repo();
     write(prod, "a.ts", "x\n");

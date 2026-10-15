@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-16: Tabs by target, sync skips STATUS, one E2E run at a time (D-087, D-088, D-090), Myna Fit feedback
+
+- Tabs have `nav-<path>` test ids, so products label `/account` freely ("Profil").
+- `template-sync` skips the product's `docs/STATUS.md`. TEMPLATE_SYNC notes the privacy page's `{{aiProcessor}}` line.
+- E2E holds a PID lock: a second run stops with a clear message instead of emptying the first one's database.
+
+---
+
 ## 2026-10-15: AI providers OpenRouter (D-083) and Gemini direct (D-084), Myna Fit scan accuracy
 
 - `ai.provider` is now `"openai" | "openrouter" | "gemini"` (`"openai"` unchanged). OpenRouter: one key for comparing models, `fallbackModels`, private routing by default (`data_collection: "deny"`, `require_parameters`, ZDR on with `legal.sensitiveDataConsent`), cost from OpenRouter's `usage.cost`. Gemini: the Interactions API, `store: false`, `thinking` and `mediaResolution`, no tools or search grounding.

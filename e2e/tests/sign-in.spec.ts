@@ -38,7 +38,7 @@ test("magic link sign-in → consent → home → sign out", async ({ page, requ
   await expect(page).toHaveURL(/\/$/);
   await expect.poll(async () => (await me(page)).user?.email).toBe(email);
 
-  await navItem(page, "Akun").click();
+  await navItem(page, "/account").click();
   await page.getByRole("button", { name: "Keluar" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
 });
