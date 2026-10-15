@@ -10,8 +10,12 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const FIXTURE = "scripts/fixtures/ai-eval";
 const PRODUCT = `${FIXTURE}/product.mjs`;
 const load = (rel) => import(path.resolve(ROOT, rel));
-const { productSchema } = await import("../packages/config/src/index.ts");
-const aiSchema = productSchema.shape.ai.unwrap().unwrap();
+const { strictAiSchema: aiSchema } = await import("../packages/config/src/index.ts");
+// Warm the modules main() loads (the API's AI module pulls Hono and Drizzle), so the first test's
+// 5 s timeout isn't spent on a cold import while `pnpm verify` runs everything in parallel.
+await Promise.all(
+  ["apps/api/src/core/ai.ts", "packages/core/src/ai/index.ts", "packages/core/src/ai/eval.ts", PRODUCT].map(load),
+);
 
 const usage = { inputTokens: 1000, cachedInputTokens: 0, outputTokens: 1000 };
 // The fixture PNGs are 1×1 … 4×4; the low byte of the IHDR width picks the answer.
@@ -133,5 +137,45 @@ describe("ai:eval", () => {
       /models\[0\]/,
     );
     expect(() => parseConfigs([], aiSchema)).toThrow(/no models/);
+  });
+
+  it("OpenRouter and Gemini configs validate and build their provider through aiProvider (D-083, D-084)", async () => {
+    const { aiProvider } = await load("apps/api/src/core/ai.ts");
+    const [or, gem] = parseConfigs(
+      [
+        { provider: "openrouter", model: "google/gemini-3.8-flash" },
+        { provider: "gemini", model: "gemini-3.8-flash", thinking: "low" },
+      ],
+      aiSchema,
+    );
+    expect(or.config).toEqual({
+      label: "openrouter:google/gemini-3.8-flash",
+      model: "google/gemini-3.8-flash",
+      tier: "default",
+      mock: false,
+    });
+    expect(gem.config.label).toBe("gemini:gemini-3.8-flash");
+    expect(() => parseConfigs([{ provider: "gemini", model: "gemini-3.8-flash", thinkng: "low" }], aiSchema)).toThrow(
+      /models\[0\]/,
+    );
+    const env = { APP_ENV: "development", OPENROUTER_API_KEY: "or-x", GEMINI_API_KEY: "g-x" };
+    const bodies = [];
+    const fetch = async (_url, init) => {
+      bodies.push(JSON.parse(init.body));
+      return new Response("{}", { status: 503 });
+    };
+    const orProvider = aiProvider(env, () => ({}), or.ai, { fetch });
+    const gemProvider = aiProvider(env, () => ({}), gem.ai, { fetch });
+    expect([orProvider?.name, gemProvider?.name]).toEqual(["openrouter", "gemini"]);
+    const req = { system: "s", text: "t", schema: { name: "t", schema: {} } };
+    expect(await orProvider.json(req)).toMatchObject({ ok: false, error: "unavailable" });
+    await gemProvider.json(req);
+    // An eval config has no legal section: zdr falls back to the product's sensitiveDataConsent.
+    expect(typeof bodies[0].provider.zdr).toBe("boolean");
+    expect(bodies[1]).toMatchObject({
+      model: "gemini-3.8-flash",
+      store: false,
+      generation_config: { thinking_level: "low" },
+    });
   });
 });

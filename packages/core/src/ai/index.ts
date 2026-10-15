@@ -1,9 +1,24 @@
 // AI provider adapter (D-045): one JSON answer from text + an optional image, behind an interface,
-// so products never call a model API directly. OpenAI's Responses API first; a mock for local dev,
-// tests and E2E. Pure apart from the injected fetch.
+// so products never call a model API directly. OpenAI's Responses API, OpenRouter (D-083) and the
+// Gemini API (D-084); a mock for local dev, tests and E2E. Pure apart from the injected fetch.
 //
 // Products ask the model to recognise or extract, never to supply facts or numbers shown to users
-// (CLAUDE.md product guardrails): those come from curated data in the product.
+// (CLAUDE.md product guardrails): those come from curated data in the product. No provider is ever
+// given tools or search grounding, and the user's text never goes inside the instructions.
+
+import { base64 } from "./wire";
+
+export {
+  type GeminiResolution,
+  type GeminiThinking,
+  geminiBody,
+  geminiFailureOf,
+  geminiProvider,
+} from "./gemini";
+export { type OpenRouterRouting, openRouterBody, openRouterFailureOf, openRouterProvider } from "./openrouter";
+export { costMicroUsd, GEMINI_PRICES, geminiPrice, listPrice, OPENAI_PRICES } from "./prices";
+export { geminiSchema, schemaError } from "./schema";
+export type { AiPrice } from "./wire";
 
 export type AiTier = "default" | "fast";
 
@@ -31,8 +46,20 @@ export type AiUsage = { inputTokens: number; cachedInputTokens: number; outputTo
 /** Why a call gave no answer. quota = the provider account is out of credit (a human tops it up). */
 export type AiFailure = "quota" | "rate_limited" | "unavailable" | "bad_request" | "bad_output" | "refused";
 
+/**
+ * costMicroUsd: the call's cost as the provider reported it (OpenRouter, D-083), in micro-USD, or
+ * null when it reported none and no price is known. Absent = priced from the tables below.
+ */
 export type AiResult =
-  | { ok: true; output: unknown; model: string; tier: AiTier; usage: AiUsage; latencyMs: number }
+  | {
+      ok: true;
+      output: unknown;
+      model: string;
+      tier: AiTier;
+      usage: AiUsage;
+      latencyMs: number;
+      costMicroUsd?: number | null;
+    }
   | {
       ok: false;
       error: AiFailure;
@@ -41,41 +68,19 @@ export type AiResult =
       usage: AiUsage | null;
       latencyMs: number;
       detail?: string;
+      costMicroUsd?: number | null;
     };
 
+export type AiProviderName = "openai" | "openrouter" | "gemini" | "mock";
+
 export interface AiProvider {
-  readonly name: "openai" | "mock";
+  readonly name: AiProviderName;
   json(req: AiJsonRequest): Promise<AiResult>;
-}
-
-// ---- Prices ---------------------------------------------------------------------------------
-// USD per 1M tokens, standard tier, short context. Source: OpenAI pricing page, read 2026-10-12.
-// Fast mode costs exactly twice these. Re-check before changing a product's model.
-export const OPENAI_PRICES: Readonly<Record<string, { input: number; cachedInput: number; output: number }>> = {
-  "gpt-6-luna": { input: 0.1, cachedInput: 0.01, output: 0.5 },
-  "gpt-6-sol": { input: 2, cachedInput: 0.2, output: 10 },
-  "gpt-6.1-sol": { input: 2, cachedInput: 0.1, output: 10 },
-  "gpt-6-astra": { input: 10, cachedInput: 1, output: 50 },
-};
-
-/** Cost of one call in micro-USD (1e-6 USD), or null for a model without a known price. */
-export function costMicroUsd(model: string, tier: AiTier, usage: AiUsage): number | null {
-  const p = OPENAI_PRICES[model];
-  if (!p) return null;
-  const uncached = Math.max(0, usage.inputTokens - usage.cachedInputTokens);
-  const usd = (uncached * p.input + usage.cachedInputTokens * p.cachedInput + usage.outputTokens * p.output) / 1e6;
-  return Math.round(usd * (tier === "fast" ? 2 : 1) * 1e6);
 }
 
 // ---- OpenAI ---------------------------------------------------------------------------------
 
 const OPENAI_RESPONSES = "https://api.openai.com/v1/responses";
-
-function base64(bytes: Uint8Array): string {
-  let s = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(s);
-}
 
 /** The Responses API request body (exported for tests). Not stored at OpenAI (`store: false`). */
 export function openAiBody(model: string, tier: AiTier, req: AiJsonRequest) {

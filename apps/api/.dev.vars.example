@@ -45,8 +45,15 @@ META_CAPI_TOKEN=
 # Events Manager > Test events code, ONLY while testing (remove it afterwards).
 META_TEST_EVENT_CODE=
 
-# OpenAI (SETUP_HUMAN step 11), only for products with product.config.ts `ai`. Optional locally and on
-# preview: without it the product's mock answers (no cost). Production without it answers 503.
+# AI keys: only the one for product.config.ts `ai.provider` is used. Optional locally and on preview:
+# without it the product's mock answers (no cost). Production without it answers 503.
+# OpenAI (ai.provider "openai", SETUP_HUMAN step 11).
 OPENAI_API_KEY=
-# Optional: try another model without a code change (must have a known price in @factory/core/ai).
+# OpenRouter (ai.provider "openrouter", D-083, SETUP_HUMAN step 11c).
+OPENROUTER_API_KEY=
+# Gemini API key from a PAID Google Cloud project (ai.provider "gemini", D-084, SETUP_HUMAN step 11d).
+# Never a free-tier key: free-tier content may be read by human reviewers.
+GEMINI_API_KEY=
+# Optional: try another model without a code change (an OpenAI id or Gemini id with a known price in
+# @factory/core/ai, or an OpenRouter slug, whose cost OpenRouter reports).
 AI_MODEL=

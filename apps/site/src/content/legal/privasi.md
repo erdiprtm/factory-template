@@ -38,6 +38,7 @@ Kami memakai penyedia layanan berikut sebagai pemroses data. Sebagian dari merek
 - **Cloudflare:** hosting aplikasi dan basis data.
 - **Penyedia pembayaran (Duitku/DOKU):** pemrosesan pembayaran.
 - **Resend:** pengiriman email.
+{{aiProcessor}}
 - **Google:** login dengan akun Google (jika kamu memilihnya).
 - **Layanan analitik dan pemantauan error:** tanpa data pribadi.
 - **Meta Platforms (Facebook/Instagram), hanya jika kamu mengizinkan pelacakan iklan:** halaman yang dibuka dan pembelian (paket dan nilai), alamat email dan ID akun dalam bentuk acak (hash SHA-256), ID cookie Meta (`_fbp`, `_fbc`), alamat IP dan jenis browser saat pembayaran. Data teknis pembayaran untuk Meta dihapus setelah terkirim, paling lambat 7 hari. Tanpa izin, tidak ada data yang dikirim ke Meta.

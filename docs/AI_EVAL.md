@@ -65,11 +65,15 @@ The folder is `evals/` at the repo root. It is **gitignored**: photos stay on yo
 [
   { "provider": "openai", "model": "gpt-6-luna" },
   { "provider": "openai", "model": "gpt-6-sol", "tier": "fast", "label": "sol fast" },
+  { "provider": "openrouter", "model": "google/gemini-3.8-flash" },
+  { "provider": "gemini", "model": "gemini-3.8-flash", "thinking": "low", "mediaResolution": "high" },
   { "provider": "mock" }
 ]
 ```
 
-Or skip the file: `pnpm ai:eval -- --model openai:gpt-6-luna --model openai:gpt-6-sol:fast`.
+Or skip the file: `pnpm ai:eval -- --model openai:gpt-6-luna --model openrouter:google/gemini-3.8-flash --model gemini:gemini-3.8-flash`.
+
+Keys per provider: `OPENAI_API_KEY`, `OPENROUTER_API_KEY` (D-083, `SETUP_HUMAN.md` 11c) or `GEMINI_API_KEY` from a **paid** project (D-084, 11d). OpenRouter's cost is the one it reports per call; its estimate uses the underlying model's list price (`openai/…`, `google/…`), so other vendors' slugs need `--yes`.
 
 ## 3. Run it
 

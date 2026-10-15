@@ -3,7 +3,7 @@
 // provider/model configs, via the same adapter (aiProvider, apps/api/src/core/ai.ts) and the
 // product's own request and scorer (apps/api/src/features/ai-eval.ts), and writes a Markdown table.
 //
-// LOCAL ONLY: keys come from this shell's environment (e.g. OPENAI_API_KEY), never from .dev.vars.
+// LOCAL ONLY: keys come from this shell's environment (OPENAI_API_KEY, OPENROUTER_API_KEY or GEMINI_API_KEY), never from .dev.vars.
 // It refuses to run in CI unless --allow-ci, shows the estimated cost first, and needs --yes above
 // --max-rp (default Rp 20.000) or when a model's price is unknown.
 //
@@ -72,7 +72,9 @@ export function parseModelFlag(flag) {
  */
 export function parseConfigs(entries, aiSchema) {
   if (!Array.isArray(entries) || entries.length === 0) throw new Error("no models to compare");
-  const strict = aiSchema.strict();
+  // strictAiSchema from @factory/config (a union of strict objects, D-083/D-084); a plain object
+  // schema is made strict here.
+  const strict = typeof aiSchema.strict === "function" ? aiSchema.strict() : aiSchema;
   return entries.map((entry, i) => {
     const { label, ...rest } = entry ?? {};
     if (rest.provider === "mock")
@@ -155,7 +157,7 @@ export async function main(argv, deps = {}) {
     const photos = readEvalSet(dir);
 
     loader = deps.load ? { load: deps.load, close: async () => {} } : await viteLoader(root);
-    const [{ productSchema }, { aiProvider }, ai, evalLib, productModule] = await Promise.all([
+    const [configLib, { aiProvider }, ai, evalLib, productModule] = await Promise.all([
       loader.load("packages/config/src/index.ts"),
       loader.load("apps/api/src/core/ai.ts"),
       loader.load("packages/core/src/ai/index.ts"),
@@ -172,7 +174,10 @@ export async function main(argv, deps = {}) {
       if (!existsSync(file)) throw new Error(`${file} not found: add a models.json or pass --model provider:model`);
       entries = JSON.parse(readFileSync(file, "utf8"));
     }
-    const configs = parseConfigs(entries, productSchema.shape.ai.unwrap().unwrap());
+    const configs = parseConfigs(
+      entries,
+      configLib.strictAiSchema ?? configLib.productSchema.shape.ai.unwrap().unwrap(),
+    );
 
     // Cost before anything runs.
     const estimate = evalLib.estimateMicroUsd(
@@ -209,7 +214,7 @@ export async function main(argv, deps = {}) {
       const provider = aiProvider(runEnv, product.mock, cfg);
       if (!provider || provider.name === "mock")
         throw new Error(
-          `No API key for provider "${cfg.provider}" in this shell (e.g. OPENAI_API_KEY). Export it here; the eval never reads .dev.vars.`,
+          `No API key for provider "${cfg.provider}" in this shell (OPENAI_API_KEY, OPENROUTER_API_KEY or GEMINI_API_KEY). Export it here; the eval never reads .dev.vars.`,
         );
       return { config, provider };
     });

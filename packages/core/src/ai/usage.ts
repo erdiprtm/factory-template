@@ -29,7 +29,13 @@ export async function recordAiUsage(
     inputTokens: usage.inputTokens,
     cachedInputTokens: usage.cachedInputTokens,
     outputTokens: usage.outputTokens,
-    costMicroUsd: result.usage ? costMicroUsd(result.model, result.tier, usage) : null,
+    // The provider's own figure when it reports one (OpenRouter, D-083), else the price tables.
+    costMicroUsd:
+      result.costMicroUsd !== undefined
+        ? result.costMicroUsd
+        : result.usage
+          ? costMicroUsd(result.model, result.tier, usage, now)
+          : null,
     createdAt: now,
   });
 }

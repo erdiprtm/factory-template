@@ -83,7 +83,14 @@ export function scoreCall(
     }
   }
   const names = prediction?.items ?? [];
-  const cost = mock ? 0 : result.usage ? costMicroUsd(result.model, result.tier, result.usage) : 0;
+  // The provider's own figure when it reports one (OpenRouter, D-083), else the list price.
+  const cost = mock
+    ? 0
+    : result.costMicroUsd !== undefined
+      ? result.costMicroUsd
+      : result.usage
+        ? costMicroUsd(result.model, result.tier, result.usage)
+        : 0;
   return {
     file: expected.file,
     result,

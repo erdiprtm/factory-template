@@ -49,6 +49,85 @@ const colorScale = z.object(
   Object.fromEntries(colorTokens.map((k) => [k, hex])) as Record<(typeof colorTokens)[number], typeof hex>,
 );
 
+const aiCaps = {
+  perUserPerDay: z.int().min(1).max(1000).default(20),
+  anonymousPerDay: z.int().min(0).max(100000).default(300),
+};
+// "vendor/model" with an optional ":variant". ":free" endpoints are refused: free models may log
+// or train on prompts, and products send personal (often health) data.
+const openRouterSlug = z
+  .string()
+  .regex(
+    /^~?[a-z0-9][a-z0-9._-]{0,40}\/[a-z0-9][a-z0-9._-]{0,80}(:[a-z0-9-]{1,20})?$/,
+    'an OpenRouter model slug like "google/gemini-3.8-flash"',
+  )
+  .refine((s) => !s.endsWith(":free"), { message: "free OpenRouter models may train on prompts: use a paid one" });
+const providerSlug = z.string().regex(/^[a-z0-9][a-z0-9._/-]{0,60}$/, "an OpenRouter provider slug");
+/** USD per 1M tokens. */
+const aiPrice = z.object({ input: z.number().min(0), cachedInput: z.number().min(0), output: z.number().min(0) });
+
+/** product.config.ts `ai` without null (D-045, D-083, D-084); see the comment at `ai` below. */
+export const aiSchema = z.discriminatedUnion("provider", [
+  z.object({
+    provider: z.literal("openai"),
+    model: z.string().regex(/^[a-z0-9][a-z0-9.-]{1,60}$/),
+    tier: z.enum(["default", "fast"]).default("default"),
+    ...aiCaps,
+  }),
+  z.object({
+    provider: z.literal("openrouter"),
+    model: openRouterSlug,
+    fallbackModels: z.array(openRouterSlug).max(3).default([]),
+    routing: z
+      .object({
+        /** Only providers that support every parameter sent (response_format above all). */
+        requireParameters: z.boolean().default(true),
+        /** "deny": only providers that don't collect (store or train on) the data. */
+        dataCollection: z.enum(["deny", "allow"]).default("deny"),
+        /** Zero Data Retention endpoints only. Unset = legal.sensitiveDataConsent (resolved by defineProduct). */
+        zdr: z.boolean().optional(),
+        /** Provider slugs allowed (only) or tried first (order). */
+        only: z.array(providerSlug).min(1).optional(),
+        order: z.array(providerSlug).min(1).optional(),
+        /** Whether other providers may serve when the preferred ones can't (OpenRouter default: true). */
+        allowFallbacks: z.boolean().optional(),
+      })
+      .default({ requireParameters: true, dataCollection: "deny" }),
+    prices: z.record(openRouterSlug, aiPrice).default({}),
+    tier: z.literal("default").default("default"),
+    ...aiCaps,
+  }),
+  z.object({
+    provider: z.literal("gemini"),
+    model: z.string().regex(/^gemini-[a-z0-9][a-z0-9.-]{0,60}$/, 'a Gemini model id like "gemini-3.8-flash"'),
+    thinking: z.enum(["minimal", "low", "medium", "high"]).optional(),
+    mediaResolution: z.enum(["low", "medium", "high", "ultra_high"]).optional(),
+    tier: z.literal("default").default("default"),
+    ...aiCaps,
+  }),
+]);
+
+/** aiSchema refusing unknown keys (a typo fails): `pnpm ai:eval`'s model configs (D-085). */
+export const strictAiSchema = z.discriminatedUnion(
+  "provider",
+  aiSchema.options.map((o) => o.strict()) as unknown as typeof aiSchema.options,
+);
+
+/** An `ai` config as parsed (routing.zdr possibly unset). */
+export type AiConfigParsed = z.output<typeof aiSchema>;
+/** An `ai` config with OpenRouter's zdr resolved: what defineProduct returns. */
+export type AiConfig = AiConfigParsed extends infer A
+  ? A extends { provider: "openrouter"; routing: infer R }
+    ? Omit<A, "routing"> & { routing: Omit<R, "zdr"> & { zdr: boolean } }
+    : A
+  : never;
+
+/** Zero Data Retention by default whenever the product handles sensitive (health) data (D-083). */
+export function resolveAi(ai: AiConfigParsed, legal: { sensitiveDataConsent: boolean }): AiConfig {
+  if (ai.provider !== "openrouter") return ai as AiConfig;
+  return { ...ai, routing: { ...ai.routing, zdr: ai.routing.zdr ?? legal.sensitiveDataConsent } } as AiConfig;
+}
+
 export const productSchema = z.object({
   slug,
   name: z.string().min(1),
@@ -313,22 +392,20 @@ export const productSchema = z.object({
         purchase: 0.5,
       },
     }),
-  // AI provider for the product's model calls (D-045). null = the product makes none. The key is a
-  // Worker secret (OPENAI_API_KEY), never here. model: an OpenAI model id with a known price in
-  // @factory/core/ai (re-check the pricing page before changing it). tier "fast" = OpenAI Fast mode
-  // (twice the price, roughly half the latency). The caps bound cost: perUserPerDay per account or
-  // device per 24 h (all features together), anonymousPerDay for all visitors without an account
-  // together. One feature's own cap goes on its route: requireAiBudgetFor (D-050).
-  ai: z
-    .object({
-      provider: z.literal("openai"),
-      model: z.string().regex(/^[a-z0-9][a-z0-9.-]{1,60}$/),
-      tier: z.enum(["default", "fast"]).default("default"),
-      perUserPerDay: z.int().min(1).max(1000).default(20),
-      anonymousPerDay: z.int().min(0).max(100000).default(300),
-    })
-    .nullable()
-    .default(null),
+  // AI provider for the product's model calls (D-045, D-083, D-084). null = the product makes none.
+  // Keys are Worker secrets (OPENAI_API_KEY, OPENROUTER_API_KEY, GEMINI_API_KEY), never here. The
+  // caps bound cost: perUserPerDay per account or device per 24 h (all features together),
+  // anonymousPerDay for all visitors without an account together. One feature's own cap goes on its
+  // route: requireAiBudgetFor (D-050). Re-check the provider's models and prices before changing one.
+  // - "openai": model = an OpenAI model id with a price in @factory/core/ai; tier "fast" = Fast mode
+  //   (twice the price, roughly half the latency).
+  // - "openrouter" (D-083): model = an OpenRouter slug ("google/gemini-3.8-flash"); fallbackModels
+  //   are tried in order when it fails; routing = OpenRouter provider preferences (zdr unset = on
+  //   when legal.sensitiveDataConsent). Cost comes from OpenRouter's response; `prices` (USD per 1M
+  //   tokens per slug) is only used when a response carries none.
+  // - "gemini" (D-084): model = a Gemini API model id ("gemini-3.8-flash"); thinking = the
+  //   documented thinking_level (unset = the model's default); mediaResolution = image detail.
+  ai: aiSchema.nullable().default(null),
   // Installable web app (D-080): `pnpm theme` writes the manifest, the head tags and every icon
   // size from one source icon. promptAfter: when the app offers "Pasang di HP": on the payment
   // success screen, under the first result (UpgradePrompt), or never (Akun still has the link).
@@ -368,7 +445,7 @@ export const productSchema = z.object({
 });
 
 export type ProductConfigInput = z.input<typeof productSchema>;
-export type ProductConfig = z.output<typeof productSchema>;
+export type ProductConfig = Omit<z.output<typeof productSchema>, "ai"> & { ai: AiConfig | null };
 export type Plan = ProductConfig["plans"][number];
 
 /** Validates product.config.ts at load time, so a bad config fails the build. */
@@ -377,5 +454,6 @@ export function defineProduct(config: ProductConfigInput): ProductConfig {
   if (!result.success) {
     throw new Error(`Invalid product.config.ts:\n${z.prettifyError(result.error)}`);
   }
-  return result.data;
+  const c = result.data;
+  return { ...c, ai: c.ai ? resolveAi(c.ai, c.legal) : null };
 }
