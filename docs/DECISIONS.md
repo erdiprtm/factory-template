@@ -1637,3 +1637,13 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
   - an Atwater mismatch is flagged, with an absolute floor for small items;
   - the portion range is checked;
   - NaN, negative or zero values are rejected.
+
+## D-086: The sign-in header slot knows the stage; Akun's selected choice isn't a filled button (2026-10-15)
+
+- **Problem (Myna Fit `/design-review`, low priority).**
+  - The `signInHeader` slot got only `title`/`subtitle`. Myna Fit's "Belum punya akun? Bikin program gym-ku" link kept showing on "Cek email kamu", while someone was signing in.
+  - On Akun, the selected language (and theme) choice was a filled `bg-primary` button, in the same viewport as "Perpanjang", the real primary. That fails the rubric's B2.
+- **Decision.**
+  - `signInHeader` gets `stage: "email" | "sent"`, display-only like the rest of its props. `slots.test.tsx` pins the prop list.
+  - Akun's `Segmented` shows the selected choice as `bg-secondary` with a primary border and semibold text (`role="radio"` with `aria-checked`, 44 px targets), so "Perpanjang" stays the one filled button.
+- **Tests:** `sign-in-slot-render.test.tsx` renders the sign-in screen with a slot that hides a link unless `stage` is "email". The link is gone once the email is sent. The slot props type test includes `stage`.

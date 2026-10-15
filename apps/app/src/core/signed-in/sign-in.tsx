@@ -52,7 +52,12 @@ export function SignIn() {
   return (
     <CenteredScreen>
       {Header ? (
-        <Header productName={product.name} title={t("auth.signIn.title")} subtitle={t("auth.signIn.subtitle")} />
+        <Header
+          productName={product.name}
+          title={t("auth.signIn.title")}
+          subtitle={t("auth.signIn.subtitle")}
+          stage={state === "sent" ? "sent" : "email"}
+        />
       ) : (
         <View className="gap-2">
           <Text variant="small" className="font-semibold uppercase tracking-wide">
