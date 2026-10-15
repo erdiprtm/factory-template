@@ -167,7 +167,8 @@ function Segmented<T extends string>(props: {
               onPress={() => props.onChange(o.value)}
               className={cn(
                 "min-h-11 flex-1 items-center justify-center rounded-lg border px-2",
-                selected ? "border-primary bg-primary" : "border-input bg-background",
+                // A choice, not an action: the screen's filled button stays its real primary (D-086).
+                selected ? "border-primary bg-secondary" : "border-input bg-background",
               )}
             >
               {/* One line, shrinking if needed (D-058): long labels used to wrap at larger control heights. */}
@@ -175,7 +176,7 @@ function Segmented<T extends string>(props: {
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.8}
-                className={selected ? "font-semibold text-primary-foreground" : "text-foreground"}
+                className={selected ? "font-semibold text-secondary-foreground" : "text-foreground"}
               >
                 {o.label}
               </Text>

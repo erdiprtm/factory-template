@@ -1602,3 +1602,13 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **Problem.** D-080's review noted two filled buttons on "Pembayaran berhasil": core's "Ke beranda" and the install card's "Pasang". That breaks `/design-review`'s one-primary-per-viewport rule (D-075).
 - **Decision.** `InstallOffer` takes `onShownChange`. While the card is on screen, "Ke beranda" is outlined, so "Pasang" is the one primary. Once the card is hidden ("Nanti saja", already installed, nothing to offer), "Ke beranda" is filled again. A product's `billingReturn` slot gets the same `InstallOffer` underneath and keeps its own buttons.
 - **Test.** `pwa-install-render.test.tsx`: the callback reports `true` when the card shows and `false` after "Nanti saja".
+
+## D-086: The sign-in header slot knows the stage; Akun's selected choice isn't a filled button (2026-10-15)
+
+- **Problem (Myna Fit `/design-review`, low priority).**
+  - The `signInHeader` slot got only `title`/`subtitle`. Myna Fit's "Belum punya akun? Bikin program gym-ku" link kept showing on "Cek email kamu", while someone was signing in.
+  - On Akun, the selected language (and theme) choice was a filled `bg-primary` button, in the same viewport as "Perpanjang", the real primary. That fails the rubric's B2.
+- **Decision.**
+  - `signInHeader` gets `stage: "email" | "sent"`, display-only like the rest of its props. `slots.test.tsx` pins the prop list.
+  - Akun's `Segmented` shows the selected choice as `bg-secondary` with a primary border and semibold text (`role="radio"` with `aria-checked`, 44 px targets), so "Perpanjang" stays the one filled button.
+- **Tests:** `sign-in-slot-render.test.tsx` renders the sign-in screen with a slot that hides a link unless `stage` is "email". The link is gone once the email is sent. The slot props type test includes `stage`.

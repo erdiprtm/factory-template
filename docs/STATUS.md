@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: Sign-in slot stage; Akun choices are not primary buttons (D-086)
+
+- `signInHeader` gets `stage` (email/sent). Akun selected language and theme use the secondary style.
+
+---
+
 ## 2026-10-15: One filled button on the payment success screen (D-081)
 
 - While the install card shows, "Ke beranda" is outlined, so "Pasang" is the one primary action.
