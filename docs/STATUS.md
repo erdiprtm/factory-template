@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-15: 6-digit sign-in code in the sign-in email (D-079), Myna Fit real-device feedback part 1
+
+- Masuk lewat kode 6 digit di email, untuk yang membuka tautan dari aplikasi email.
+- One email holds both; whichever is used first wins. Codes are hashed, last 5 minutes and allow 3 tries. Max 5 emails per address per 15 minutes.
+- On by default (`auth.emailCode`).
+
+---
+
 ## 2026-10-15: D-074's tests work in product repos (D-078), Myna Fit sync blocker
 
 - The consent render test mocks the separate style, and the single-consent test uses core keys only. TEMPLATE_SYNC has a note on render tests in products.
