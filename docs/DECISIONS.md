@@ -1503,3 +1503,16 @@ Building "Catatan Harian" from its spec in a real product repo showed places whe
 - **Tests.**
   - `apps/site/test/build.test.ts`: the closing CTA (`data-cta="close"`) has the hero's label (`data-cta="hero"`), skipped when a product drops the markers; the header has no filled button, and has 44 px targets.
   - Checked in Chromium at phone width (Pixel 7) and at 1280 px: header targets are 44 px; there's one filled button above the fold; the order is as above.
+
+## D-078: D-074's tests hold in every product repo (2026-10-15)
+
+- **Problem (Myna Fit, syncing `2d5f12d..65a6882`).** Two template tests failed in a product repo and blocked its `pnpm verify` and CI.
+  - `consent-render.test.tsx` expected three checkboxes without mocking the config. In a product with `legal.consentStyle: "single"` the form rightly shows one.
+  - `single-consent.test.tsx` used the example product's message keys (`quizExample.*`), which products remove, so it failed the typecheck. Myna Fit had to add a fixture file with those keys.
+- **Decision.**
+  - `consent-render.test.tsx` mocks `legal.consentStyle: "separate"`. It tests the separate-boxes rule; the single box stays covered by `single-consent.test.tsx`.
+  - `single-consent.test.tsx` builds its quiz from core keys (`quiz.summary.*`, `quiz.next`). It compares the checkbox's label with `singleSentence()`, so a product's own `productConsent.single` passes too. The "names health data" check is left to the product's sentence.
+  - `CLAUDE.md` (Definition of done): template tests use core message keys only, and mock `product.config` for a specific setting (as D-028 already asked of config).
+  - `docs/TEMPLATE_SYNC.md` covers render tests in product repos: no `require()` at render time, and `expo-router` imported on the tap in slots. A template test that fails only in a product is a template bug, not a reason for product fixtures.
+- **For Myna Fit.** After syncing this, delete `apps/app/src/features/i18n/template-fixtures.ts`.
+- **Check.** Both tests pass on the template, with `quizExample` gone from `apps/app/test`. They were also run on a clone of Myna Fit's sync branch (`chore/sync-template-20261015`: `single` + `quiz_first` + `darkMode: false`, its own messages), with this branch's two test files and its fixture file deleted. The app typecheck passed, and so did all 56 app tests in 21 files.

@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// D-074: legal.consentStyle "single" + consentPlacement "quiz_first". One core checkbox (never
+// D-074: legal.consentStyle "single" + consentPlacement "quiz_first". Core message keys only, so the
+// test holds in every product repo (whatever its features/messages.ts has). One core checkbox (never
 // pre-checked, links to both documents) under the first question; the step can't be answered until
 // it's ticked; answering records every required type first.
 vi.mock("../../../product.config", async (orig) => {
@@ -37,14 +38,14 @@ const quiz = {
     {
       id: "a",
       kind: "single" as const,
-      title: "quizExample.goal.title" as const,
-      options: [{ value: "x", label: "quizExample.goal.focus" as const }],
+      title: "quiz.summary.answers" as const,
+      options: [{ value: "x", label: "quiz.summary.cta" as const }],
     },
     {
       id: "b",
       kind: "single" as const,
-      title: "quizExample.when.title" as const,
-      options: [{ value: "y", label: "quizExample.when.morning" as const }],
+      title: "quiz.summary.title" as const,
+      options: [{ value: "y", label: "quiz.next" as const }],
     },
   ],
 };
@@ -66,7 +67,6 @@ describe("single consent (D-074)", () => {
     expect(boxes).toHaveLength(1);
     expect(boxes[0]?.getAttribute("aria-checked")).toBe("false");
     expect(boxes[0]?.textContent).toContain(singleSentence(needed as never, "id", (k) => t(k)));
-    expect(boxes[0]?.textContent).toMatch(/data kesehatan/);
     const links = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
     expect(links.some((h) => h?.endsWith("/syarat/"))).toBe(true);
     expect(links.some((h) => h?.endsWith("/privasi/"))).toBe(true);
@@ -83,12 +83,12 @@ describe("single consent (D-074)", () => {
     expect(screen.getAllByRole("checkbox")).toHaveLength(1);
     fireEvent.click(screen.getByTestId("quiz-option"));
     expect(accept).not.toHaveBeenCalled();
-    expect(screen.getByText(t("quizExample.goal.title"))).toBeTruthy();
+    expect(screen.getByText(t("quiz.summary.answers"))).toBeTruthy();
 
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByTestId("quiz-option"));
     await vi.waitFor(() => expect(accept).toHaveBeenCalledWith(needed));
-    await vi.waitFor(() => expect(screen.getByText(t("quizExample.when.title"))).toBeTruthy());
+    await vi.waitFor(() => expect(screen.getByText(t("quiz.summary.title"))).toBeTruthy());
   });
 
   it("stays locked while /api/me is still loading: a fast tap can't skip the consent", async () => {
@@ -102,7 +102,7 @@ describe("single consent (D-074)", () => {
       fireEvent.click(screen.getByTestId("quiz-option"));
       await new Promise((r) => setTimeout(r, 20));
       expect(accept).not.toHaveBeenCalled();
-      expect(screen.getByText(t("quizExample.goal.title"))).toBeTruthy();
+      expect(screen.getByText(t("quiz.summary.answers"))).toBeTruthy();
     } finally {
       meState.isPending = false;
     }

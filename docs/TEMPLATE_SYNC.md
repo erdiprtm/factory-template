@@ -41,6 +41,15 @@ Never rebase or force-push. The `main` ruleset forbids it, and merges keep the h
 | `apps/app/assets/fonts/**`, `apps/site/public/fonts/**` | Product | The product's bundled font files (D-052) |
 | `CLAUDE.md` | Template | Keep the product's header section at the top |
 
+## Render tests in a product repo (D-058, D-078)
+
+The template's app tests render React Native components in jsdom: `react-native` → react-native-web, with `react-native-svg` stubbed. Two things in product code break them:
+
+- **`require()` at render time.** `require` bypasses vitest's aliases, so the real `react-native-svg` loads and fails with "Unexpected token 'typeof'". Use plain `import`s.
+- **`expo-router` in a slot.** It can't be loaded in tests at all. A slot that navigates imports it on the tap: `onPress={async () => (await import("expo-router")).router.push("/x")}`.
+
+If a template test fails only in your product, it's a template bug: report it (template tests must hold in every product, whatever its config and messages), rather than adding fixtures to the product.
+
 ## When the product needs a core change
 
 1. Make the change in the **template** repo, as a normal PR with tests.
