@@ -71,7 +71,18 @@ pnpm setup-secrets    # shared CI secrets (factory.secrets.json) from the human'
 ## Product guardrails (every product from this factory)
 
 - Wellness, education, and information products give **general guidance, never diagnosis, prescriptions, or personalized medical, legal, or financial advice**. Health-adjacent products show a clear "bukan pengganti tenaga profesional" notice and route red-flag situations to professionals.
-- Nutrition or health numbers shown to users come from **curated data stored in the product**, never from model memory. AI may phrase and combine; it must not invent facts or numbers.
+- Nutrition or health numbers shown to users come from the product's own sources first (D-082), in this order:
+  1. the package label the user photographed, including front-of-pack claims ("14 g protein");
+  2. curated data stored in the product: a branded-product list, then foods and recipes on an **exact or alias match only**.
+
+  When none applies, an **AI estimate** may be shown only if it is:
+  - **labelled** "Perkiraan AI" next to the number;
+  - **plausibility-checked in code** (`checkMacros` from `@factory/core/nutrition`; a failing estimate is shown as "cek lagi" and the user confirms or edits it, never silently);
+  - **editable**.
+
+  Every number shows its source (Label / Data kurasi / Perkiraan AI), and stored items keep the source and the model or dataset version.
+  - Never show confident numbers for a *different* "similar" food.
+  - AI may recognise, phrase, combine and estimate as above. It never invents facts beyond that, and never gives medical claims or advice.
 - Tone: friendly, plain Bahasa Indonesia. Never shame users about their bodies, food, or habits.
 
 ## Ads and landers (sell engine, D-033 to D-040)

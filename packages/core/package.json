@@ -25,7 +25,8 @@
     "./quota": "./src/quota/index.ts",
     "./quiz/store": "./src/quiz/store.ts",
     "./meta": "./src/meta/index.ts",
-    "./meta/events": "./src/meta/events.ts"
+    "./meta/events": "./src/meta/events.ts",
+    "./nutrition": "./src/nutrition/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",

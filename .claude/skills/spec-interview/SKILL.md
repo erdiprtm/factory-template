@@ -18,7 +18,7 @@ Goal: a spec in `specs/<slug>.md` that passes `node scripts/spec-check.mjs` and 
 - After each answer, restate it in one line ("Jadi: …") and only then ask the next question.
 - **Push back on scope.** A v1 has **one core loop**: one thing the user does again and again. If an answer adds a second loop (a marketplace *and* a tracker, a community *and* a course), say so plainly, name the two loops, and ask which one ships first. Everything else goes to "Out of scope for v1".
 - Push back on vague answers. "Semua orang" is not a target user. "Membantu" is not a result. Ask for a concrete person, a concrete moment and a concrete number.
-- Apply the product guardrails in `CLAUDE.md`: general guidance only, no diagnosis, curated data for any health or nutrition number, never shaming.
+- Apply the product guardrails in `CLAUDE.md`: general guidance only, no diagnosis, label or curated data first for any health or nutrition number, then only a labelled and checked AI estimate (D-082), never shaming.
 
 ## Questions, in this order
 

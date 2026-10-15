@@ -89,7 +89,7 @@ Mark each line **PASS**, **FAIL** or **N/A** (with a reason). Every FAIL gets `f
 | F1 | CTA labels come from the product's label table (`DESIGN.md`), or the same key for the same action everywhere. No "Submit", "OK", "Klik di sini" | M |
 | F2 | All copy through i18n keys (`id` + `en`) or product content files; plain, friendly Bahasa Indonesia; no shaming about bodies, food or habits | C |
 | F3 | No claim without proof on the page: no user counts, ratings, "paling populer", "#1", testimonials or percentages until real data exists. A computed fact ("Hemat Rp…") is fine | C |
-| F4 | Health-adjacent screens carry the "bukan pengganti tenaga profesional" notice; numbers come from curated data (CLAUDE.md product guardrails) | C |
+| F4 | Health-adjacent screens carry the "bukan pengganti tenaga profesional" notice; every number shows its source (Label / Data kurasi / Perkiraan AI), and estimates are editable (CLAUDE.md product guardrails, D-082) | C |
 
 ### G. Landing pages (site landing, landers, pricing). N/A on app screens
 
