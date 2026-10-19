@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-19: Gemini Flash-Lite price, product prices, AI fallback, eval error reasons (D-091), Myna Fit ai:eval follow-up
+
+- `gemini-3.1-flash-lite` is priced, and `ai.prices` works on Gemini too.
+- `ai.fallback` (e.g. Gemini direct → OpenRouter) is used only on outages, quota or rate limits; `ai_usage` and the privacy policy name who answered.
+- The eval report shows why a model failed.
+
+---
+
 ## 2026-10-16: tests reliable on a loaded laptop (D-089)
 
 - The two render tests that reset modules per case (`account-theme-render`, `pwa-install-render`) import their heavy modules in a `beforeAll` with its own timeout. `test/setup.ts` also cleans up before each case, so a timed-out case can't cascade into "Found multiple elements". Under 16 busy loops the first case went from up to 15.8 s to at most 1.6 s.

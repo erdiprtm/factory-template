@@ -196,6 +196,7 @@ describe("defineProduct", () => {
         model: "gemini-3.8-flash",
         thinking: "low",
         mediaResolution: "high",
+        prices: {},
         tier: "default",
         perUserPerDay: 20,
         anonymousPerDay: 300,

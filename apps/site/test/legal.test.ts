@@ -30,6 +30,24 @@ describe("privacy policy AI processor", () => {
     expect(aiProcessorLine(null)).toBe("");
   });
 
+  it("with a fallback provider (D-091), names both: the primary, then the backup", () => {
+    const line = aiProcessorLine(
+      withAi(
+        {
+          provider: "gemini",
+          model: "gemini-3.1-flash-lite",
+          fallback: { provider: "openrouter", model: "bytedance-seed/seed-2.0-lite" },
+        },
+        true,
+      ),
+    );
+    const [first, second] = line.split("\n");
+    expect(first).toMatch(/^- \*\*Google \(Gemini API, layanan berbayar\):\*\*/);
+    expect(second).toMatch(/^- \*\*OpenRouter \(perute model\) dan penyedia yang menjalankan modelnya \(cadangan/);
+    // The fallback follows the product's sensitive-data rule too.
+    expect(second).toContain("zero data retention");
+  });
+
   it("the template has the placeholder, and an empty one leaves no blank bullet", () => {
     const md = readFileSync(new URL("../src/content/legal/privasi.md", import.meta.url), "utf8");
     expect(md).toMatch(/^\{\{aiProcessor\}\}$/m);

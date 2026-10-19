@@ -8,6 +8,7 @@ import {
   mockProvider,
   openAiProvider,
   openRouterProvider,
+  withFallback,
 } from "@factory/core/ai";
 import { aiCallsSince, anonymousAiCallsSince, recordAiUsage } from "@factory/core/ai/usage";
 import { anonKey } from "@factory/core/quota";
@@ -44,8 +45,9 @@ export type AiSettings =
  * The product's AI provider (D-045, D-083, D-084), the one place a provider is built from config:
  * the configured provider when its key is set, otherwise the product's mock in development, test
  * and preview. Production without the key gets null, and the route answers 503: a missing key must
- * never fall back to fake results in front of paying users. Only the configured provider's key
- * counts: an OpenAI key doesn't make a Gemini product call OpenAI.
+ * never fall back to fake results in front of paying users. Only the configured providers' keys
+ * count (the primary's, and ai.fallback's, D-091): an OpenAI key doesn't make a Gemini product call
+ * OpenAI.
  */
 export function aiProvider(
   env: AiEnv,
@@ -54,37 +56,46 @@ export function aiProvider(
   opts: { fetch?: typeof fetch } = {},
 ): AiProvider | null {
   if (!ai) return null;
-  const model = env.AI_MODEL?.trim() || ai.model;
-  const real = (): AiProvider | null => {
-    if (ai.provider === "openrouter") {
-      const apiKey = env.OPENROUTER_API_KEY?.trim();
-      return apiKey
-        ? openRouterProvider({
-            apiKey,
-            model,
-            fallbackModels: ai.fallbackModels,
-            routing: { ...ai.routing, zdr: ai.routing.zdr ?? config.legal.sensitiveDataConsent },
-            prices: ai.prices,
-            fetch: opts.fetch,
-          })
-        : null;
-    }
-    if (ai.provider === "gemini") {
-      const apiKey = env.GEMINI_API_KEY?.trim();
-      return apiKey
-        ? geminiProvider({
-            apiKey,
-            model,
-            thinking: ai.thinking,
-            mediaResolution: ai.mediaResolution,
-            fetch: opts.fetch,
-          })
-        : null;
-    }
-    const apiKey = env.OPENAI_API_KEY?.trim();
-    return apiKey ? openAiProvider({ apiKey, model, tier: ai.tier, fetch: opts.fetch }) : null;
-  };
-  return real() ?? (env.APP_ENV === "production" ? null : mockProvider(mock));
+  const primary = realProvider(env, { ...ai, model: env.AI_MODEL?.trim() || ai.model }, opts);
+  // ai.fallback (D-091): another provider for when the primary can't answer at all. Without its
+  // key there's no fallback; without the primary's key, the fallback alone serves.
+  const fallback = "fallback" in ai && ai.fallback ? realProvider(env, ai.fallback, opts) : null;
+  const real = primary && fallback ? withFallback(primary, fallback) : (primary ?? fallback);
+  return real ?? (env.APP_ENV === "production" ? null : mockProvider(mock));
+}
+
+type ProviderSettings = AiSettings | NonNullable<AiConfigParsed["fallback"]>;
+
+/** One provider from its settings, when its own key is set; null otherwise. */
+function realProvider(env: AiEnv, ai: ProviderSettings, opts: { fetch?: typeof fetch }): AiProvider | null {
+  if (ai.provider === "openrouter") {
+    const apiKey = env.OPENROUTER_API_KEY?.trim();
+    return apiKey
+      ? openRouterProvider({
+          apiKey,
+          model: ai.model,
+          fallbackModels: ai.fallbackModels,
+          routing: { ...ai.routing, zdr: ai.routing.zdr ?? config.legal.sensitiveDataConsent },
+          prices: ai.prices,
+          fetch: opts.fetch,
+        })
+      : null;
+  }
+  if (ai.provider === "gemini") {
+    const apiKey = env.GEMINI_API_KEY?.trim();
+    return apiKey
+      ? geminiProvider({
+          apiKey,
+          model: ai.model,
+          thinking: ai.thinking,
+          mediaResolution: ai.mediaResolution,
+          prices: ai.prices,
+          fetch: opts.fetch,
+        })
+      : null;
+  }
+  const apiKey = env.OPENAI_API_KEY?.trim();
+  return apiKey ? openAiProvider({ apiKey, model: ai.model, tier: ai.tier, fetch: opts.fetch }) : null;
 }
 
 const DAY_MS = 86_400_000;

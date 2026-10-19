@@ -11,8 +11,9 @@
 // Usage: total_input_tokens, total_cached_tokens, total_output_tokens + total_thought_tokens (both
 // billed as output). Cost from GEMINI_PRICES (costMicroUsd).
 import type { AiFailure, AiJsonRequest, AiProvider, AiResult, AiUsage } from "./index";
+import { costMicroUsd } from "./prices";
 import { geminiSchema, schemaError } from "./schema";
-import { base64, callSignal, failed } from "./wire";
+import { type AiPrice, base64, callSignal, failed } from "./wire";
 
 const GEMINI_INTERACTIONS = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
@@ -99,6 +100,8 @@ export function geminiProvider(opts: {
   model: string;
   thinking?: GeminiThinking;
   mediaResolution?: GeminiResolution;
+  /** The product's own prices per model id (ai.prices, D-091), over GEMINI_PRICES. */
+  prices?: Readonly<Record<string, AiPrice>>;
   fetch?: typeof fetch;
   timeoutMs?: number;
 }): AiProvider {
@@ -131,7 +134,12 @@ export function geminiProvider(opts: {
       const fail = (error: AiFailure, detail?: string) => failed(opts.model, tier, started, error, usage, detail);
       if (!res.ok) {
         const code = codeName(body.error?.code);
-        return fail(geminiFailureOf(res.status, code), code || String(res.status));
+        // The provider's own message too (D-091), so a rejected setting says why ("thinking_level…").
+        const message = body.error?.message?.slice(0, 200);
+        return fail(
+          geminiFailureOf(res.status, code),
+          [code || String(res.status), message].filter(Boolean).join(": "),
+        );
       }
       const blocked = (body.errors ?? []).map((e) => codeName(e.code)).find((c) => BLOCKED.has(c));
       if (blocked) return fail("refused", blocked);
@@ -152,13 +160,18 @@ export function geminiProvider(opts: {
       }
       const off = schemaError(req.schema.schema, output);
       if (off) return fail("bad_output", `schema ${off}`);
+      const used = usage ?? { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
       return {
         ok: true,
         output,
         model: opts.model,
         tier,
-        usage: usage ?? { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 },
+        usage: used,
         latencyMs: Date.now() - started,
+        // Only with the product's own price; else ai_usage uses the list (costMicroUsd) as before.
+        ...(opts.prices?.[opts.model]
+          ? { costMicroUsd: costMicroUsd(opts.model, tier, used, new Date(), opts.prices) }
+          : {}),
       };
     },
   };

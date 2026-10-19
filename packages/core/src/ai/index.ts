@@ -8,6 +8,7 @@
 
 import { base64 } from "./wire";
 
+export { FALLBACK_ON, withFallback } from "./fallback";
 export {
   type GeminiResolution,
   type GeminiThinking,
@@ -59,6 +60,8 @@ export type AiResult =
       usage: AiUsage;
       latencyMs: number;
       costMicroUsd?: number | null;
+      /** Set when a fallback provider answered (D-091): the primary's model and why it didn't. */
+      fallbackFrom?: { model: string; error: AiFailure };
     }
   | {
       ok: false;
@@ -69,6 +72,7 @@ export type AiResult =
       latencyMs: number;
       detail?: string;
       costMicroUsd?: number | null;
+      fallbackFrom?: { model: string; error: AiFailure };
     };
 
 export type AiProviderName = "openai" | "openrouter" | "gemini" | "mock";

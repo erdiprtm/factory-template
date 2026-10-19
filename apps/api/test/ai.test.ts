@@ -128,6 +128,7 @@ describe("AI provider choice", () => {
   const gemini = {
     provider: "gemini" as const,
     model: "gemini-3.8-flash",
+    prices: {},
     tier: "default" as const,
     perUserPerDay: 20,
     anonymousPerDay: 300,
@@ -146,6 +147,48 @@ describe("AI provider choice", () => {
       expect(aiProvider({ APP_ENV: "production", OPENAI_API_KEY: "sk-x" }, mock, ai)).toBeNull();
     }
     expect(aiProvider({ APP_ENV: "production", GEMINI_API_KEY: "g-x" }, mock, ai)).toBeNull();
+  });
+
+  it("ai.fallback (D-091): Gemini direct first, OpenRouter when Google can't answer; logged as who answered", async () => {
+    const fallback = { ...openrouter, model: "bytedance-seed/seed-2.0-lite" };
+    const withBackup = { ...gemini, fallback };
+    const req = { system: "s", text: "t", schema: { name: "t", schema: { type: "object" } } };
+    const calls: string[] = [];
+    const down = (async (url: RequestInfo | URL) => {
+      calls.push(String(url));
+      if (String(url).includes("googleapis")) return new Response("{}", { status: 503 });
+      return new Response(
+        JSON.stringify({
+          model: "bytedance-seed/seed-2.0-lite",
+          choices: [{ finish_reason: "stop", message: { content: "{}" } }],
+          usage: { prompt_tokens: 100, completion_tokens: 20, cost: 0.0001 },
+        }),
+      );
+    }) as typeof globalThis.fetch;
+    const both = { APP_ENV: "production", GEMINI_API_KEY: "g-x", OPENROUTER_API_KEY: "or-x" };
+    const result = await (aiProvider(both, mock, withBackup, { fetch: down }) as AiProvider).json(req);
+    expect(result).toMatchObject({
+      ok: true,
+      model: "bytedance-seed/seed-2.0-lite",
+      fallbackFrom: { model: "gemini-3.8-flash", error: "unavailable" },
+    });
+    expect(calls.map((u) => new URL(u).host)).toEqual(["generativelanguage.googleapis.com", "openrouter.ai"]);
+    const user = `user-${crypto.randomUUID()}`;
+    await recordAiUsage(db, { userId: user, feature: "fb_test", result });
+    const rows = await db.select().from(schema.aiUsage).where(eq(schema.aiUsage.userId, user));
+    expect(rows.map((r) => [r.model, r.ok])).toEqual([["bytedance-seed/seed-2.0-lite", true]]);
+
+    // Without the fallback's key: the primary's error, as before. Without the primary's: the fallback.
+    calls.length = 0;
+    const alone = await (
+      aiProvider({ APP_ENV: "production", GEMINI_API_KEY: "g-x" }, mock, withBackup, { fetch: down }) as AiProvider
+    ).json(req);
+    expect(alone).toMatchObject({ ok: false, error: "unavailable", model: "gemini-3.8-flash" });
+    expect(calls).toHaveLength(1);
+    expect(aiProvider({ APP_ENV: "production", OPENROUTER_API_KEY: "or-x" }, mock, withBackup)?.name).toBe(
+      "openrouter",
+    );
+    expect(aiProvider({ APP_ENV: "production" }, mock, withBackup)).toBeNull();
   });
 
   it("builds the configured provider with AI_MODEL and an injected fetch, and logs its cost per call", async () => {

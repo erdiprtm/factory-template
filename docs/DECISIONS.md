@@ -1761,3 +1761,41 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - with a live holder, the next run is refused and the lock is unchanged;
   - after the holder ends, the lock is taken over;
   - the script exits 1 with the message while a separate live process (`sleep`) holds the lock.
+
+## D-091: Gemini 3.1 Flash-Lite's price, product prices for Gemini, a cross-provider fallback, eval error reasons (2026-10-19)
+
+- **Problem (Myna Fit, after `pnpm ai:eval` on 39 of the owner's photos).** The winner was **Gemini 3.1 Flash-Lite, direct**: 85% right first answer, about 2 s, about Rp 13 per scan. Myna Fit switches `ai` to `{ provider: "gemini", model: "gemini-3.1-flash-lite" }`, which left three gaps.
+  1. The model had no price, so `ai_usage` cost and /admin's unit economics would be blank, and the eval showed "n/a".
+  2. A Google outage meant scans answered "unavailable" until a config change and a deploy. `fallbackModels` exists only inside OpenRouter.
+  3. The eval reported "Other errors 100%" for `thinking: "minimal"` on gemini-3.8-flash without saying why.
+- **Decision.**
+  - **Price.** `GEMINI_PRICES["gemini-3.1-flash-lite"]`: input $0.25, cached $0.025, output $1.50 per 1M tokens (Standard paid tier, text/image/video input). There's no date-based change. Source: ai.google.dev/gemini-api/docs/pricing, read 2026-10-19.
+  - **Product prices for Gemini.** `ai.prices` on the `gemini` provider (model id → USD per 1M tokens), validated like OpenRouter's.
+    - It wins over the template's list, so a new model never waits for a template release.
+    - The provider puts that cost on the result, so `ai_usage` stores it. `costMicroUsd(model, tier, usage, at, prices)` takes the table, and the eval's estimate uses it.
+  - **`ai.fallback`** on any provider: one other provider's settings (openai / openrouter / gemini, without caps).
+    - `withFallback` (`@factory/core/ai`) calls it only when the primary failed with `unavailable`, `quota` or `rate_limited` (timeouts and 5xx are `unavailable`).
+    - It's never used on `bad_output` or `refused`: those are about the request, and another model mustn't silently retry them.
+    - The result is the fallback's, with `fallbackFrom: { model, error }`. `ai_usage` records the model that actually answered. OpenRouter slugs (`vendor/model`) and Gemini ids differ, so the log shows which processor got the data.
+    - Keys come from the environment as usual:
+      - without the fallback's key, there's no fallback (the primary's error, as before);
+      - without the primary's key, the fallback alone serves;
+      - with neither, it's null in production and the mock elsewhere.
+    - An OpenRouter fallback follows the same `zdr` rule as an OpenRouter primary (`legal.sensitiveDataConsent`).
+    - The privacy policy's `{{aiProcessor}}` names both, the backup marked "cadangan, hanya saat penyedia utama tidak bisa dihubungi". SETUP_HUMAN 11d explains it.
+  - **Eval reasons.** Gemini and OpenRouter failures carry the provider's own error message (up to 200 characters) after the code. The report gets an **Errors** section with the first reason per model, and the live log prints it per call.
+- **Tests.**
+  - Core (`fallback.test.ts`):
+    - primary ok → no fallback call;
+    - unavailable, quota or rate limited → the fallback answers with `fallbackFrom`;
+    - bad_output or refused → no fallback call;
+    - the Flash-Lite price and its cost;
+    - a product price extends and overrides the list;
+    - the Gemini provider reports the product's price on the result.
+  - Eval: the estimate uses the config's prices; the report shows "2× bad_request: INVALID_ARGUMENT: thinking_level 'minimal' is not supported".
+  - API (`ai.test.ts`):
+    - Gemini 503 → the OpenRouter fallback answers, and `ai_usage` stores the fallback's model;
+    - without the fallback's key → the primary's error after one call;
+    - without the primary's key → the fallback;
+    - with neither key, null in production.
+  - Site (`legal.test.ts`): with a fallback, both processors are named, and the OpenRouter backup gets zero data retention for a sensitive-data product.

@@ -84,7 +84,10 @@ export function parseConfigs(entries, aiSchema) {
       throw new Error(`models[${i}] ${JSON.stringify(entry)}: ${parsed.error.issues.map((x) => x.message).join("; ")}`);
     const ai = parsed.data;
     const name = `${ai.provider}:${ai.model}${ai.tier === "fast" ? " (fast)" : ""}`;
-    return { config: { label: label ?? name, model: ai.model, tier: ai.tier, mock: false }, ai };
+    return {
+      config: { label: label ?? name, model: ai.model, tier: ai.tier, mock: false, prices: ai.prices },
+      ai,
+    };
   });
 }
 
@@ -225,7 +228,7 @@ export async function main(argv, deps = {}) {
       product,
       onCall: (config, call) =>
         err(
-          `  ${config.label}  ${call.file}  ${call.result.ok ? (call.top1 ? "✓" : "✗") : call.result.error}  ${call.result.latencyMs} ms\n`,
+          `  ${config.label}  ${call.file}  ${call.result.ok ? (call.top1 ? "✓" : "✗") : `${call.result.error}${call.result.detail ? ` (${call.result.detail})` : ""}`}  ${call.result.latencyMs} ms\n`,
         ),
     });
     const date = (deps.date ?? new Date()).toISOString().slice(0, 16).replace("T", " ");

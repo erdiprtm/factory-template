@@ -26,6 +26,8 @@ export const GEMINI_PRICES: Readonly<Record<string, readonly (AiPrice & { since?
     { since: "2027-01-01", input: 1.5, cachedInput: 0.15, output: 7.5 },
   ],
   "gemini-3.5-flash-lite": [{ input: 0.3, cachedInput: 0.03, output: 2.5 }],
+  // Read 2026-10-19: text/image/video input; no date-based change listed (D-091).
+  "gemini-3.1-flash-lite": [{ input: 0.25, cachedInput: 0.025, output: 1.5 }],
   "gemini-4-argon": [
     { input: 2, cachedInput: 0.1, output: 10 },
     { since: "2026-12-01", input: 4, cachedInput: 0.2, output: 20 },
@@ -53,9 +55,19 @@ export function listPrice(model: string, at = new Date()): AiPrice | undefined {
   return undefined;
 }
 
-/** Cost of one call in micro-USD (1e-6 USD), or null for a model without a known price. */
-export function costMicroUsd(model: string, tier: AiTier, usage: AiUsage, at = new Date()): number | null {
-  const p = listPrice(model, at);
+/**
+ * Cost of one call in micro-USD (1e-6 USD), or null for a model without a known price. `prices`:
+ * the product's own `ai.prices` (D-091), which win over the list, so a new model needs no template
+ * release.
+ */
+export function costMicroUsd(
+  model: string,
+  tier: AiTier,
+  usage: AiUsage,
+  at = new Date(),
+  prices?: Readonly<Record<string, AiPrice>>,
+): number | null {
+  const p = prices?.[model] ?? listPrice(model, at);
   if (!p) return null;
   return priceMicroUsd(p, usage, tier === "fast" ? 2 : 1);
 }
