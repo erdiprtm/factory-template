@@ -1861,3 +1861,20 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - App render (`pakasir-checkout-render.test.tsx`): the QR as an `<svg>` path (no `<img>`), VA copy, fee and total, countdown, expired state, and the method picker (QRIS first, VAs hidden under Rp10.000, no amount sent).
   - E2E (`billing.spec.ts`): a Pakasir purchase (QR screen → paid at the fake API without a webhook → the poll grants → return page → access; then a VA and "Ganti cara bayar"), skipped unless the product is on Pakasir. The other purchase tests use the new `buyPlan()` helper, so they pass on either provider. Run once locally with a temporary Pakasir config, then reverted.
   - Site (`legal.test.ts`): the processor is named from config, and the templates name no provider.
+
+## D-093: The template's billing tests run on a provider they choose; migration metadata is merged on sync (2026-10-19)
+
+- **Problem (Myna Fit, syncing D-092 with `payments.provider: "pakasir"`).**
+  - 11 template tests failed in the product (billing API, Meta CAPI purchases, economics). Errors included `expected 'fake', got 'pakasir'` and `expected 503, got 404`.
+  - They buy through the hosted-page fake, but the provider was taken from the product's config, against D-028 and D-078 (template tests hold with any valid config). Myna Fit had to ship on Duitku while waiting.
+  - Separately, `docs/TEMPLATE_SYNC.md` said to take the template's `migrations/meta/*`. In a product with its own migrations, that drops the product's journal entries, and the template's new snapshot lacks the product tables, so `db:generate` would recreate them.
+- **Decision.**
+  - **`PAYMENTS_PROVIDER`** (`apps/api/src/core/payments.ts` `providerFor`) picks the provider for a test, whatever `product.config.ts` says. It's read **only with `APP_ENV=test`** and ignored in development, preview and production, so it can't change a deployed product's payments.
+  - `apps/api/vitest.config.ts` sets it to `"duitku"` (the hosted-page fake) for the whole suite.
+  - Pakasir's tests opt in: `usePaymentsProvider("pakasir")` in `test/helpers.ts` (its `testEnv()` feeds `call`, `post`, `get` and the sign-in link), and the service tests pass `PAYMENTS_PROVIDER: "pakasir"` in their own env.
+  - **Migration metadata** (TEMPLATE_SYNC.md, `/sync-template`) is merged, never taken whole:
+    - every journal entry from both sides, sorted by tag, with `idx` renumbered;
+    - the product's tables added to each new template snapshot, with `prevId` set to the product's latest snapshot;
+    - then `pnpm db:generate` must report no changes.
+    - This is the procedure that worked in Myna Fit. Doing it automatically in `template-sync.mjs` is left for later.
+- **Check.** With the template's `product.config.ts` temporarily set to Myna Fit's `payments` (`pakasir`, methods `qris, bri_va, bni_va, bsi_va, cimb_niaga_va, danamon_va`), the full `pnpm test` passed: core 146, site 30, app 57, API 162, scripts 166. On the default Duitku config it also passes. The config was then reverted.
