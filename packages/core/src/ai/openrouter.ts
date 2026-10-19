@@ -138,7 +138,12 @@ export function openRouterProvider(opts: {
       const fail = (error: AiFailure, detail?: string) => failed(model, tier, started, error, usage, detail, cost);
       if (!res.ok) {
         const type = body.error?.metadata?.error_type;
-        return fail(openRouterFailureOf(res.status, type), type ?? String(body.error?.code ?? res.status));
+        // The provider's own message too (D-091), so a rejected setting says why.
+        const message = typeof body.error?.message === "string" ? body.error.message.slice(0, 200) : undefined;
+        return fail(
+          openRouterFailureOf(res.status, type),
+          [type ?? String(body.error?.code ?? res.status), message].filter(Boolean).join(": "),
+        );
       }
       // Errors can arrive in a 200: a body with only `error`, or a choice that finished with "error".
       const choice = body.choices?.[0];

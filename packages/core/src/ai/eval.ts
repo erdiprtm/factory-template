@@ -27,7 +27,14 @@ export type EvalProduct = {
   expectedUsage: { inputTokens: number; outputTokens: number };
 };
 
-export type EvalConfig = { label: string; model: string; tier: AiTier; mock: boolean };
+/** `prices`: the config's own ai.prices (D-091), used for the estimate before the run. */
+export type EvalConfig = {
+  label: string;
+  model: string;
+  tier: AiTier;
+  mock: boolean;
+  prices?: Readonly<Record<string, { input: number; cachedInput: number; output: number }>>;
+};
 
 export type EvalCall = {
   file: string;
@@ -135,7 +142,7 @@ export function estimateMicroUsd(
 ): { config: EvalConfig; microUsd: number | null }[] {
   return configs.map((config) => {
     if (config.mock) return { config, microUsd: 0 };
-    const one = costMicroUsd(config.model, config.tier, { ...usage, cachedInputTokens: 0 });
+    const one = costMicroUsd(config.model, config.tier, { ...usage, cachedInputTokens: 0 }, new Date(), config.prices);
     return { config, microUsd: one === null ? null : one * photos };
   });
 }
@@ -236,6 +243,23 @@ export function renderReport(rows: EvalRow[], opts: { usdIdr: number; date: stri
     line(["Photo", ...rows.map((r) => r.config.label)]),
     line(["---", ...rows.map(() => "---")]),
   ];
+  // Why a config failed, once each (D-091): "Other errors 100%" alone hides e.g. a rejected setting.
+  const reasons = rows.flatMap((r) => {
+    const failed = r.calls.find((c) => !c.result.ok);
+    if (!failed || failed.result.ok) return [];
+    const n = r.calls.filter((c) => !c.result.ok).length;
+    const why = failed.result.detail ? `: ${failed.result.detail}` : "";
+    return [`- ${r.config.label}: ${n}× ${failed.result.error}${why}`];
+  });
+  if (reasons.length > 0)
+    out.splice(
+      out.indexOf("## Per photo (first answer; ✓ = top-1 hit)"),
+      0,
+      "## Errors (first reason per model)",
+      "",
+      ...reasons,
+      "",
+    );
   const files = rows[0]?.calls.map((c) => c.file) ?? [];
   files.forEach((file, i) => {
     out.push(

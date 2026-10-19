@@ -61,6 +61,10 @@ const TABLE = `# AI eval, 2026-10-15 09:30
 | openai:gpt-6-luna | 25% (1/4) | 50% (2/4) | 33% (1/3) | 25% (1/4) | 25% (1/4) | 200 ms | 400 ms | Rp 7,4 | Rp 29,7 |
 | mock | 25% (1/4) | – | 0% (0/3) | 0% (0/4) | 0% (0/4) | 0 ms | 0 ms | Rp 0 | Rp 0 |
 
+## Errors (first reason per model)
+
+- openai:gpt-6-luna: 1× unavailable
+
 ## Per photo (first answer; ✓ = top-1 hit)
 
 | Photo | openai:gpt-6-luna | mock |
@@ -153,6 +157,7 @@ describe("ai:eval", () => {
       model: "google/gemini-3.8-flash",
       tier: "default",
       mock: false,
+      prices: {},
     });
     expect(gem.config.label).toBe("gemini:gemini-3.8-flash");
     expect(() => parseConfigs([{ provider: "gemini", model: "gemini-3.8-flash", thinkng: "low" }], aiSchema)).toThrow(

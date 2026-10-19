@@ -63,48 +63,66 @@ const openRouterSlug = z
   )
   .refine((s) => !s.endsWith(":free"), { message: "free OpenRouter models may train on prompts: use a paid one" });
 const providerSlug = z.string().regex(/^[a-z0-9][a-z0-9._/-]{0,60}$/, "an OpenRouter provider slug");
+const geminiModel = z.string().regex(/^gemini-[a-z0-9][a-z0-9.-]{0,60}$/, 'a Gemini model id like "gemini-3.8-flash"');
 /** USD per 1M tokens. */
 const aiPrice = z.object({ input: z.number().min(0), cachedInput: z.number().min(0), output: z.number().min(0) });
 
-/** product.config.ts `ai` without null (D-045, D-083, D-084); see the comment at `ai` below. */
+// The three providers' own settings (D-045, D-083, D-084), without caps: also the shape of a fallback.
+const openAiShape = {
+  provider: z.literal("openai"),
+  model: z.string().regex(/^[a-z0-9][a-z0-9.-]{1,60}$/),
+  tier: z.enum(["default", "fast"]).default("default"),
+};
+
+const openRouterShape = {
+  provider: z.literal("openrouter"),
+  model: openRouterSlug,
+  fallbackModels: z.array(openRouterSlug).max(3).default([]),
+  routing: z
+    .object({
+      /** Only providers that support every parameter sent (response_format above all). */
+      requireParameters: z.boolean().default(true),
+      /** "deny": only providers that don't collect (store or train on) the data. */
+      dataCollection: z.enum(["deny", "allow"]).default("deny"),
+      /** Zero Data Retention endpoints only. Unset = legal.sensitiveDataConsent (resolved by defineProduct). */
+      zdr: z.boolean().optional(),
+      /** Provider slugs allowed (only) or tried first (order). */
+      only: z.array(providerSlug).min(1).optional(),
+      order: z.array(providerSlug).min(1).optional(),
+      /** Whether other providers may serve when the preferred ones can't (OpenRouter default: true). */
+      allowFallbacks: z.boolean().optional(),
+    })
+    .default({ requireParameters: true, dataCollection: "deny" }),
+  prices: z.record(openRouterSlug, aiPrice).default({}),
+  tier: z.literal("default").default("default"),
+};
+
+const geminiShape = {
+  provider: z.literal("gemini"),
+  model: geminiModel,
+  thinking: z.enum(["minimal", "low", "medium", "high"]).optional(),
+  mediaResolution: z.enum(["low", "medium", "high", "ultra_high"]).optional(),
+  /** USD per 1M tokens per model id, over the template's list (a new model needs no release, D-091). */
+  prices: z.record(geminiModel, aiPrice).default({}),
+  tier: z.literal("default").default("default"),
+};
+
+/**
+ * Another provider to try when the primary can't answer at all (D-091): unavailable, quota, rate
+ * limited, 5xx or a timeout. Never on bad output or a refusal: another model mustn't silently retry
+ * those. Its own key comes from the environment as usual; without it there's no fallback.
+ */
+export const aiFallbackSchema = z.discriminatedUnion("provider", [
+  z.object(openAiShape),
+  z.object(openRouterShape),
+  z.object(geminiShape),
+]);
+
+/** product.config.ts `ai` without null (D-045, D-083, D-084, D-091); see the comment at `ai` below. */
 export const aiSchema = z.discriminatedUnion("provider", [
-  z.object({
-    provider: z.literal("openai"),
-    model: z.string().regex(/^[a-z0-9][a-z0-9.-]{1,60}$/),
-    tier: z.enum(["default", "fast"]).default("default"),
-    ...aiCaps,
-  }),
-  z.object({
-    provider: z.literal("openrouter"),
-    model: openRouterSlug,
-    fallbackModels: z.array(openRouterSlug).max(3).default([]),
-    routing: z
-      .object({
-        /** Only providers that support every parameter sent (response_format above all). */
-        requireParameters: z.boolean().default(true),
-        /** "deny": only providers that don't collect (store or train on) the data. */
-        dataCollection: z.enum(["deny", "allow"]).default("deny"),
-        /** Zero Data Retention endpoints only. Unset = legal.sensitiveDataConsent (resolved by defineProduct). */
-        zdr: z.boolean().optional(),
-        /** Provider slugs allowed (only) or tried first (order). */
-        only: z.array(providerSlug).min(1).optional(),
-        order: z.array(providerSlug).min(1).optional(),
-        /** Whether other providers may serve when the preferred ones can't (OpenRouter default: true). */
-        allowFallbacks: z.boolean().optional(),
-      })
-      .default({ requireParameters: true, dataCollection: "deny" }),
-    prices: z.record(openRouterSlug, aiPrice).default({}),
-    tier: z.literal("default").default("default"),
-    ...aiCaps,
-  }),
-  z.object({
-    provider: z.literal("gemini"),
-    model: z.string().regex(/^gemini-[a-z0-9][a-z0-9.-]{0,60}$/, 'a Gemini model id like "gemini-3.8-flash"'),
-    thinking: z.enum(["minimal", "low", "medium", "high"]).optional(),
-    mediaResolution: z.enum(["low", "medium", "high", "ultra_high"]).optional(),
-    tier: z.literal("default").default("default"),
-    ...aiCaps,
-  }),
+  z.object({ ...openAiShape, fallback: aiFallbackSchema.optional(), ...aiCaps }),
+  z.object({ ...openRouterShape, fallback: aiFallbackSchema.optional(), ...aiCaps }),
+  z.object({ ...geminiShape, fallback: aiFallbackSchema.optional(), ...aiCaps }),
 ]);
 
 /** aiSchema refusing unknown keys (a typo fails): `pnpm ai:eval`'s model configs (D-085). */
@@ -124,8 +142,13 @@ export type AiConfig = AiConfigParsed extends infer A
 
 /** Zero Data Retention by default whenever the product handles sensitive (health) data (D-083). */
 export function resolveAi(ai: AiConfigParsed, legal: { sensitiveDataConsent: boolean }): AiConfig {
-  if (ai.provider !== "openrouter") return ai as AiConfig;
-  return { ...ai, routing: { ...ai.routing, zdr: ai.routing.zdr ?? legal.sensitiveDataConsent } } as AiConfig;
+  // An OpenRouter fallback (D-091) follows the same rule as an OpenRouter primary.
+  type WithRouting = { provider: string; routing?: { zdr?: boolean } };
+  const zdr = <T extends WithRouting>(p: T): T =>
+    p.provider === "openrouter" && p.routing
+      ? { ...p, routing: { ...p.routing, zdr: p.routing.zdr ?? legal.sensitiveDataConsent } }
+      : p;
+  return { ...zdr(ai), ...(ai.fallback ? { fallback: zdr(ai.fallback) } : {}) } as AiConfig;
 }
 
 export const productSchema = z.object({

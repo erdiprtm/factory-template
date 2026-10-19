@@ -111,3 +111,7 @@ or model change: a drop in top-1 on the same set is a regression.
 
 20–50 photos give a rough number (one photo is 2–5 points). Treat differences of a few points as
 noise; prefer the cheaper model unless the better one wins clearly.
+
+## When a model fails (D-091)
+
+The report has an **Errors** section with the first reason per model, including the provider's own message. For example, `bad_request: INVALID_ARGUMENT: thinking_level 'minimal' is not supported` means drop or change that setting. A config's own `prices` (Gemini or OpenRouter) are used for the estimate before the run.

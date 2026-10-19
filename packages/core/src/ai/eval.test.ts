@@ -6,6 +6,7 @@ import {
   matchesItem,
   normalizeName,
   percentile,
+  renderReport,
   scoreCall,
   summarize,
 } from "./eval";
@@ -89,6 +90,42 @@ describe("numbers", () => {
     expect(e.map((x) => x.microUsd)).toEqual([6000, 0, null]);
     expect(formatRp(29.7)).toBe("Rp 29,7");
     expect(formatRp(20000)).toBe("Rp 20.000");
+  });
+
+  it("uses the config's own prices for the estimate (D-091)", () => {
+    const own = {
+      label: "new",
+      model: "gemini-9-new",
+      tier: "default" as const,
+      mock: false,
+      prices: { "gemini-9-new": { input: 1, cachedInput: 0, output: 1 } },
+    };
+    expect(estimateMicroUsd([own], 10, { inputTokens: 1000, outputTokens: 1000 })[0]?.microUsd).toBe(20000);
+  });
+
+  it("the report names why a model failed, once (D-091)", () => {
+    const expected = { file: "x.jpg", items: [{ name: "Siomay" }] };
+    const bad = {
+      ok: false as const,
+      error: "bad_request" as const,
+      model: "gemini-3.8-flash",
+      tier: "default" as const,
+      usage: null,
+      latencyMs: 5,
+      detail: "INVALID_ARGUMENT: thinking_level 'minimal' is not supported",
+    };
+    const calls = [scoreCall(expected, bad, { score }, false), scoreCall(expected, bad, { score }, false)];
+    const md = renderReport(
+      [{ config: { label: "gemini-3.8-flash", model: "gemini-3.8-flash", tier: "default", mock: false }, calls }],
+      {
+        usdIdr: 16500,
+        date: "2026-10-19",
+      },
+    );
+    expect(md).toContain("## Errors (first reason per model)");
+    expect(md).toContain(
+      "- gemini-3.8-flash: 2× bad_request: INVALID_ARGUMENT: thinking_level 'minimal' is not supported",
+    );
   });
 
   it("an unknown price shows n/a instead of a made-up cost", () => {
