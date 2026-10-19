@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { defineProduct, type ProductConfigInput } from "@factory/config";
 import { describe, expect, it } from "vitest";
 import product from "../../../product.config";
-import { aiProcessorLine, fillTemplate } from "../src/lib/legal";
+import { aiProcessorLine, fillTemplate, paymentProcessorLine, paymentProcessorName } from "../src/lib/legal";
 
 // The privacy policy names the AI processor that product.config.ts `ai` actually uses (D-083, D-084).
 // Holds in every product repo: configs are built from this repo's own, with `ai` swapped.
@@ -55,5 +55,31 @@ describe("privacy policy AI processor", () => {
     expect(fillTemplate(list, { aiProcessor: "", name: "X" })).toBe("- a\n- b X\n");
     expect(fillTemplate(list, { aiProcessor: "- ai", name: "X" })).toBe("- a\n- ai\n- b X\n");
     expect(fillTemplate("{{unknown}}", {})).toBe("{{unknown}}");
+  });
+});
+
+// The privacy policy and terms name the payment processor from payments.provider (D-092).
+describe("legal payment processor", () => {
+  const withProvider = (provider: string, methods: string[]) =>
+    defineProduct({ ...base, payments: { provider, methods } } as ProductConfigInput).payments;
+
+  it("names Pakasir, Duitku or DOKU from the config", () => {
+    expect(paymentProcessorLine(withProvider("pakasir", ["qris", "bri_va"]))).toMatch(
+      /^- \*\*Pakasir \(penyedia pembayaran\):\*\*/,
+    );
+    expect(paymentProcessorName(withProvider("duitku", ["QRIS"]))).toBe("Duitku");
+    expect(paymentProcessorName(withProvider("doku", ["QRIS"]))).toBe("DOKU");
+  });
+
+  it("the templates have the placeholders, and no hard-coded provider name", () => {
+    const privacy = readFileSync(new URL("../src/content/legal/privasi.md", import.meta.url), "utf8");
+    const terms = readFileSync(new URL("../src/content/legal/syarat.md", import.meta.url), "utf8");
+    expect(privacy).toMatch(/^\{\{paymentProcessor\}\}$/m);
+    expect(terms).toContain("{{paymentProcessorName}}");
+    for (const md of [privacy, terms]) expect(md).not.toMatch(/Duitku|DOKU|Pakasir/);
+  });
+
+  it("Pakasir needs its own method codes", () => {
+    expect(() => withProvider("pakasir", ["QRIS"])).toThrow(/Pakasir method codes/);
   });
 });

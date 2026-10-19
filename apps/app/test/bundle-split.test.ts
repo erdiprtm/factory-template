@@ -57,6 +57,8 @@ const lazyOnly = [
   "core/signed-in/admin.tsx",
   "core/signed-in/pricing.tsx",
   "core/signed-in/billing-return.tsx",
+  "core/signed-in/billing-pay.tsx",
+  "core/billing/pakasir-checkout.tsx",
   "core/admin/economics.tsx",
   "core/auth/client.ts",
 ].map((f) => `../src/${f}`);
@@ -71,7 +73,14 @@ describe("web bundle split (D-059)", () => {
   });
 
   it("their route files load them with one shared import()", () => {
-    for (const route of ["sign-in", "(app)/account", "(app)/admin", "(app)/pricing", "(app)/billing/return"]) {
+    for (const route of [
+      "sign-in",
+      "(app)/account",
+      "(app)/admin",
+      "(app)/pricing",
+      "(app)/billing/return",
+      "(app)/billing/pay",
+    ]) {
       expect(sources[`../src/app/${route}.tsx`], route).toMatch(/import\("(\.\.\/)+core\/signed-in"\)/);
     }
   });

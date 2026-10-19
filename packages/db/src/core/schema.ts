@@ -188,6 +188,27 @@ export const paymentTracking = sqliteTable(
 );
 
 /**
+ * What the buyer pays in our own checkout screen (Pakasir, D-092), one row per payment: the
+ * method, the provider's fee and total, the QR string or VA number, the provider's expiry and its
+ * sandbox flag. `status_checked_at` throttles status calls (Pakasir: once per transaction per 4 s).
+ * Hosted-page providers (Duitku, DOKU) write none.
+ */
+export const paymentCharges = sqliteTable("payment_charges", {
+  paymentId: text("payment_id")
+    .primaryKey()
+    .references(() => payments.id),
+  method: text("method").notNull(),
+  feeIdr: integer("fee_idr").notNull(),
+  totalIdr: integer("total_idr").notNull(),
+  qrString: text("qr_string"),
+  vaNumber: text("va_number"),
+  providerExpiresAt: timestamp("provider_expires_at").notNull(),
+  isSandbox: integer("is_sandbox", { mode: "boolean" }).notNull(),
+  statusCheckedAt: timestamp("status_checked_at"),
+  createdAt: timestamp("created_at").notNull(),
+});
+
+/**
  * Quiz onboarding answers (sell engine Module 4, D-036), one row per user and quiz. Answered on
  * the device before signup, attached after sign-in and consent; a retake replaces the answers.
  * Products read them to personalize (apps/api/src/features). JSON, validated on write.

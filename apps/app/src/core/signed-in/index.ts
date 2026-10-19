@@ -4,6 +4,7 @@
 // barely shrank the first load. Never import this module statically from a route or the funnel.
 export { Account } from "./account";
 export { Admin } from "./admin";
+export { BillingPay } from "./billing-pay";
 export { BillingReturn } from "./billing-return";
 export { Pricing } from "./pricing";
 export { SignIn } from "./sign-in";

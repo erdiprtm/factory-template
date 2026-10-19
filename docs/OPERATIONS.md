@@ -97,6 +97,15 @@ gh repo delete <owner>/<repo>
 - Triage by where the code runs. **Worker runtime** (`apps/api` bundle): fix now. **Browser bundle** (app, site): fix soon. **Build or dev tooling only** (Metro, Expo CLI, Astro build, drizzle-kit): fix when a patch is eligible.
 - `pnpm verify` also runs `scripts/check-bundle-secrets.mjs`, which fails if a credential-looking value or server-side env access shows up in the app or site output.
 
+## Refunds
+
+- **Duitku, DOKU:** refund in the provider's dashboard, then mark the payment refunded in /admin (D-038). Access ends at that moment and the numbers stay right.
+- **Pakasir (D-092):** Pakasir has no refund API or refund button in its docs (read 2026-10-19). So the refund is manual:
+  1. Agree the refund with the buyer by email (`legal.contactEmail`). Ask for their bank account or e-wallet number. Never ask for it in the app or by chat, and keep it out of the repo.
+  2. Send the plan price back from the business account (the Pakasir fee isn't refunded by Pakasir; decide per case whether to cover it, as the refund policy says).
+  3. In /admin, mark the payment refunded. Keep the transfer receipt with the payment id (`pay_…`) and the Pakasir `txn_id` (on the payment's row, `provider_ref`) for the books.
+  4. If Pakasir adds a refund feature later, re-read their docs and update this section and D-092.
+
 ## Secrets
 
 - Cloudflare API token: GitHub secret `CLOUDFLARE_API_TOKEN`. If it might have leaked, open dash.cloudflare.com → My Profile → API Tokens → **Roll**, then run `gh secret set CLOUDFLARE_API_TOKEN` again.

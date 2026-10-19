@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { firstPlan, idr } from "./plans";
-import { signIn } from "./support";
+import { buyPlan, signIn } from "./support";
 
 // Akun page: subscription status after a purchase, language switch, data export, deletion.
 
@@ -10,7 +10,7 @@ test("account: status, history, language, export, delete", async ({ page, reques
 
   // Buy the 6-month plan through the dev payment page.
   await page.goto("/pricing");
-  await page.getByRole("button", { name: `Bayar ${idr(firstPlan.priceIdr)}` }).click();
+  await buyPlan(page, firstPlan.priceIdr);
   await expect(page.getByText("Pembayaran berhasil! Akses kamu sudah aktif.")).toBeVisible();
 
   await page.goto("/account");

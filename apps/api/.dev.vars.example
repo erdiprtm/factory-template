@@ -35,6 +35,17 @@ DOKU_CLIENT_ID=
 DOKU_SECRET_KEY=
 # DOKU_MODE is a var in wrangler.jsonc ("sandbox"); only the human switches it to "production".
 
+# Pakasir, only when product.config.ts payments.provider is "pakasir" (SETUP_HUMAN.md step 3c, D-092).
+# Optional locally: without them an in-memory fake Pakasir API runs the real provider code
+# (POST /api/dev/pakasir-pay?paymentId=… plays "the buyer paid"). Project Detail page in
+# app.pakasir.com: Slug and API Key at the bottom, the webhook secret at the very bottom.
+# The webhook URL is set once per project on that page: https://<app-host>/api/webhooks/pakasir
+PAKASIR_SLUG=
+PAKASIR_API_KEY=
+PAKASIR_WEBHOOK_SECRET=
+# PAKASIR_MODE is a var in wrangler.jsonc ("sandbox"); only the human switches production to "live".
+# Previews always run as sandbox, whatever it says.
+
 # OpenPanel client secret (SETUP_HUMAN step 5). Production only: server-side events (payment
 # results from the webhook, renewal reminders from the cron). Not needed locally.
 OPENPANEL_CLIENT_SECRET=

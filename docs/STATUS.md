@@ -4,6 +4,15 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-19: Pakasir payments with the app's own QRIS / VA checkout (D-092)
+
+- `payments.provider: "pakasir"` with Pakasir method codes (`qris`, `bri_va`, …). The buyer picks a method on /pricing, then pays on `/billing/pay`: the QR drawn on the device (`uqr`), or the VA number with copy; price, fee and total; a countdown; "Cek status" plus a 5-second poll.
+- Access only when Pakasir's status API confirms the exact order and amount. The webhook checks `X-Secret` in constant time first. A sandbox transaction never grants in live mode, and previews are always sandbox.
+- One settle path for the webhook, the poll, cancel and the cron: one entitlement, and one purchase event and receipt per payment. Status calls are throttled to one per payment per 4 s. New `payment_charges` table (expand-only migration).
+- The legal pages name the processor from config (`{{paymentProcessor}}`). New docs: SETUP_HUMAN 3c (Bahasa Indonesia) and the manual refund process in OPERATIONS.
+
+---
+
 ## 2026-10-19: Gemini Flash-Lite price, product prices, AI fallback, eval error reasons (D-091), Myna Fit ai:eval follow-up
 
 - `gemini-3.1-flash-lite` is priced, and `ai.prices` works on Gemini too.

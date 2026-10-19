@@ -22,6 +22,7 @@ Dengan memakai **{{name}}** yang disediakan oleh **{{companyName}}**, kamu menye
 
 - Paket yang tersedia: {{planList}}.
 - Pembayaran dilakukan di muka. **Tidak ada perpanjangan otomatis.** Memperpanjang berarti melakukan pembelian baru.
+- Pembayaran diproses oleh {{paymentProcessorName}}. Biaya layanan pembayaran, jika ada, ditampilkan sebelum kamu membayar.
 - Membeli sebelum masa aktif habis **tidak menghanguskan sisa hari**: masa baru dimulai setelah masa lama berakhir.
 - Harga dalam Rupiah dan sudah termasuk pajak yang berlaku, kecuali dinyatakan lain.
 

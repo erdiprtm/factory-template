@@ -36,6 +36,21 @@ function processorLine(ai: Processor): string {
   return `- **OpenAI:** ${what}. OpenAI tidak memakai data API untuk melatih modelnya dan hanya menyimpannya untuk waktu terbatas guna mendeteksi penyalahgunaan.`;
 }
 
+// The payment processor (D-092), from product.config.ts `payments.provider`, so switching
+// provider never needs a hand edit of the privacy policy or terms.
+const PAYMENT_PROCESSORS: Record<ProductConfig["payments"]["provider"], string> = {
+  duitku: "Duitku",
+  doku: "DOKU",
+  pakasir: "Pakasir",
+};
+
+export const paymentProcessorName = (payments: ProductConfig["payments"]): string =>
+  PAYMENT_PROCESSORS[payments.provider];
+
+export function paymentProcessorLine(payments: ProductConfig["payments"]): string {
+  return `- **${paymentProcessorName(payments)} (penyedia pembayaran):** pemrosesan pembayaran. Kami tidak menerima atau menyimpan data kartu atau rekening bankmu.`;
+}
+
 /**
  * Fills {{placeholders}} from `values`; unknown ones stay as they are. A placeholder alone on its
  * line that fills in empty (e.g. no AI) removes the whole line, so a list keeps no blank bullet.

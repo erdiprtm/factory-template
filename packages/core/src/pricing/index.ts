@@ -1,6 +1,8 @@
 // Price framing for landers and the paywall (sell engine, D-035/D-037). Pure: no database.
 // Indonesian buyers compare against small daily/weekly spends, so plans are also shown per week.
 
+import { pakasirMethod } from "../billing/pakasir-methods";
+
 export type PricedPlan = { id: string; months: number; priceIdr: number };
 
 const WEEKS_PER_MONTH = 52 / 12;
@@ -48,4 +50,7 @@ const METHOD_LABELS: Record<string, string> = {
 };
 
 /** Display names for product.config.ts payments.methods (unknown codes are shown as given). */
-export const methodLabel = (code: string) => METHOD_LABELS[code] ?? code;
+export const methodLabel = (code: string) => METHOD_LABELS[code] ?? pakasirMethod(code)?.label ?? code;
+
+// Pakasir's method codes, labels and limits, for the app's own checkout (D-092).
+export { PAKASIR_METHODS, type PakasirMethod, pakasirMethod, pakasirMethodsFor } from "../billing/pakasir-methods";

@@ -280,6 +280,51 @@ Template mendukung DOKU Checkout sebagai penyedia kedua. Langkah ini **hanya** p
 
 Sumber: <https://developers.doku.com/accept-payments/doku-checkout/integration-guide/backend-integration> dan <https://developers.doku.com/get-started-with-doku-api/notification/setup-notification-url>
 
+### 3c. Pakasir (opsional, hanya kalau produk memakai Pakasir)
+
+Template juga mendukung **Pakasir** (QRIS dan Virtual Account, halaman bayarnya di dalam aplikasi sendiri). Langkah ini **hanya** perlu kalau di `product.config.ts` tertulis `payments: { provider: "pakasir", ... }`. Kalau masih Duitku, lewati.
+
+1. Masuk ke <https://app.pakasir.com> dengan **Login with Nofbox**, lalu lengkapi KYC akun dengan KTP (ditinjau 1–3 hari kerja, hasilnya lewat email). Proyek boleh dibuat sambil menunggu.
+2. Buat **Proyek** baru, misalnya `Myna Fit`. Proyek baru otomatis dalam **mode sandbox** (uang mainan). Untuk menerima uang sungguhan (Go Live) nanti perlu **KYC Proyek**.
+3. Buka halaman **Detail Proyek**. Di bagian bawah ada dua nilai, salin ke password manager:
+   - **Slug** proyek
+   - **API Key**
+4. **Webhook URL** (wajib diisi di halaman Detail Proyek yang sama, satu alamat per proyek):
+   - Proyek sandbox: `https://factory-template-preview.erdiprtm.workers.dev/api/webhooks/pakasir`
+   - Proyek live (nanti, produksi): `https://<domain-produk>/api/webhooks/pakasir`
+
+   Ganti `factory-template` dengan slug produk. Notifikasi sandbox masuk ke Worker **preview** yang tetap (bukan URL `pr-<n>`). Halaman bayar juga memeriksa status sendiri setiap 5 detik, jadi pratinjau PR tetap jalan tanpa webhook.
+5. Paling bawah di halaman Detail Proyek ada **Webhook Secret** (bisa di-reset di sana). Salin juga ke password manager.
+6. **Simpan ke Cloudflare** (cara di langkah 2a). Selama proyeknya masih **sandbox**, isi preview dan produksi. Salin **Slug**, lalu:
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put PAKASIR_SLUG --env preview
+   ```
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put PAKASIR_SLUG --env=""
+   ```
+   Salin **API Key**, lalu:
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put PAKASIR_API_KEY --env preview
+   ```
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put PAKASIR_API_KEY --env=""
+   ```
+   Salin **Webhook Secret**, lalu:
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put PAKASIR_WEBHOOK_SECRET --env preview
+   ```
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put PAKASIR_WEBHOOK_SECRET --env=""
+   ```
+   Preview (`--env preview`) **hanya** boleh memakai kunci proyek **sandbox**. Kalau nanti proyeknya Go Live, buat proyek sandbox terpisah untuk preview, dan isi preview dengan kunci proyek sandbox itu.
+7. **Mode** tetap **sandbox** (`PAKASIR_MODE` di `apps/api/wrangler.jsonc`) sampai kamu sendiri memutuskan Go Live. Saat itu ubah `PAKASIR_MODE` produksi menjadi `"live"` lewat PR. Preview selalu sandbox apa pun isinya. Dalam mode live, transaksi sandbox tidak pernah membuka akses.
+8. **Metode pembayaran** diatur di `product.config.ts` `payments.methods` dengan kode Pakasir: `qris`, `bri_va`, `bni_va`, `cimb_niaga_va`, `maybank_va`, `danamon_va`, `bnc_va`, `bsi_va`, `muamalat_va`, `ocbc_va`. QRIS tampil paling atas. VA butuh harga minimal Rp10.000. Biaya Pakasir (QRIS 0,7% + Rp310, VA Rp3.500) dibayar pembeli dan tampil di layar bayar.
+9. **Simulasi bayar di sandbox:** dokumentasi Pakasir v2 belum menjelaskan caranya (agen belum memverifikasi; cek dashboard proyek sandbox dan kabari kalau menemukannya). Di laptop, tanpa secret, aplikasi memakai Pakasir tiruan: `POST /api/dev/pakasir-pay?paymentId=…`.
+10. **Refund:** Pakasir tidak punya fitur refund. Kembalikan dana secara manual lalu tandai di /admin (lihat `docs/OPERATIONS.md` bagian Refunds).
+11. **Kembali ke Duitku nanti:** cukup ubah `payments.provider` dan `methods` di `product.config.ts` dan isi secret Duitku. Langganan yang sudah aktif tetap berlaku.
+
+Sumber: <https://pakasir.com/p/create-transaction>, <https://pakasir.com/p/webhook>, <https://pakasir.com/p/get-started> (dibaca 2026-10-19)
+
 ---
 
 ## 4. Google OAuth — "Login dengan Google" (dikerjakan di Phase 3)
@@ -556,6 +601,7 @@ Tidak perlu akun atau kunci apa pun. Coba di URL preview PR atau di produksi (ha
 | Dari | Nilai | Dipakai di fase |
 |---|---|---|
 | Duitku sandbox | Kode Merchant, API Key | 4 |
+| Pakasir (per produk) | Slug, API Key, Webhook Secret | saat `payments.provider` = `"pakasir"` |
 | Google | Client ID, Client Secret | 3 |
 | Resend | API Key | 3 |
 | OpenPanel | Client ID | 6–7 |

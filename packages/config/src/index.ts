@@ -151,6 +151,20 @@ export function resolveAi(ai: AiConfigParsed, legal: { sensitiveDataConsent: boo
   return { ...zdr(ai), ...(ai.fallback ? { fallback: zdr(ai.fallback) } : {}) } as AiConfig;
 }
 
+/** Pakasir API v2 method codes (D-092; @factory/core/billing PAKASIR_METHODS has labels and limits). */
+export const PAKASIR_METHOD_CODES = [
+  "qris",
+  "bri_va",
+  "bni_va",
+  "cimb_niaga_va",
+  "maybank_va",
+  "danamon_va",
+  "bnc_va",
+  "bsi_va",
+  "muamalat_va",
+  "ocbc_va",
+] as const;
+
 export const productSchema = z.object({
   slug,
   name: z.string().min(1),
@@ -287,10 +301,22 @@ export const productSchema = z.object({
       if (plans.filter((p) => p.highlight).length > 1)
         ctx.addIssue({ code: "custom", message: "at most one plan can be highlighted" });
     }),
-  payments: z.object({
-    provider: z.enum(["duitku", "doku"]),
-    methods: z.array(z.string().min(1)).nonempty(),
-  }),
+  // Duitku and DOKU show their hosted page; methods there only document intent (D-017). Pakasir
+  // (D-092) uses the app's own checkout: methods are Pakasir codes, QRIS shown first.
+  payments: z
+    .object({
+      provider: z.enum(["duitku", "doku", "pakasir"]),
+      methods: z.array(z.string().min(1)).nonempty(),
+    })
+    .superRefine((p, ctx) => {
+      if (p.provider !== "pakasir") return;
+      const unknown = p.methods.filter((m) => !(PAKASIR_METHOD_CODES as readonly string[]).includes(m));
+      if (unknown.length > 0)
+        ctx.addIssue({
+          code: "custom",
+          message: `Pakasir method codes are ${PAKASIR_METHOD_CODES.join(", ")}; unknown: ${unknown.join(", ")}`,
+        });
+    }),
   legal: z.object({
     companyName: z.string().min(1),
     contactEmail: z.email(),
