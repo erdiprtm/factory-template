@@ -13,7 +13,16 @@ import { app } from "../src/index";
 
 export const BASE = "http://localhost";
 
-export const call = (path: string, init: RequestInit = {}) => app.request(`${BASE}${path}`, init, env);
+// D-093: the suite runs on the hosted-page fake (vitest.config.ts PAYMENTS_PROVIDER) whatever the
+// product's payments.provider. A file that tests another provider calls usePaymentsProvider first.
+let paymentsProvider: string | undefined;
+export function usePaymentsProvider(provider: "duitku" | "doku" | "pakasir"): void {
+  paymentsProvider = provider;
+}
+/** The Worker env these helpers send requests with. */
+export const testEnv = () => (paymentsProvider ? { ...env, PAYMENTS_PROVIDER: paymentsProvider } : env);
+
+export const call = (path: string, init: RequestInit = {}) => app.request(`${BASE}${path}`, init, testEnv());
 
 /** Signs in via magic link (captured email) and returns the session cookie. */
 export async function signIn(email: string): Promise<string> {
@@ -26,7 +35,7 @@ export async function signIn(email: string): Promise<string> {
     .last(email)
     ?.text.match(/https?:\/\/\S+/)?.[0];
   if (!link) throw new Error("no magic link captured");
-  const verify = await app.request(link, { redirect: "manual" }, env);
+  const verify = await app.request(link, { redirect: "manual" }, testEnv());
   const token = verify.headers.get("set-cookie")?.match(/better-auth\.session_token=[^;]+/)?.[0];
   if (!token) throw new Error("no session cookie");
   return token;

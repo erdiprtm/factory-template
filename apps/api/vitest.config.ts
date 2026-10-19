@@ -16,6 +16,9 @@ export default defineConfig(async () => {
             APP_ENV: "test",
             AUTH_HOSTS: "localhost",
             ADMIN_EMAILS: "admin@example.com",
+            // D-093: the template's billing tests run on the hosted-page fake whatever the product's
+            // payments.provider; Pakasir's own tests set "pakasir" in the env they pass.
+            PAYMENTS_PROVIDER: "duitku",
           },
         },
       }),

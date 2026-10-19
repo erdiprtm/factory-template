@@ -20,7 +20,7 @@ Follow `docs/TEMPLATE_SYNC.md`.
 4. Resolve the conflicts it lists with the ownership rule:
    - **Template wins:** `core/` folders, `packages/*` (except `packages/db/src/features/`), `scripts/`, `.github/`, `.claude/`, `CLAUDE.md` sections other than the product header.
    - **Product wins:** `features/` folders, `product.config.ts` (keep product values; take new *fields* the template added, with their defaults), `specs/`, site content (`apps/site/src/content/seo/`, landing copy), `factory.json`.
-   - **Migrations:** keep both sides' files (timestamped names never collide). Then run `pnpm db:generate`. It should report no changes; if it doesn't, a schema drifted, so stop and report.
+   - **Migrations:** keep both sides' `.sql` files (timestamped names never collide). Merge `meta/` as `docs/TEMPLATE_SYNC.md` says (D-093): every journal entry from both sides, sorted by tag, `idx` renumbered; the product's tables added to each new template snapshot, with `prevId` set to the product's latest snapshot. Then run `pnpm db:generate`. It must report no changes; if it doesn't, stop and report (never commit a migration it generated during a sync).
    - **`pnpm-lock.yaml`:** take the template's version, then run `pnpm install` to regenerate.
 5. `pnpm theme`, then `pnpm verify`. Fix product code that broke because of a template API change (product-owned folders only).
 6. Commit everything, **including `.template-version`**. Open a PR (`gh pr create --fill`, then `gh pr merge --auto --squash`). In the PR body, list the template range pulled (from → to) and any product changes it required.

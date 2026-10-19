@@ -1,8 +1,11 @@
-import { env } from "cloudflare:workers";
+import { env as workerEnv } from "cloudflare:workers";
 import { entitlements, payments, schema, webhookEvents } from "@factory/db";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it, vi } from "vitest";
+
+// These tests run on Pakasir, whatever the suite default (vitest.config.ts PAYMENTS_PROVIDER, D-093).
+const env = { ...workerEnv, PAYMENTS_PROVIDER: "pakasir" };
 
 // The billing routes with payments.provider "pakasir" (D-092), whatever this product's config
 // says (mocked, D-078), against the real PakasirProvider and the in-memory Pakasir API.
@@ -17,7 +20,8 @@ const { capturedEmails } = await import("@factory/core/email");
 const { app } = await import("../src/index");
 const { fakePakasirServer } = await import("../src/core/payments");
 const { runScheduled } = await import("../src/core/cron");
-const { firstPlan, get, PAID, post, signInWithConsent } = await import("./helpers");
+const { firstPlan, get, PAID, post, signInWithConsent, usePaymentsProvider } = await import("./helpers");
+usePaymentsProvider("pakasir");
 
 const db = drizzle(env.DB, { schema });
 const api = fakePakasirServer();

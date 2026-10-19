@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-19: Billing tests hold with any provider; migration meta merged on sync (D-093), Myna Fit Pakasir blocker
+
+- Template tests pick their provider (`PAYMENTS_PROVIDER`, test env only), so a product on Pakasir passes the whole suite.
+- TEMPLATE_SYNC: merge `migrations/meta`, never take one side whole.
+
+---
+
 ## 2026-10-19: Pakasir payments with the app's own QRIS / VA checkout (D-092)
 
 - `payments.provider: "pakasir"` with Pakasir method codes (`qris`, `bri_va`, …). The buyer picks a method on /pricing, then pays on `/billing/pay`: the QR drawn on the device (`uqr`), or the VA number with copy; price, fee and total; a countdown; "Cek status" plus a 5-second poll.

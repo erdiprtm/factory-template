@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env as workerEnv } from "cloudflare:workers";
 import { PAKASIR_METHOD_CODES } from "@factory/config";
 import {
   cancelPayment,
@@ -15,6 +15,9 @@ import { entitlements, paymentCharges, payments, schema } from "@factory/db";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { beforeEach, describe, expect, it } from "vitest";
+
+// These tests run on Pakasir, whatever the suite default (vitest.config.ts PAYMENTS_PROVIDER, D-093).
+const env = { ...workerEnv, PAYMENTS_PROVIDER: "pakasir" };
 
 // Pakasir through the shared billing service (D-092), against real local D1 and the in-memory
 // Pakasir API: the same entitlement path as Duitku, idempotent across webhook + poll, throttled.

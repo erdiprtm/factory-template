@@ -24,14 +24,27 @@ export type PaymentEnv = {
   PAKASIR_WEBHOOK_SECRET?: string;
   /** "sandbox" unless the human explicitly switches a product live (Operating rule 7, D-092). */
   PAKASIR_MODE?: string;
+  /**
+   * Tests only (APP_ENV=test, D-093): the provider the test runs on, whatever product.config.ts
+   * chose, so the template's billing tests hold in a product on any provider. Ignored elsewhere.
+   */
+  PAYMENTS_PROVIDER?: string;
 };
+
+const PROVIDERS = ["duitku", "doku", "pakasir"] as const;
+
+/** product.config.ts payments.provider, or the test's own choice (APP_ENV=test only, D-093). */
+export function providerFor(env: Pick<PaymentEnv, "APP_ENV" | "PAYMENTS_PROVIDER">): (typeof PROVIDERS)[number] {
+  const own = env.PAYMENTS_PROVIDER as (typeof PROVIDERS)[number] | undefined;
+  return env.APP_ENV === "test" && own && PROVIDERS.includes(own) ? own : config.payments.provider;
+}
 
 const fake = new FakeProvider();
 const fakePakasirApi = new FakePakasirApi();
 
 /** The configured provider (product.config.ts payments.provider). Local dev and tests use fakes. */
 export function getProvider(env: PaymentEnv): PaymentProvider {
-  const provider = config.payments.provider;
+  const provider = providerFor(env);
   if (provider === "duitku" && env.DUITKU_MERCHANT_CODE && env.DUITKU_API_KEY) {
     return new DuitkuProvider({
       merchantCode: env.DUITKU_MERCHANT_CODE,
