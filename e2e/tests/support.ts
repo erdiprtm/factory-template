@@ -1,4 +1,6 @@
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
+import product from "../../product.config";
+import { idr } from "./plans";
 
 // Template E2E helpers that hold in every product repo (D-032): they never depend on the home
 // screen's content or on the example feature, which products replace. Signed-in state and paid
@@ -46,4 +48,19 @@ export async function expectAccess(page: Page, access: boolean): Promise<void> {
 export function navItem(page: Page, href: string) {
   const slug = href.replace(/^\/+|\/+$/g, "").replaceAll("/", "-");
   return page.getByTestId(`nav-${slug || "home"}`);
+}
+
+/**
+ * Buys a plan from /pricing with the dev payment provider, whichever this product uses: the fake
+ * hosted page (Duitku, DOKU), or Pakasir's own checkout (D-092): the first method, then the fake
+ * Pakasir API "pays" and delivers its webhook. Ends on /billing/return.
+ */
+export async function buyPlan(page: Page, priceIdr: number): Promise<void> {
+  await page.getByRole("button", { name: `Bayar ${idr(priceIdr)}` }).click();
+  if (product.payments.provider !== "pakasir") return;
+  await page.locator('[data-testid^="pay-method-"]').first().click();
+  await expect(page).toHaveURL(/\/billing\/pay\?paymentId=/);
+  const paymentId = new URL(page.url()).searchParams.get("paymentId") ?? "";
+  const paid = await page.request.post(`/api/dev/pakasir-pay?paymentId=${paymentId}&webhook=1`);
+  expect(await paid.json()).toEqual({ ok: true, webhook: 200 });
 }

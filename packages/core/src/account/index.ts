@@ -3,6 +3,7 @@ import {
   consents,
   entitlements,
   files,
+  paymentCharges,
   payments,
   paymentTracking,
   remindersSent,
@@ -133,7 +134,11 @@ export async function deleteUserData(db: Db, userId: string): Promise<void> {
   const paymentIds = (await db.select({ id: payments.id }).from(payments).where(eq(payments.userId, userId))).map(
     (r) => r.id,
   );
-  if (paymentIds.length > 0) await db.delete(paymentTracking).where(inArray(paymentTracking.paymentId, paymentIds));
+  if (paymentIds.length > 0) {
+    await db.delete(paymentTracking).where(inArray(paymentTracking.paymentId, paymentIds));
+    // The checkout screen's QR / VA details (D-092): only needed while paying.
+    await db.delete(paymentCharges).where(inArray(paymentCharges.paymentId, paymentIds));
+  }
   await db
     .update(payments)
     .set({ userId: `deleted:${crypto.randomUUID()}`, rawPayload: null, fbclid: null })

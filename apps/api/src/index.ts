@@ -8,10 +8,16 @@ import {
   paidEventKind,
   paymentAttribution,
   recordClientEvents,
-  recordServerEvent,
   saveAttribution,
 } from "@factory/core/attribution";
-import { handleWebhook, paymentStatus, startCheckout } from "@factory/core/billing";
+import {
+  cancelPayment,
+  confirmPayment,
+  handleWebhook,
+  paymentCharge,
+  paymentStatus,
+  startCheckout,
+} from "@factory/core/billing";
 import {
   claimAnonymousConsents,
   missingConsents,
@@ -19,8 +25,7 @@ import {
   requiredConsents,
   revokeConsent,
 } from "@factory/core/consents";
-import { capturedDevEmails, emailProvider } from "@factory/core/email";
-import { receiptEmail } from "@factory/core/email/templates";
+import { capturedDevEmails } from "@factory/core/email";
 import { grantTrial, hasAccess } from "@factory/core/entitlements";
 import { claimAnonymousFiles, deleteUserFiles, type FileBucket, fileKey, fileRow } from "@factory/core/files";
 import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
@@ -36,19 +41,14 @@ import { z } from "zod";
 import { anonIdOf } from "./core/access";
 import { adminRoutes } from "./core/admin";
 import type { AiEnv } from "./core/ai";
-import { type AnalyticsEnv, serverAnalytics } from "./core/analytics";
+import type { AnalyticsEnv } from "./core/analytics";
 import { anonymousHomeRedirect } from "./core/anonymous-home";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
-import {
-  capiOptions,
-  hasMarketingConsent,
-  type MarketingEnv,
-  marketingTrackingOn,
-  sendPaymentConversion,
-} from "./core/marketing";
+import { hasMarketingConsent, type MarketingEnv, marketingTrackingOn } from "./core/marketing";
 import { captureError, withMonitoring } from "./core/monitoring";
-import { configuredProvider, fakeProvider, type PaymentEnv } from "./core/payments";
+import { afterPaymentSettled } from "./core/payment-events";
+import { configuredProvider, fakePakasirServer, fakeProvider, type PaymentEnv } from "./core/payments";
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
 import { apiBodyLimit } from "./core/uploads";
@@ -125,56 +125,14 @@ app.use(
 app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth(c.env).handler(c.req.raw));
 
 // Payment provider callbacks (no session). Signature checked by the provider; idempotent.
+// Pakasir (D-092): X-Secret compared in constant time, then confirmed with its status API.
 app.post("/api/webhooks/:provider", rateLimit("WEBHOOK_LIMITER", clientIp), async (c) => {
   const provider = configuredProvider(c.env);
   if (!provider || c.req.param("provider") !== provider.name) return c.notFound();
   const outcome = await handleWebhook(db(c.env), provider, c.req.raw, config.plans);
   if (outcome.kind === "unauthorized") return c.json({ error: "invalid_signature" as const }, 401);
   if (outcome.kind === "retry") return c.json({ error: "not_confirmed_yet" as const }, 503);
-  if (outcome.kind === "processed") {
-    // Source of truth for payment analytics: the browser may be gone by the time this lands.
-    const { id, userId, planId, amountIdr, status, utmCampaign, utmSource, paidAt } = outcome.payment;
-    if (outcome.entitlement) {
-      const event = await paidEventKind(db(c.env), { id, userId, paidAt });
-      await recordServerEvent(db(c.env), { event, userId, valueIdr: amountIdr, utmCampaign, utmSource });
-      const props = { plan: planId, amount_idr: amountIdr, utm_campaign: utmCampaign };
-      await background(c, serverAnalytics(c.env).track(event, props, userId));
-      // Meta CAPI (D-034): only after the provider confirmed, only with marketing consent.
-      const capi = capiOptions(c.env);
-      const owner = capi
-        ? await db(c.env).select({ email: schema.user.email }).from(schema.user).where(eq(schema.user.id, userId)).get()
-        : undefined;
-      if (capi && owner) {
-        await background(
-          c,
-          sendPaymentConversion(db(c.env), capi, { event, payment: outcome.payment, email: owner.email }),
-        );
-      }
-    } else if (status !== "paid") {
-      await background(c, serverAnalytics(c.env).track("payment_failed", { plan: planId, status }, userId));
-    }
-  }
-  if (outcome.kind === "processed" && outcome.entitlement) {
-    const plan = config.plans.find((p) => p.id === outcome.payment.planId);
-    const owner = await db(c.env)
-      .select({ email: schema.user.email })
-      .from(schema.user)
-      .where(eq(schema.user.id, outcome.payment.userId))
-      .get();
-    if (owner && plan) {
-      const receipt = receiptEmail(owner.email, {
-        appName: config.name,
-        planLabel: plan.label,
-        amountIdr: outcome.payment.amountIdr,
-        paymentId: outcome.payment.id,
-        expiresAt: outcome.entitlement.expiresAt,
-      });
-      // A receipt failure must not make the provider retry an already-granted payment.
-      await emailProvider(c.env, config.legal.contactEmail)
-        .send(receipt)
-        .catch((err: unknown) => console.error("receipt email failed", err instanceof Error ? err.message : err));
-    }
-  }
+  if (outcome.kind === "processed") await afterPaymentSettled(c.env, outcome, (work) => background(c, work));
   return provider.webhookAck();
 });
 
@@ -220,6 +178,20 @@ app.get("/api/dev/fake-pay", async (c) => {
   return c.redirect(`/billing/return?paymentId=${encodeURIComponent(paymentId)}`);
 });
 
+// Local dev only: "the buyer paid" at the fake Pakasir API (D-092). With webhook=1 it also delivers
+// Pakasir's webhook through the real handler; without it, the checkout screen's poll finds it.
+app.post("/api/dev/pakasir-pay", async (c) => {
+  if (c.env.APP_ENV !== "development" || new URL(c.req.url).hostname !== "localhost") return c.notFound();
+  const paymentId = c.req.query("paymentId") ?? "";
+  if (!fakePakasirServer().complete(paymentId)) return c.notFound();
+  if (c.req.query("webhook") === "1") {
+    const hook = fakePakasirServer().webhook(paymentId, { url: new URL("/api/webhooks/pakasir", c.req.url).href });
+    const res = await app.request(hook, undefined, c.env, c.executionCtx);
+    return c.json({ ok: true as const, webhook: res.status });
+  }
+  return c.json({ ok: true as const });
+});
+
 // Local dev only: simulate time passing by ending the user's current access (E2E: trial expiry).
 app.post("/api/dev/expire-access", async (c) => {
   if (c.env.APP_ENV !== "development" || new URL(c.req.url).hostname !== "localhost") return c.notFound();
@@ -260,11 +232,14 @@ const consentBody = z.object({ accept: z.array(z.enum(["terms", "privacy", "sens
 // fbp/fbc: the Pixel's cookies, sent by the web app so the server event matches the browser's.
 const checkoutBody = z.object({
   planId: z.string().max(64),
+  /** Pakasir only (D-092): the method picked in the app's own checkout. */
+  method: z.string().max(40).optional(),
   fbp: z.string().max(600).optional(),
   fbc: z.string().max(600).optional(),
 });
 const marketingBody = z.object({ granted: z.boolean() });
 const paymentIdQuery = z.object({ paymentId: z.string().regex(/^pay_[0-9a-f]{32}$/) });
+const paymentIdBody = paymentIdQuery;
 const deleteBody = z.object({ confirm: z.literal("HAPUS") });
 
 const routes = app
@@ -424,13 +399,26 @@ const routes = app
     const provider = configuredProvider(c.env);
     if (!provider) return c.json({ error: "payments_unavailable" as const }, 503);
     const origin = new URL(c.req.url).origin;
-    const { paymentId, redirectUrl } = await startCheckout(db(c.env), provider, {
+    // The app's own checkout (Pakasir, D-092) needs one configured method; the provider checks
+    // it against the plan's amount, which always comes from product.config.ts, never the browser.
+    const method = parsed.data?.method;
+    if (provider.needsMethod && (!method || !config.payments.methods.includes(method))) {
+      return c.json({ error: "unknown_method" as const }, 400);
+    }
+    const started = await startCheckout(db(c.env), provider, {
       user: { id: user.id, name: user.name, email: user.email },
       plan,
       methods: config.payments.methods,
+      method: provider.needsMethod ? method : undefined,
       origin,
       attribution: paymentAttribution(await attributionFor(db(c.env), user.id)),
+    }).catch((err: unknown) => {
+      // The payment row is marked failed; the buyer sees "try again".
+      console.error("checkout failed", err instanceof Error ? err.message : err);
+      return null;
     });
+    if (!started) return c.json({ error: "provider_error" as const }, 502);
+    const { paymentId, redirectUrl } = started;
     // Browser context for the Meta Conversions API, kept only with marketing consent (D-034).
     if (marketingTrackingOn(c.env) && (await hasMarketingConsent(db(c.env), user.id))) {
       const cookies = readFbCookies(c.req.header("cookie") ?? "");
@@ -448,6 +436,17 @@ const routes = app
     const query = paymentIdQuery.safeParse(c.req.query());
     if (!query.success) return c.json({ error: "not_found" as const }, 404);
     const userId = c.get("user").id;
+    // Providers that allow polling (Pakasir, D-092) are asked too, at most once per 4 s per
+    // payment (server-side throttle), and a confirmed payment is settled here like a webhook.
+    const provider = configuredProvider(c.env);
+    if (provider?.statusIntervalMs) {
+      const settled = await confirmPayment(db(c.env), provider, {
+        userId,
+        paymentId: query.data.paymentId,
+        plans: config.plans,
+      });
+      await afterPaymentSettled(c.env, settled, (work) => background(c, work));
+    }
     const row = await paymentStatus(db(c.env), userId, query.data.paymentId);
     if (!row) return c.json({ error: "not_found" as const }, 404);
     // The browser Pixel sends the same event (and event id) as the server's CAPI, deduplicated.
@@ -456,6 +455,32 @@ const routes = app
         ? await paidEventKind(db(c.env), { id: query.data.paymentId, userId, paidAt: row.paidAt })
         : null;
     return c.json({ status: row.status, planId: row.planId, amountIdr: row.amountIdr, event });
+  })
+  // The app's own checkout screen (Pakasir, D-092): what to pay, owner only.
+  .get("/billing/charge", async (c) => {
+    const query = paymentIdQuery.safeParse(c.req.query());
+    if (!query.success) return c.json({ error: "not_found" as const }, 404);
+    const row = await paymentCharge(db(c.env), c.get("user").id, query.data.paymentId);
+    if (!row) return c.json({ error: "not_found" as const }, 404);
+    return c.json({ ...row, expiresAt: row.expiresAt.toISOString() });
+  })
+  // Another method, or the countdown ended (D-092): cancel at the provider, unless it was just paid.
+  .post("/billing/cancel", async (c) => {
+    const parsed = paymentIdBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "not_found" as const }, 404);
+    const provider = configuredProvider(c.env);
+    if (!provider?.cancel) return c.json({ error: "not_found" as const }, 404);
+    const userId = c.get("user").id;
+    const result = await cancelPayment(db(c.env), provider, {
+      userId,
+      paymentId: parsed.data.paymentId,
+      plans: config.plans,
+    });
+    if (result.kind === "not_found") return c.json({ error: "not_found" as const }, 404);
+    if (result.kind === "settled") await afterPaymentSettled(c.env, result.outcome, (work) => background(c, work));
+    if (result.kind === "cancel_failed") return c.json({ error: "cancel_failed" as const }, 502);
+    const row = await paymentStatus(db(c.env), userId, parsed.data.paymentId);
+    return c.json({ status: row?.status ?? ("expired" as const) });
   })
   .get("/billing/history", async (c) => {
     const rows = await db(c.env)

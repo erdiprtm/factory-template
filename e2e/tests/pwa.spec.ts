@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import product from "../../product.config";
-import { idr, lastPlan } from "./plans";
-import { signIn } from "./support";
+import { lastPlan } from "./plans";
+import { buyPlan, signIn } from "./support";
 
 // Installable web app (D-080). Config-agnostic: the manifest and installability checks run in every
 // product with pwa.enabled; the card after a purchase only where pwa.promptAfter is "payment".
@@ -63,7 +63,7 @@ test("after a purchase: the install card prompts, and Nanti saja hides it on rel
   test.skip(!product.pwa.enabled || product.pwa.promptAfter !== "payment", 'only with pwa.promptAfter "payment"');
   await signIn(page, request, `e2e-pwa-${Date.now()}@example.com`);
   await page.goto("/pricing");
-  await page.getByRole("button", { name: `Bayar ${idr(lastPlan.priceIdr)}` }).click();
+  await buyPlan(page, lastPlan.priceIdr);
   await expect(page).toHaveURL(/\/billing\/return\?paymentId=/);
   await expect(page.getByText("Pembayaran berhasil! Akses kamu sudah aktif.")).toBeVisible();
 

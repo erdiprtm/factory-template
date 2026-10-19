@@ -36,7 +36,7 @@ Kebijakan ini menjelaskan bagaimana **{{companyName}}** ("kami") memproses data 
 Kami memakai penyedia layanan berikut sebagai pemroses data. Sebagian dari mereka dapat memproses data di luar Indonesia dengan perlindungan yang memadai:
 
 - **Cloudflare:** hosting aplikasi dan basis data.
-- **Penyedia pembayaran (Duitku/DOKU):** pemrosesan pembayaran.
+{{paymentProcessor}}
 - **Resend:** pengiriman email.
 {{aiProcessor}}
 - **Google:** login dengan akun Google (jika kamu memilihnya).

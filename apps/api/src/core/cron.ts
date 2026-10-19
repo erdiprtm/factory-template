@@ -1,7 +1,13 @@
 import { config } from "@factory/config/product";
 import { purgeAnonymousAiUsage } from "@factory/core/ai/usage";
 import { purgeFunnelEvents } from "@factory/core/attribution";
-import { dueReminders, expirePendingPayments, markReminderSent } from "@factory/core/billing";
+import {
+  cancelPayment,
+  dueReminders,
+  expirePendingPayments,
+  markReminderSent,
+  overduePayments,
+} from "@factory/core/billing";
 import { purgeAnonymousConsents } from "@factory/core/consents";
 import { emailProvider } from "@factory/core/email";
 import { reminderEmail } from "@factory/core/email/templates";
@@ -14,14 +20,31 @@ import { runProductScheduled } from "../features/scheduled";
 import type { Bindings } from "../index";
 import { serverAnalytics } from "./analytics";
 import { captureError } from "./monitoring";
+import { afterPaymentSettled } from "./payment-events";
+import { configuredProvider } from "./payments";
 
 /**
  * Cron Trigger (wrangler.jsonc triggers.crons): expires stale pending payments and sends
- * renewal reminders (7 days, 1 day, on expiry), and drops funnel events and checkout tracking context past their retention. Never calls the payment provider: Duitku's
- * status API blocks merchants that poll it. Then runs the product's own jobs (features/scheduled.ts).
+ * renewal reminders (7 days, 1 day, on expiry), and drops funnel events and checkout tracking
+ * context past their retention. Never polls Duitku or DOKU: Duitku's status API blocks merchants
+ * that poll it. Pakasir (D-092) allows it: overdue payments are checked once and cancelled there
+ * first, so a QR or VA can't be paid after we expired it (or one just paid is granted).
+ * Then runs the product's own jobs (features/scheduled.ts).
  */
 export async function runScheduled(env: Bindings, now = new Date()) {
   const db = drizzle(env.DB, { schema });
+  const provider = configuredProvider(env);
+  if (provider?.cancel) {
+    for (const { id } of await overduePayments(db, provider.name, now)) {
+      try {
+        const result = await cancelPayment(db, provider, { paymentId: id, plans: config.plans, now });
+        if (result.kind === "settled") await afterPaymentSettled(env, result.outcome, (work) => work.then(() => {}));
+      } catch (err) {
+        console.error("overdue payment cancel failed", err);
+        captureError(err);
+      }
+    }
+  }
   const expired = await expirePendingPayments(db, now);
   const purged = await purgeFunnelEvents(db, now);
   await purgeCheckoutContexts(db, now);

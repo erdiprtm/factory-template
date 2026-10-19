@@ -1799,3 +1799,65 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
     - without the primary's key → the fallback;
     - with neither key, null in production.
   - Site (`legal.test.ts`): with a fallback, both processors are named, and the OpenRouter backup gets zero data retention for a sensitive-data product.
+
+## D-092: Pakasir as a core payment provider, with the app's own checkout (2026-10-19)
+
+- **Problem (Myna Fit).** The product's earlier Lovable version took payments through Pakasir (QRIS and bank VAs, no hosted-page redirect needed). The template had only Duitku and DOKU, both hosted pages. Products must be able to pick Pakasir by config, keep `requireAccess` and the entitlement path unchanged, and switch back to Duitku later by config only.
+- **Docs read 2026-10-19:** <https://pakasir.com/p/create-transaction>, </p/transaction-status>, </p/cancel-transaction>, </p/webhook>, </p/get-started>, </p/pricing>, and the v1 page </p/docs>.
+- **Facts, and where they differ from the notes handed over from Myna Fit's Lovable version:**
+  - API v2 at `https://app.pakasir.com/api/v2`, header `X-Api-Key`. v1 is deprecated and ends on **2026-10-20**, so v2 only. (Matches.)
+  - `POST /create-transaction/{slug}/{order_id}` with `{ method, amount }` (integer rupiah) returns `txn_id, project, order_id, amount, fee, total_payment, payment_method, qr_string, va_number, expired_at, is_sandbox`. It is "find or create": the same call returns the same transaction. Rate limit 2/s. (Matches; `project` is extra.)
+  - `GET /transaction-status/{slug}/{txn_id}` returns `txn_id, order_id, amount, is_sandbox, status, completed_at`. Status is `pending`, `completed` or `canceled` (from the dashboard, or after 1×24 h). One request **per transaction every 4 s**. (Matches.)
+  - `POST /cancel-transaction/{slug}/{txn_id}`, no body, answers `{"message":"Berhasil batalkan transaksi"}`. 2/s. (Matches.)
+  - **Methods differ from the notes:** `qris` (Rp500 to Rp10.000.000) and `bri_va`, `bni_va`, `cimb_niaga_va`, `maybank_va`, `danamon_va`, `bnc_va`, `bsi_va`, `muamalat_va`, `ocbc_va` (Rp10.000 to Rp50.000.000), plus `payment_link` (Pakasir's hosted page, not used). The notes' `permata_va`, `artha_graha_va` and `sampoerna_va` are **not** in the current list; `danamon_va`, `bsi_va`, `muamalat_va` and `ocbc_va` are new.
+  - **Fees** (pricing page): QRIS 0.7% + Rp310, or 1% above Rp105.000; every VA a flat Rp3.500. `total_payment = amount + fee`: the buyer pays the fee, so the screen shows price, fee and total.
+  - **Webhook:** one URL per project, set on the Project Detail page; Pakasir POSTs when a transaction completes, with the project's secret in `X-Secret` (viewable and resettable at the bottom of that page) and a body of `txn_id, order_id, amount, is_sandbox, status, completed_at`. It must answer 200. **Retries are not documented** (the notes assumed them); the v1 page recommends confirming with the status API.
+  - **Sandbox is a property of the project**, not a host or a key: a new project starts in sandbox and goes live after Project KYC. The v1 docs had `POST /api/paymentsimulation` for sandbox projects; v2 documents none (so the template's local fake plays "the buyer paid").
+  - **No refund API** anywhere in the docs.
+- **Decision.**
+  - `payments.provider: "pakasir"` in `product.config.ts`. With it, `payments.methods` must be Pakasir codes (the schema says which are unknown). `PakasirProvider` implements the same `PaymentProvider` interface, with three optional additions: `needsMethod` (the buyer picks one method in our checkout), `statusIntervalMs` (polling allowed, throttled) and `cancel()`. `getStatus` takes an optional `{ providerRef, amountIdr }`, because Pakasir asks by its own transaction id. Duitku and DOKU are unchanged.
+  - **Checkout.** `POST /api/billing/checkout { planId, method }`. The amount always comes from the plan in config, never the browser. The method must be configured and within its limits for that amount. The payment row is written first (as before), then Pakasir is called. The result goes to the new `payment_charges` table (method, fee, total, `qr_string` or `va_number`, Pakasir's `expired_at`, `is_sandbox`, `status_checked_at`), added with an expand-only migration (`20261019090513_payment_charges.sql`). Our expiry stays 60 minutes, or Pakasir's if that is earlier. A failed provider call marks the row failed and answers 502.
+  - **Mode.** `PAKASIR_MODE` is a wrangler var, `"sandbox"` on both environments. Only the human sets production to `"live"`. Previews are sandbox whatever it says (the code only goes live with `APP_ENV=production`).
+    - In sandbox mode, a transaction Pakasir reports as live (real money) is cancelled at once and the checkout fails.
+    - In live mode, a sandbox transaction is cancelled at once at checkout, and a status saying `is_sandbox: true` never grants (the payment is marked failed).
+  - **Granting.** Only when the status API says `completed` for this exact `txn_id`, `order_id` and `amount`. A mismatch is logged and marked failed, never granted. Network errors and rate limits count as pending.
+  - **Webhook** `POST /api/webhooks/pakasir`, the existing route:
+    - `X-Secret` is compared in constant time (both sides SHA-256 hashed first, so length leaks nothing); missing or wrong → 401;
+    - then the status API confirms. A "completed" body that the API doesn't confirm (a forged or early body) → 503 and the event key is released, as for DOKU;
+    - unknown order → 200, ignored;
+    - internal errors → 5xx (unchanged).
+  - **Polling.** Pakasir's webhook retries aren't documented, so the checkout screen also polls `GET /api/billing/status` every 5 s, and for providers with `statusIntervalMs` that endpoint asks Pakasir and settles like the webhook.
+    - **Throttle:** at most one status call per payment per 4 s across every caller and worker. The slot is claimed with one conditional `UPDATE payment_charges SET status_checked_at = now WHERE … status_checked_at IS NULL OR <= now - 4 s`; whoever doesn't get it doesn't call. The poll then just reads our row; the webhook waits for the next slot once (at most 4 s), else answers 503.
+  - **Idempotency across webhook, poll, cancel and cron:** one `settlePayment` for all of them. It grants first (`grantFromPayment`: at most one entitlement per payment, by its unique key), then moves the payment to paid with `WHERE status != 'paid'`. Only the caller whose update wins gets `entitlement`, so the purchase/renewal event, OpenPanel, Meta CAPI (D-034, consent only) and the receipt run once (`apps/api/src/core/payment-events.ts`, also used by Duitku/DOKU now). If the worker dies between the two steps, the next confirmation gets the same entitlement back and finishes. This also fixes a gap for every provider: the payment was marked paid before the grant, so a crash in between left it paid without access.
+  - **Cancel** (`POST /api/billing/cancel`, owner only): on "Ganti cara bayar" and when the countdown ends. It asks the status first (when the throttle allows), so a payment that just completed is granted instead. The row becomes `expired` only after Pakasir confirmed the cancel. The cron (production, every 30 minutes) does the same for up to 20 overdue Pakasir payments per run before the usual expiry. A payment that completes after we expired it is still granted by its webhook (`expired → paid` is allowed, as before).
+  - **The app's own checkout.** The method choice on /pricing (QRIS first, then the VAs in config order, only those the price allows), then `/billing/pay?paymentId=…`: the QR **drawn on the device** from `qr_string`, or the VA number with "Salin nomor"; price, fee and total; a countdown; "Cek status" plus the automatic poll. Once paid it hands over to `/billing/return` (success, install offer, the deduplicated Pixel event). Native builds never show it (`showsWebPrices`, as before; the pay screen checks too). All copy through `billing.pay.*` keys (id + en).
+  - **QR library:** `uqr` **0.1.3** (unjs, MIT, no dependencies, published 2026-04-03, picked with `node scripts/pick-versions.mjs uqr`, pinned in `apps/app`). It only encodes; `qr-path.ts` turns the matrix into one SVG path. Web renders a plain `<svg>` (`qr-code.web.tsx`), native `react-native-svg` (already a dependency), black on white whatever the theme. No third-party QR image service sees the payment string.
+  - **Legal.** `privasi.md` names the processor through `{{paymentProcessor}}` and `syarat.md` through `{{paymentProcessorName}}`, both from `payments.provider` (`apps/site/src/lib/legal.ts`), so products never hand-edit "Duitku".
+  - **Refunds:** Pakasir has no refund API. The process is manual (docs/OPERATIONS.md "Refunds"): return the money outside Pakasir, then mark the payment refunded in /admin (D-038) so access ends and the numbers stay right.
+  - **Switching back to Duitku (or DOKU)** is config only: set `payments.provider` and its methods, add that provider's secrets. Existing entitlements stay valid (they don't depend on the provider), and old Pakasir payments stay in the history. Webhooks for the old provider then answer 404 (the route only serves the configured provider), so switch after pending Pakasir payments have expired.
+  - **Local dev and E2E:** without `PAKASIR_*` secrets, development and test run the real `PakasirProvider` against an in-memory Pakasir API (`FakePakasirApi`). `POST /api/dev/pakasir-pay?paymentId=…[&webhook=1]` (development + localhost only) plays "the buyer paid", with or without the webhook.
+- **Tests.**
+  - Core (`pakasir.test.ts`, 18):
+    - request shapes (paths, `X-Api-Key`, body or none) for create, status and cancel;
+    - the status mapping;
+    - order, amount and transaction mismatch refused;
+    - sandbox-in-live refused (status and checkout), live-in-sandbox cancelled;
+    - method limits;
+    - missing or wrong `X-Secret`;
+    - QRIS first in the method list.
+  - API service (`pakasir.test.ts`, 16, config-agnostic):
+    - the charge row and expiry;
+    - a forged body for a pending order grants nothing;
+    - access exactly once across webhook, retried webhook and poll, and when a webhook and a poll race;
+    - the 4-second throttle, and the webhook waiting for its slot;
+    - cancel, cancel of a just-paid payment, a late payment after expiry;
+    - config's method codes equal core's.
+  - API routes (`pakasir-routes.test.ts`, 8, `payments.provider` mocked with `vi.resetModules` + `vi.doMock`, because a hoisted `vi.mock` didn't reach the API's own imports in the workers pool):
+    - 401, 503, unknown order 200;
+    - one receipt;
+    - poll then webhook;
+    - owner-only cancel;
+    - the cron cancels overdue payments.
+  - App render (`pakasir-checkout-render.test.tsx`): the QR as an `<svg>` path (no `<img>`), VA copy, fee and total, countdown, expired state, and the method picker (QRIS first, VAs hidden under Rp10.000, no amount sent).
+  - E2E (`billing.spec.ts`): a Pakasir purchase (QR screen → paid at the fake API without a webhook → the poll grants → return page → access; then a VA and "Ganti cara bayar"), skipped unless the product is on Pakasir. The other purchase tests use the new `buyPlan()` helper, so they pass on either provider. Run once locally with a temporary Pakasir config, then reverted.
+  - Site (`legal.test.ts`): the processor is named from config, and the templates name no provider.

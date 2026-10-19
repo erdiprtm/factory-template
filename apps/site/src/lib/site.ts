@@ -1,6 +1,6 @@
 import registry from "../../../../factory.json";
 import product from "../../../../product.config";
-import { aiProcessorLine, fillTemplate } from "./legal";
+import { aiProcessorLine, fillTemplate, paymentProcessorLine, paymentProcessorName } from "./legal";
 import { appUrlFor } from "./urls.mjs";
 
 export { product };
@@ -51,6 +51,8 @@ export function fillPlaceholders(text: string): string {
     refundPolicy: product.legal.refundPolicy,
     productDataDescription: product.legal.productDataDescription,
     aiProcessor: aiProcessorLine(product.ai),
+    paymentProcessor: paymentProcessorLine(product.payments),
+    paymentProcessorName: paymentProcessorName(product.payments),
   };
   return fillTemplate(text, values);
 }
