@@ -92,7 +92,7 @@ describe("PakasirProvider.createCheckout", () => {
       payment_method: "qris",
       qr_string: "000201",
       va_number: "",
-      expired_at: "2026-10-20T01:00:00Z",
+      expires_at: "2026-10-20T01:00:00Z",
       is_sandbox: true,
     };
     for (const bad of [
@@ -101,7 +101,8 @@ describe("PakasirProvider.createCheckout", () => {
       { total_payment: 500 },
       { qr_string: "" },
       { payment_method: "bri_va" },
-      { expired_at: "not a date" },
+      { expires_at: "not a date" },
+      { expires_at: undefined },
     ]) {
       await expect(withFetch(reply({ ...base, ...bad })).createCheckout(input()), JSON.stringify(bad)).rejects.toThrow(
         /create-transaction failed/,
@@ -109,6 +110,27 @@ describe("PakasirProvider.createCheckout", () => {
     }
     await expect(withFetch(reply({ error: "x" }, 400)).createCheckout(input())).rejects.toThrow(/HTTP 400/);
     expect((await withFetch(reply(base)).createCheckout(input())).charge.feeIdr).toBe(1003);
+  });
+
+  it("reads the expiry from `expires_at` (the live API) or `expired_at` (the docs' example)", async () => {
+    // The shape a real sandbox project returned on 2026-10-21 (qr_string is a placeholder there).
+    const live = {
+      txn_id: "g8iq16miq",
+      project: "depodomain",
+      order_id: PAYMENT_ID,
+      amount: 99_000,
+      fee: 990,
+      total_payment: 99_990,
+      payment_method: "qris",
+      qr_string: "qris-placeholder-for-g8iq16miq-depodomain",
+      expires_at: "2026-10-21T10:25:24.896842796Z",
+      is_sandbox: true,
+    };
+    const fromLive = await withFetch(reply(live)).createCheckout(input());
+    expect(fromLive.charge.providerExpiresAt?.toISOString()).toBe("2026-10-21T10:25:24.896Z");
+    const { expires_at, ...rest } = live;
+    const fromDocs = await withFetch(reply({ ...rest, expired_at: expires_at })).createCheckout(input());
+    expect(fromDocs.charge.providerExpiresAt?.toISOString()).toBe("2026-10-21T10:25:24.896Z");
   });
 
   it("cancels and refuses a sandbox transaction in live mode, and a live one in sandbox mode", async () => {

@@ -319,7 +319,11 @@ Template juga mendukung **Pakasir** (QRIS dan Virtual Account, halaman bayarnya 
    Preview (`--env preview`) **hanya** boleh memakai kunci proyek **sandbox**. Kalau nanti proyeknya Go Live, buat proyek sandbox terpisah untuk preview, dan isi preview dengan kunci proyek sandbox itu.
 7. **Mode** tetap **sandbox** (`PAKASIR_MODE` di `apps/api/wrangler.jsonc`) sampai kamu sendiri memutuskan Go Live. Saat itu ubah `PAKASIR_MODE` produksi menjadi `"live"` lewat PR. Preview selalu sandbox apa pun isinya. Dalam mode live, transaksi sandbox tidak pernah membuka akses.
 8. **Metode pembayaran** diatur di `product.config.ts` `payments.methods` dengan kode Pakasir: `qris`, `bri_va`, `bni_va`, `cimb_niaga_va`, `maybank_va`, `danamon_va`, `bnc_va`, `bsi_va`, `muamalat_va`, `ocbc_va`. QRIS tampil paling atas. VA butuh harga minimal Rp10.000. Biaya Pakasir (QRIS 0,7% + Rp310, VA Rp3.500) dibayar pembeli dan tampil di layar bayar.
-9. **Simulasi bayar di sandbox:** dokumentasi Pakasir v2 belum menjelaskan caranya (agen belum memverifikasi; cek dashboard proyek sandbox dan kabari kalau menemukannya). Di laptop, tanpa secret, aplikasi memakai Pakasir tiruan: `POST /api/dev/pakasir-pay?paymentId=…`.
+9. **Simulasi bayar di sandbox** (D-095): buka layar bayar di app (QRIS atau VA), ambil `txn_id` transaksinya dari dashboard proyek sandbox (menu transaksi), salin **API Key** proyek sandbox, lalu jalankan perintah ini dengan slug dan `txn_id` diganti. Pakasir menandai transaksi lunas dan mengirim webhook; layar bayar berubah jadi "Pembayaran berhasil" sendiri. Hanya bisa untuk transaksi sandbox. Di laptop, tanpa secret, aplikasi memakai Pakasir tiruan: `POST /api/dev/pakasir-pay?paymentId=…`.
+
+   ```bash
+   curl -s -X POST "https://app.pakasir.com/api/v2/payment-simulation/SLUG/TXN_ID" -H "X-Api-Key: $(pbpaste)"
+   ```
 10. **Refund:** Pakasir tidak punya fitur refund. Kembalikan dana secara manual lalu tandai di /admin (lihat `docs/OPERATIONS.md` bagian Refunds).
 11. **Kembali ke Duitku nanti:** cukup ubah `payments.provider` dan `methods` di `product.config.ts` dan isi secret Duitku. Langganan yang sudah aktif tetap berlaku.
 
