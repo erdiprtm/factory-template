@@ -3,12 +3,17 @@ import { describe, expect, it } from "vitest";
 import { defineProduct } from "../packages/config/src/index.ts";
 import product from "../product.config.ts";
 import {
+  decodeIco,
+  encodeIco,
+  FAVICON_FILES,
+  faviconTags,
   fillFor,
   fontKey,
   hexToHslChannels,
   PWA_FILES,
   PWA_START_URL,
   renderAppFonts,
+  renderFavicons,
   renderFontFaces,
   renderIcons,
   renderIndexHtml,
@@ -17,7 +22,7 @@ import {
   renderTokens,
   sizeVars,
 } from "./gen-theme.mjs";
-import { pngSize } from "./png.mjs";
+import { encodePng, pngSize } from "./png.mjs";
 
 describe("gen-theme", () => {
   it("converts hex to HSL channels", () => {
@@ -179,6 +184,47 @@ describe("installable web app (D-080)", () => {
     expect([...icons[PWA_FILES.maskable].data.subarray(0, 4)]).toEqual([255, 255, 255, 255]);
     expect([...icons[PWA_FILES.appleTouch].data.subarray(0, 4)]).toEqual([255, 255, 255, 255]);
     expect(icons[PWA_FILES.icon192].data[3]).toBe(0);
+  });
+
+  it("favicons (D-095): pwa.icon scaled to 16 and 32, or hand-made ones at exactly those sizes", () => {
+    const blank = (n) => ({ width: n, height: n, data: new Uint8Array(n * n * 4).fill(200) });
+    const scaled = renderFavicons(blank(512));
+    expect([scaled[FAVICON_FILES.png16].width, scaled[FAVICON_FILES.png32].width]).toEqual([16, 32]);
+    const own = { 16: blank(16), 32: blank(32) };
+    expect(renderFavicons(null, own)[FAVICON_FILES.png32]).toBe(own[32]);
+    expect(() => renderFavicons(null, { 16: blank(16), 32: blank(48) })).toThrow(/faviconPng\.32 must be 32x32/);
+  });
+
+  it("a .ico holds the PNGs and reads back pixel for pixel", () => {
+    const imgs = [16, 32].map((n) => ({ width: n, height: n, data: new Uint8Array(n * n * 4).fill(n) }));
+    const ico = encodeIco(imgs.map((img) => ({ size: img.width, bytes: encodePng(img) })));
+    expect([
+      ico.readUInt16LE(0),
+      ico.readUInt16LE(2),
+      ico.readUInt16LE(4),
+      ico.readUInt8(6),
+      ico.readUInt8(22),
+    ]).toEqual([0, 1, 2, 16, 32]);
+    const back = decodeIco(ico);
+    expect(back.map((b) => b.width)).toEqual([16, 32]);
+    expect(Buffer.from(back[1].data).equals(Buffer.from(imgs[1].data))).toBe(true);
+    expect(() => decodeIco(Buffer.alloc(8))).toThrow(/not an .ico/);
+  });
+
+  it("index.html links the PNG and ICO favicons, installable or not", () => {
+    for (const enabled of [true, false]) {
+      const html = renderIndexHtml({ ...base, pwa: { ...base.pwa, enabled } });
+      for (const tag of faviconTags()) expect(html).toContain(tag);
+    }
+  });
+
+  it("this product's favicons are written for the app and the site (pnpm theme)", () => {
+    for (const dir of ["../apps/app/public/", "../apps/site/public/"]) {
+      const pub = new URL(dir, import.meta.url);
+      expect(pngSize(readFileSync(new URL("favicon-16.png", pub)))).toEqual({ width: 16, height: 16 });
+      expect(pngSize(readFileSync(new URL("favicon-32.png", pub)))).toEqual({ width: 32, height: 32 });
+      expect(decodeIco(readFileSync(new URL("favicon.ico", pub))).map((i) => i.width)).toEqual([16, 32]);
+    }
   });
 
   it("config: on by default, offered nowhere until the product picks a moment", () => {

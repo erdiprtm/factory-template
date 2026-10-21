@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-22: Site header logo and PNG/ICO favicons (D-095), Myna Fit logo follow-up
+
+- `brand.header` (`name` / `logo` / `logo_name`, `logoHeight`) on the site header, with the logo's width read from the served file.
+- `pnpm theme` writes `/favicon-16.png`, `/favicon-32.png` and `/favicon.ico` for the app and the site (from `brand.faviconPng` or `pwa.icon`), linked before the SVG favicon.
+
+---
+
 ## 2026-10-21: Pakasir checkout fixed for the live API (D-095)
 
 - The live API answers `expires_at` (the docs say `expired_at`), so every real checkout was refused. Both are read now; a test pins the live shape. Status and payment simulation checked against a real sandbox project.

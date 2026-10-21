@@ -27,6 +27,23 @@ describe("defineProduct", () => {
     expect(() => defineProduct({ ...base, experiments: { "Quiz Length": { variants: { a: 50, b: 50 } } } })).toThrow();
   });
 
+  it("site header and PNG favicons: today's look by default; logo height and file paths checked (D-095)", () => {
+    const brand = { ...base.brand, header: undefined, faviconPng: undefined };
+    const parsed = defineProduct({ ...base, brand }).brand;
+    expect(parsed.header).toEqual({ show: "name", logoHeight: 32 });
+    expect(parsed.faviconPng).toBeNull();
+    expect(
+      defineProduct({ ...base, brand: { ...brand, header: { show: "logo", logoHeight: 36 } } }).brand.header,
+    ).toEqual({
+      show: "logo",
+      logoHeight: 36,
+    });
+    expect(() => defineProduct({ ...base, brand: { ...brand, header: { show: "logo", logoHeight: 10 } } })).toThrow();
+    expect(() =>
+      defineProduct({ ...base, brand: { ...brand, faviconPng: { 16: "/abs/f.png", 32: "assets/f32.png" } } }),
+    ).toThrow();
+  });
+
   it("rejects a default locale that isn't supported", () => {
     expect(() => defineProduct({ ...base, locale: { default: "en", supported: ["id"] } })).toThrow(
       /default locale must be in supported/,
