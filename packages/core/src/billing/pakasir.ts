@@ -32,6 +32,9 @@ type CreateResponse = {
   payment_method?: string;
   qr_string?: string;
   va_number?: string;
+  /** What the live API sends (seen 2026-10-21 on a real sandbox project). */
+  expires_at?: string;
+  /** What the docs' example shows; accepted too, in case either changes. */
   expired_at?: string;
   is_sandbox?: boolean;
 };
@@ -98,7 +101,9 @@ export class PakasirProvider implements PaymentProvider {
     const json = (await res.json().catch(() => ({}))) as CreateResponse;
     const qr = json.qr_string || null;
     const va = json.va_number || null;
-    const expires = json.expired_at ? new Date(json.expired_at) : null;
+    // The API answers `expires_at`; pakasir.com/p/create-transaction shows `expired_at`. Take either.
+    const expiresAt = json.expires_at ?? json.expired_at;
+    const expires = expiresAt ? new Date(expiresAt) : null;
     const total = json.total_payment ?? Number.NaN;
     if (
       !res.ok ||

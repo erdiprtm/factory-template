@@ -66,7 +66,8 @@ export class FakePakasirApi {
         qr_string:
           m.kind === "qris" ? `00020101021226610016ID.CO.FAKE.WWW0118${txn.txn_id}5802ID5907Pakasir6304ABCD` : "",
         va_number: m.kind === "va" ? `8808${String(txn.amount).padStart(12, "0")}` : "",
-        expired_at: new Date(Date.now() + 24 * 3600_000).toISOString(),
+        // The real API's field name (the docs say `expired_at`; see pakasir.ts).
+        expires_at: new Date(Date.now() + 24 * 3600_000).toISOString(),
         is_sandbox: txn.is_sandbox,
       });
     }

@@ -4,6 +4,11 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-21: Pakasir checkout fixed for the live API (D-095)
+
+- The live API answers `expires_at` (the docs say `expired_at`), so every real checkout was refused. Both are read now; a test pins the live shape. Status and payment simulation checked against a real sandbox project.
+- SETUP_HUMAN 3c step 9: how to simulate a sandbox payment.
+
 ## 2026-10-21: A/B experiments and earlier answers in quiz slots (D-094), Myna Fit quiz-length test
 
 - `experiments` in `product.config.ts`: the arm is derived from the device's anonId (site, app and API agree; the browser can't claim one), stored on funnel events, split per arm on `/admin`.

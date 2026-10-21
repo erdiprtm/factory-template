@@ -1915,3 +1915,13 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - config: the experiment rules;
   - API, with mocked config: the arm derived and a claimed one ignored, purchase and refund in the buyer's arm, `/admin`'s split and first-seen day, no split without an experiment, 14 answers accepted and 17 refused;
   - app: arm quizzes valid, translated, matching arms and distinct ids; `activeQuiz` per arm (mocked config); a step slot gets earlier answers, frozen; the summary slot gets the raw answers.
+
+## D-095: Pakasir's live API says `expires_at`; sandbox payments are simulated through its API (2026-10-21)
+
+- **Problem.** Myna Fit's first real sandbox checkout failed with "Gagal membuka pembayaran". `pakasir.com/p/create-transaction` shows `expired_at` in its example response, but a real sandbox project (2026-10-21) answers `expires_at`. `createCheckout` found no expiry and refused every transaction. The fake and the tests followed the docs, so CI never saw it.
+- **Decision.** Read `expires_at`, and still accept `expired_at` in case either changes. The fake answers with `expires_at`. A test pins the live response shape.
+- **Checked against the live API the same day** (sandbox project, by the product owner with curl):
+  - create: `txn_id, project, order_id, amount, fee, total_payment, payment_method, qr_string, expires_at, is_sandbox`; a sandbox QRIS `qr_string` is a placeholder text, not a real QRIS payload;
+  - `transaction-status`: `txn_id, order_id, amount, is_sandbox, status, completed_at` (`pending` → `completed`), as the code expects;
+  - `POST /api/v2/payment-simulation/{slug}/{txn_id}` (header `X-Api-Key`, no body) marks a sandbox transaction paid and sends the webhook. It answers `{"success":true}` (the docs show `{"message":"Berhasil"}`); nothing reads it.
+- **SETUP_HUMAN 3c step 9** now gives the simulation command.
