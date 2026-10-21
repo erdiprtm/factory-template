@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cleanAnswers,
   firstOpenStep,
+  frozenAnswers,
   isQuizComplete,
   isValidAnswer,
   type QuizDefinition,
@@ -32,11 +33,11 @@ describe("quiz definition", () => {
 
   it("rejects too few or too many steps, duplicate ids, bad options and ranges", () => {
     expect(quizProblems({ ...quiz, steps: quiz.steps.slice(0, 4) })).toHaveLength(1);
-    const nine = Array.from({ length: 9 }, (_, i) => ({
+    const nine = Array.from({ length: 17 }, (_, i) => ({
       ...(quiz.steps[0] as object),
       id: `s${i}`,
     })) as QuizDefinition["steps"];
-    expect(quizProblems({ ...quiz, steps: nine })[0]).toMatch(/5–8/);
+    expect(quizProblems({ ...quiz, steps: nine })[0]).toMatch(/5–16/);
     const bad: QuizDefinition = {
       id: "Bad Id",
       steps: [
@@ -95,5 +96,19 @@ describe("answers", () => {
       { title: "q.habits", labels: ["opt.a", "opt.c"] },
       { title: "q.age", labels: [], value: 30, unit: "unit.years" },
     ]);
+  });
+});
+
+describe("frozenAnswers (slots read earlier answers, D-094)", () => {
+  it("is a copy a slot can't change", () => {
+    const answers = { goal: "bulk", blockers: ["time"], days: 3 };
+    const shown = frozenAnswers(answers);
+    expect(shown).toEqual(answers);
+    expect(Object.isFrozen(shown) && Object.isFrozen(shown.blockers)).toBe(true);
+    expect(() => {
+      (shown as Record<string, unknown>).goal = "cut";
+    }).toThrow();
+    expect(() => (shown.blockers as string[]).push("x")).toThrow();
+    expect(answers.blockers).toEqual(["time"]);
   });
 });

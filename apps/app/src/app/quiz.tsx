@@ -1,12 +1,13 @@
 import { type Href, Redirect, useRouter } from "expo-router";
+import { useState } from "react";
 import { AnonymousConsentGate } from "../core/auth/anonymous-consent";
 import { consentPlacement } from "../core/auth/inline-consent";
 import { useMe } from "../core/auth/use-me";
 import { anonymousEntry, paywallPlacement } from "../core/billing/placement";
+import { activeQuiz } from "../core/quiz/active";
 import { QuizRunner } from "../core/quiz/runner";
 import { sendQuiz } from "../core/quiz/send";
 import { setAfterSignIn } from "../core/quiz/storage";
-import { quiz } from "../features/quiz";
 
 /**
  * Public onboarding quiz (landers' CTA). Products without a quiz go straight to sign-in, or to their
@@ -16,6 +17,8 @@ import { quiz } from "../features/quiz";
 export default function QuizScreen() {
   const router = useRouter();
   const me = useMe();
+  // The device's A/B arm picks the quiz when the product tests one (D-094).
+  const [quiz] = useState(activeQuiz);
   if (!quiz) return <Redirect href={(anonymousEntry ?? "/sign-in") as Href} />;
   const definition = quiz;
   async function done() {

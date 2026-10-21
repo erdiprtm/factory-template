@@ -6,12 +6,18 @@ import { withCoreIcons } from "../src/core/nav/tabs";
 // icons, and the default summary without the old top gap.
 vi.mock("../src/features/slots", () => ({
   slots: {
-    quizSummaryBody: ({ recap }: { recap: { title: string; value: string }[] }) => (
-      <ul data-testid="recap">
+    quizSummaryBody: ({ recap, answers }: { recap: { title: string; value: string }[]; answers: object }) => (
+      <ul data-testid="recap" data-answers={JSON.stringify(answers)}>
         {recap.map((r) => (
           <li key={r.title}>{r.value}</li>
         ))}
       </ul>
+    ),
+    // D-094: earlier answers, read-only, for a bubble that reacts to them.
+    quizStep: ({ step, answers }: { step: { id: string }; answers: Record<string, unknown> }) => (
+      <p data-testid="step-slot" data-frozen={String(Object.isFrozen(answers))}>
+        {`${step.id}:${JSON.stringify(answers)}`}
+      </p>
     ),
   },
 }));
@@ -71,7 +77,32 @@ describe("quiz summary body slot", () => {
       </I18nProvider>,
     );
     expect(screen.getByTestId("recap").textContent).toContain("71,5");
+    expect(JSON.parse(screen.getByTestId("recap").dataset.answers ?? "{}")).toMatchObject({ w: 71.5, c: "y" });
     expect(screen.getByTestId("quiz-done")).toBeTruthy();
+  });
+
+  it("a step slot sees the earlier answers, frozen (D-094)", () => {
+    const quiz = {
+      id: "render-test-step",
+      steps: ["a", "b", "c", "d", "e"].map((id) => ({
+        id,
+        kind: "single" as const,
+        title: "quiz.back" as const,
+        options: [
+          { value: "x", label: "quiz.next" as const },
+          { value: "y", label: "quiz.of" as const },
+        ],
+      })),
+    };
+    saveQuizProgress(quiz.id, { answers: { a: "y", b: "x" } });
+    render(
+      <I18nProvider>
+        <QuizRunner quiz={quiz} onDone={() => {}} />
+      </I18nProvider>,
+    );
+    const slot = screen.getByTestId("step-slot");
+    expect(slot.textContent).toBe('c:{"a":"y","b":"x"}');
+    expect(slot.dataset.frozen).toBe("true");
   });
 });
 

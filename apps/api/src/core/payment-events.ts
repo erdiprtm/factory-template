@@ -7,7 +7,7 @@ import { schema } from "@factory/db";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import type { Bindings } from "../index";
-import { serverAnalytics } from "./analytics";
+import { experiment, serverAnalytics } from "./analytics";
 import { capiOptions, sendPaymentConversion } from "./marketing";
 
 /**
@@ -32,8 +32,8 @@ export async function afterPaymentSettled(
     return;
   }
   const event = await paidEventKind(db, { id, userId, paidAt });
-  await recordServerEvent(db, { event, userId, valueIdr: amountIdr, utmCampaign, utmSource });
-  const props = { plan: planId, amount_idr: amountIdr, utm_campaign: utmCampaign };
+  const tag = await recordServerEvent(db, { event, userId, valueIdr: amountIdr, utmCampaign, utmSource, experiment });
+  const props = { plan: planId, amount_idr: amountIdr, utm_campaign: utmCampaign, ...tag };
   await defer(serverAnalytics(env).track(event, props, userId));
   const owner = await db.select({ email: schema.user.email }).from(schema.user).where(eq(schema.user.id, userId)).get();
   // Meta CAPI (D-034): only after the provider confirmed, only with marketing consent.

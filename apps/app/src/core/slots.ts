@@ -2,7 +2,7 @@
 // how a core screen LOOKS; core keeps everything else: state, validation, consent checkboxes and the
 // accept button (UU PDP), requireAccess, prices from config and "no web prices on native".
 // A slot only gets finished, display-ready props: it can't submit, skip or unlock anything.
-import type { QuizAnswer, QuizStep } from "@factory/core/quiz";
+import type { QuizAnswer, QuizAnswers, QuizStep } from "@factory/core/quiz";
 import type { ComponentType } from "react";
 import type { MessageKey } from "./i18n";
 
@@ -10,6 +10,11 @@ export type QuizStepSlotProps = {
   step: QuizStep<MessageKey>;
   /** The current answer, if the user already answered this step (e.g. after "back"). */
   value: QuizAnswer | undefined;
+  /**
+   * Every answer so far (D-094), keyed by step id, already validated by core: read-only, for
+   * display (a bubble that reacts to the goal, live targets from earlier numbers).
+   */
+  answers: Readonly<QuizAnswers>;
   /** Core validates (isValidAnswer) and ignores invalid answers, so the slot can't skip a step. */
   onAnswer: (value: QuizAnswer) => void;
   /** Go back one step; undefined on the first step. */
@@ -49,6 +54,8 @@ export type QuizSummaryBodySlotProps = {
   lines: string[];
   /** The answers, translated and formatted for the locale ("71,5 kg"). */
   recap: { title: string; value: string }[];
+  /** The raw answers by step id (D-094), read-only, for numbers the product derives from them. */
+  answers: Readonly<QuizAnswers>;
 };
 
 export type BillingReturnSlotProps = {

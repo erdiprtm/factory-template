@@ -90,6 +90,7 @@ export function EconomicsSection() {
             </CardContent>
           </Card>
           <Funnel steps={e.funnel} />
+          {e.experiment ? <ExperimentFunnels experiment={e.experiment} /> : null}
           <Calculator ltvIdr={e.totals.ltvIdr} settings={e.settings} />
         </>
       ) : q.isError ? (
@@ -139,6 +140,49 @@ function Funnel({
               />
             </View>
             {s.firstBad ? <Text className="text-sm text-destructive">{t("econ.firstBad")}</Text> : null}
+          </View>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+type FunnelSteps = Parameters<typeof Funnel>[0]["steps"];
+
+/** The funnel per A/B arm (D-094): visitors and step rate per arm, side by side per step. */
+function ExperimentFunnels({
+  experiment,
+}: {
+  experiment: {
+    name: string;
+    variants: { variant: string; weight: number; firstSeen: string | null; funnel: FunnelSteps }[];
+  };
+}) {
+  const { t } = useI18n();
+  const steps = experiment.variants[0]?.funnel.map((s) => s.step) ?? [];
+  return (
+    <Card>
+      <CardTitle>{`${t("econ.experiment")}: ${experiment.name}`}</CardTitle>
+      <CardDescription>{t("econ.experimentHint")}</CardDescription>
+      <CardContent className="gap-3">
+        <View className="flex-row flex-wrap gap-2">
+          {experiment.variants.map((v) => (
+            <Text key={v.variant} variant="small" className="rounded-full border border-border px-3 py-1">
+              {`${v.variant} · ${v.weight}% · ${v.firstSeen ? `${t("econ.firstSeen")} ${v.firstSeen}` : t("econ.notSeen")}`}
+            </Text>
+          ))}
+        </View>
+        {steps.map((step, i) => (
+          <View key={step} className="gap-0.5 border-b border-border pb-2">
+            <Text className="font-medium">{t(`funnel.${step}` as MessageKey)}</Text>
+            {experiment.variants.map((v) => {
+              const s = v.funnel[i];
+              return (
+                <Text key={v.variant} variant="small" className={cn(s?.firstBad && "text-destructive")}>
+                  {`${v.variant}: ${s?.visitors ?? 0} · ${pct(s?.rate ?? null)}`}
+                </Text>
+              );
+            })}
           </View>
         ))}
       </CardContent>

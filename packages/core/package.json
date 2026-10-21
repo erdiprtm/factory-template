@@ -11,6 +11,7 @@
     "./ai/eval": "./src/ai/eval.ts",
     "./economics": "./src/economics/index.ts",
     "./economics/metrics": "./src/economics/metrics.ts",
+    "./experiments": "./src/experiments/index.ts",
     "./consents": "./src/consents/index.ts",
     "./email": "./src/email/index.ts",
     "./email/templates": "./src/email/templates.ts",

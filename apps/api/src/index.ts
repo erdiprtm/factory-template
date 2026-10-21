@@ -29,6 +29,7 @@ import { capturedDevEmails } from "@factory/core/email";
 import { grantTrial, hasAccess } from "@factory/core/entitlements";
 import { claimAnonymousFiles, deleteUserFiles, type FileBucket, fileKey, fileRow } from "@factory/core/files";
 import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
+import { QUIZ_MAX_STEPS } from "@factory/core/quiz";
 import { quizResponsesFor, saveQuizResponse } from "@factory/core/quiz/store";
 import { anonKey, claimAnonymousUses, freeUsesUsed } from "@factory/core/quota";
 import { payments, schema } from "@factory/db";
@@ -41,7 +42,7 @@ import { z } from "zod";
 import { anonIdOf } from "./core/access";
 import { adminRoutes } from "./core/admin";
 import type { AiEnv } from "./core/ai";
-import type { AnalyticsEnv } from "./core/analytics";
+import { type AnalyticsEnv, experiment } from "./core/analytics";
 import { anonymousHomeRedirect } from "./core/anonymous-home";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
@@ -156,7 +157,7 @@ app.post("/api/events", rateLimit("EVENTS_LIMITER", clientIp), async (c) => {
   const parsed = eventsBody.safeParse(body);
   if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
   const { anonId, utm_source, utm_campaign, events } = parsed.data;
-  await recordClientEvents(db(c.env), { anonId, attribution: { utm_source, utm_campaign }, events });
+  await recordClientEvents(db(c.env), { anonId, attribution: { utm_source, utm_campaign }, events, experiment });
   return c.body(null, 204);
 });
 
@@ -223,8 +224,8 @@ const quizBody = z.object({
   quizId: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/),
   answers: z
     .record(z.string().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/), quizValue)
-    .refine((a) => Object.keys(a).length <= 8, {
-      message: "at most 8 answers",
+    .refine((a) => Object.keys(a).length <= QUIZ_MAX_STEPS, {
+      message: `at most ${QUIZ_MAX_STEPS} answers`,
     }),
   completedAt: z.int().positive(),
 });

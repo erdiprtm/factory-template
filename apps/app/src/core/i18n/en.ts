@@ -201,6 +201,10 @@ export const en: Messages = {
     "Unique visitors per step and conversion from the previous step. Red: the first step below its benchmark, fix that first.",
   "econ.min": "min",
   "econ.firstBad": "First step below benchmark: fix this first.",
+  "econ.experiment": "Experiment",
+  "econ.experimentHint": "The same funnel, split by variant. Compare only once each variant has enough visitors.",
+  "econ.firstSeen": "first seen",
+  "econ.notSeen": "no data yet",
   "econ.calc": "Target CAC calculator",
   "econ.calcHint":
     "Breakeven CAC = price after the payment fee, divided by (1 + ad tax). The target is slightly below.",

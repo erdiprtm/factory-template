@@ -6,6 +6,7 @@ import {
   type AnalyticsEvent,
   createAnalytics,
   type EventProps,
+  FUNNEL_EVENTS,
   noopAnalytics,
   openPanelProvider,
 } from "@factory/core/analytics";
@@ -13,6 +14,7 @@ import { OpenPanel } from "@openpanel/web";
 import product from "../../../../product.config";
 import { trackFunnel } from "./attribution";
 import { deployInfo } from "./deploy-env";
+import { currentArm } from "./experiment";
 import { metaTrack } from "./marketing";
 
 let analytics = createAnalytics(noopAnalytics);
@@ -37,9 +39,12 @@ export function initAnalytics(): Promise<void> {
   return ready;
 }
 
-export function track(event: AnalyticsEvent, props?: EventProps): void {
+export function track(event: AnalyticsEvent, rawProps?: EventProps): void {
   // Funnel steps are also stored first-party, in every environment (each has its own D1).
-  trackFunnel(event, typeof props?.step === "number" ? props.step : undefined);
+  trackFunnel(event, typeof rawProps?.step === "number" ? rawProps.step : undefined);
+  // The A/B arm on every funnel event (D-094); the API derives the same arm for its own copy.
+  const arm = (FUNNEL_EVENTS as readonly string[]).includes(event) ? currentArm() : null;
+  const props = arm ? { ...rawProps, ...arm } : rawProps;
   // Mapped events to the Meta Pixel, only if consented. Purchases go with their event id instead
   // (billing/return), so the Pixel and the server's CAPI event deduplicate.
   if (event !== "purchase" && event !== "renewal") metaTrack(event);
