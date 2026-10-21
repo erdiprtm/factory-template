@@ -1,10 +1,11 @@
 import { cleanAnswers, isQuizComplete } from "@factory/core/quiz";
-import { quiz } from "../../features/quiz";
 import { api } from "../api";
+import { activeQuiz } from "./active";
 import { loadQuizProgress, saveQuizProgress } from "./storage";
 
 /** After sign-in (and consent): attaches the device's completed quiz to the user, once per completion. */
 export async function sendQuiz(): Promise<void> {
+  const quiz = activeQuiz();
   if (!quiz) return;
   const progress = loadQuizProgress(quiz.id);
   if (!progress?.completedAt || (progress.sentAt ?? 0) >= progress.completedAt) return;

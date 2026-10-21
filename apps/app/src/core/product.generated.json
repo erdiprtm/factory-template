@@ -147,6 +147,7 @@
       "purchase": 0.5
     }
   },
+  "experiments": {},
   "ai": null,
   "pwa": {
     "enabled": true,

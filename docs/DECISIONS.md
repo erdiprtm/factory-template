@@ -1878,3 +1878,40 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
     - then `pnpm db:generate` must report no changes.
     - This is the procedure that worked in Myna Fit. Doing it automatically in `template-sync.mjs` is left for later.
 - **Check.** With the template's `product.config.ts` temporarily set to Myna Fit's `payments` (`pakasir`, methods `qris, bri_va, bni_va, bsi_va, cimb_niaga_va, danamon_va`), the full `pnpm test` passed: core 146, site 30, app 57, API 162, scripts 166. On the default Duitku config it also passes. The config was then reverted.
+
+## D-094: A/B experiments with the arm derived from the anonId; quiz slots see earlier answers (2026-10-21)
+
+- **Problem (Myna Fit, 2026-10-21).** Myna Fit wants to test a short quiz (8 questions) against a long one (14). The template had one quiz per product, a funnel split by `utm_campaign` only, a 5–8 step limit on quizzes (and 8 answers on `POST /api/quiz`), and quiz slots that saw only the current step. Neither part could be built in product folders.
+- **Decision: config.** `experiments: { <name>: { variants: { <arm>: <weight %> } } }` in `product.config.ts`:
+  - at most one experiment at a time;
+  - 2 or more arms, integer weights summing to 100;
+  - default `{}`, so no experiment runs.
+- **Decision: assignment is a pure function of the device's anonId** (`@factory/core/experiments`): FNV-1a of `"<name>:<anonId>"` mod 100, walked through the weights in config order.
+  - The site, the app and the API compute the same arm. Nothing is stored or sent for it.
+  - It's sticky per device because the anonId is, and it follows the device from the site into the app (`?aid=`, D-033).
+  - It reaches the account through `attributions.anon_id`, which is already saved at sign-up. So the server-side purchase, renewal and refund events know the arm without a new table or claim step.
+  - **The browser can't claim an arm.** `POST /api/events` derives it itself and ignores any `variant` in the body.
+  - Changing the weights or their order mid-test moves devices between arms, so the config comment says to start a new experiment name instead.
+  - Native has no touch yet (Phase 10). `core/experiment.ts` keeps a random id in `core/kv` there, so the quiz arm is sticky too, but native funnel events aren't recorded yet.
+- **Decision: analytics.**
+  - `funnel_events` gets nullable `experiment` and `variant` columns (an expand migration, `20261021080841_funnel_experiments`), written at insert time for the browser's events and for purchase, renewal and refund. So `/admin` reads them back, and later weight changes don't rewrite history.
+  - OpenPanel gets the same two properties: on the web app's funnel events (`analytics.web.ts`) and on the server's purchase, renewal and refund.
+  - No new tracker (D-034). The Meta Pixel and CAPI are unchanged.
+- **Decision: /admin.** `loadEconomics` takes the experiment and adds `experiment.variants[]`: each arm's weight, the first Jakarta day it was seen at all, and the same sequential funnel filtered to that arm (the campaign filter still applies). The economics view shows a card per step with each arm's visitors and rate.
+- **Decision: the quiz per arm.** `features/quiz.ts` may export `quizzes: { [arm]: QuizDefinition }` next to `quiz`.
+  - Core's `/quiz` and `sendQuiz` use `activeQuiz()` (`core/quiz/active.ts`): the device's arm's quiz, else `quiz`.
+  - The export is optional, so existing products' `quiz.ts` keeps compiling.
+  - Each arm's quiz has its own id, so `quiz_responses` and device progress stay apart. A template test checks that, and that the arms match the config's.
+  - The step limit is now **5–16** (`QUIZ_MAX_STEPS`), and so is `POST /api/quiz`'s answer limit, so a longer quiz can be tested. 5–8 stays the advice (D-036).
+- **Decision: forcing an arm** = choosing the device, through the real path. There is no switch that production could be talked into.
+  - E2E and previews open the app on a fresh device with `?aid=<anonIdIn(experiment, arm)>`.
+  - On the Expo dev server only (`__DEV__`), `?variant=<arm>` gives the device a new anonId in that arm.
+  - `e2e/tests/experiment.spec.ts` runs every arm and checks `/admin`'s split. It's skipped in products without an experiment, the template included.
+- **Decision: quiz slots see earlier answers.** `QuizStepSlotProps.answers` and `QuizSummaryBodySlotProps.answers` hold every answer so far by step id.
+  - They're display only: a frozen copy (`frozenAnswers`), so a slot can't change core's state. Core still validates, moves between steps and owns consent (D-054).
+  - Reading `loadQuizProgress` from a product slot is no longer needed. It isn't forbidden, but it reads the device's storage and bypasses `cleanAnswers`, so `answers` is the supported way.
+- **Tests (template, with and without an experiment, D-028, D-078):**
+  - core: pinned buckets, the weight split, name reshuffles, tags, `anonIdIn`, `frozenAnswers`;
+  - config: the experiment rules;
+  - API, with mocked config: the arm derived and a claimed one ignored, purchase and refund in the buyer's arm, `/admin`'s split and first-seen day, no split without an experiment, 14 answers accepted and 17 refused;
+  - app: arm quizzes valid, translated, matching arms and distinct ids; `activeQuiz` per arm (mocked config); a step slot gets earlier answers, frozen; the summary slot gets the raw answers.

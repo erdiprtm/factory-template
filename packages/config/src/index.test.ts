@@ -11,6 +11,22 @@ describe("defineProduct", () => {
     expect(product.plans.length).toBeGreaterThan(0);
   });
 
+  it("experiments: none by default; one at a time, 2+ arms, weights summing to 100 (D-094)", () => {
+    expect(defineProduct({ ...base, experiments: undefined }).experiments).toEqual({});
+    const ok = { quiz_length: { variants: { short: 50, long: 50 } } };
+    expect(defineProduct({ ...base, experiments: ok }).experiments).toEqual(ok);
+    expect(() =>
+      defineProduct({ ...base, experiments: { quiz_length: { variants: { short: 60, long: 50 } } } }),
+    ).toThrow(/sum to 100/);
+    expect(() => defineProduct({ ...base, experiments: { quiz_length: { variants: { short: 100 } } } })).toThrow(
+      /at least 2 variants/,
+    );
+    expect(() => defineProduct({ ...base, experiments: { ...ok, cta: { variants: { a: 50, b: 50 } } } })).toThrow(
+      /at most one experiment/,
+    );
+    expect(() => defineProduct({ ...base, experiments: { "Quiz Length": { variants: { a: 50, b: 50 } } } })).toThrow();
+  });
+
   it("rejects a default locale that isn't supported", () => {
     expect(() => defineProduct({ ...base, locale: { default: "en", supported: ["id"] } })).toThrow(
       /default locale must be in supported/,

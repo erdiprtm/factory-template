@@ -156,10 +156,14 @@ export const funnelEvents = sqliteTable(
     utmSource: text("utm_source"),
     utmCampaign: text("utm_campaign"),
     valueIdr: integer("value_idr"),
+    // The device's A/B arm when the event happened (D-094), derived by the API from anonId.
+    experiment: text("experiment"),
+    variant: text("variant"),
     createdAt: timestamp("created_at").notNull(),
   },
   (t) => [
     index("funnel_events_event_created_idx").on(t.event, t.createdAt),
+    index("funnel_events_experiment_created_idx").on(t.experiment, t.createdAt),
     index("funnel_events_campaign_created_idx").on(t.utmCampaign, t.createdAt),
     index("funnel_events_anon_idx").on(t.anonId),
     index("funnel_events_user_idx").on(t.userId),

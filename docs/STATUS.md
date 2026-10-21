@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-21: A/B experiments and earlier answers in quiz slots (D-094), Myna Fit quiz-length test
+
+- `experiments` in `product.config.ts`: the arm is derived from the device's anonId (site, app and API agree; the browser can't claim one), stored on funnel events, split per arm on `/admin`.
+- `features/quiz.ts` may export `quizzes` per arm; quizzes may have 5–16 steps.
+- Quiz slots get read-only `answers`.
+
+---
+
 ## 2026-10-19: Billing tests hold with any provider; migration meta merged on sync (D-093), Myna Fit Pakasir blocker
 
 - Template tests pick their provider (`PAYMENTS_PROVIDER`, test env only), so a product on Pakasir passes the whole suite.

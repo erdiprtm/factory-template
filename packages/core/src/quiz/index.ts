@@ -2,8 +2,9 @@
 // product's app features (src/features/quiz.ts); strings are i18n keys (K). Answers are kept on
 // the device first and attached to the user after signup (POST /api/quiz).
 
+// 5–8 steps is the default advice (D-036); up to 16 so a longer quiz can be tested against it (D-094).
 export const QUIZ_MIN_STEPS = 5;
-export const QUIZ_MAX_STEPS = 8;
+export const QUIZ_MAX_STEPS = 16;
 
 export type QuizOption<K extends string = string> = { value: string; label: K };
 export type QuizStep<K extends string = string> =
@@ -91,4 +92,11 @@ export function recapAnswers<K extends string>(
     const chosen = Array.isArray(a) ? a : [a];
     return [{ title: step.title, labels: step.options.filter((o) => chosen.includes(o.value)).map((o) => o.label) }];
   });
+}
+
+/** A frozen copy for product slots (D-094): they read earlier answers but can't change core's state. */
+export function frozenAnswers(answers: QuizAnswers): Readonly<QuizAnswers> {
+  return Object.freeze(
+    Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, Array.isArray(v) ? Object.freeze([...v]) : v])),
+  ) as Readonly<QuizAnswers>;
 }

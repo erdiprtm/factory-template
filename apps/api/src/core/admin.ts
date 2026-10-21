@@ -17,7 +17,7 @@ import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { z } from "zod";
 import type { Bindings } from "../index";
-import { serverAnalytics } from "./analytics";
+import { experiment, serverAnalytics } from "./analytics";
 import { type SessionVariables, sessionMiddleware } from "./session";
 
 /** 401 signed out, 403 not on the allowlist (product.config.ts admin.emails ∪ ADMIN_EMAILS var). */
@@ -69,6 +69,7 @@ export const adminRoutes = new Hono<{ Bindings: Bindings; Variables: SessionVari
       plans: config.plans,
       steps: funnelSteps(),
       benchmarks: config.economics.benchmarks,
+      experiment,
     });
     return c.json({ ...data, settings: config.economics });
   })
@@ -95,12 +96,12 @@ export const adminRoutes = new Hono<{ Bindings: Bindings; Variables: SessionVari
   .post("/refund", async (c) => {
     const parsed = refundBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
-    const r = await markRefunded(db(c.env), parsed.data.paymentId);
+    const r = await markRefunded(db(c.env), parsed.data.paymentId, new Date(), { experiment });
     if (r.kind === "not_found") return c.json({ error: "not_found" as const }, 404);
     if (r.kind === "not_paid") return c.json({ error: "not_paid" as const }, 409);
     if (r.kind === "refunded") {
       const { userId, planId, amountIdr } = r.payment;
-      await serverAnalytics(c.env).track("refund", { plan: planId, amount_idr: amountIdr }, userId);
+      await serverAnalytics(c.env).track("refund", { plan: planId, amount_idr: amountIdr, ...r.tag }, userId);
     }
     return c.json({ ok: true as const });
   })

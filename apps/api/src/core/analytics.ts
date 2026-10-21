@@ -1,5 +1,9 @@
 import { config } from "@factory/config/product";
 import { noopServerAnalytics, openPanelServer, type ServerAnalytics } from "@factory/core/analytics";
+import { activeExperiment } from "@factory/core/experiments";
+
+/** The product's A/B experiment, if any (D-094). Funnel events get its arm from the anonId. */
+export const experiment = activeExperiment(config.experiments);
 
 export type AnalyticsEnv = {
   APP_ENV: string;

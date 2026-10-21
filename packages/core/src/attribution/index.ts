@@ -9,6 +9,7 @@ import { attributions, funnelEvents, payments } from "@factory/db";
 import { and, eq, lt, ne, or } from "drizzle-orm";
 import type { ClientFunnelEvent, FunnelEvent } from "../analytics";
 import type { Db } from "../entitlements";
+import { type Experiment, type ExperimentTag, experimentTag } from "../experiments";
 import type { Attribution, Touch } from "./touch";
 
 export * from "./touch";
@@ -52,17 +53,22 @@ export function paymentAttribution(a: UserAttribution | null) {
   };
 }
 
-/** Browser funnel events (POST /api/events), keyed by the device's anonId. */
+/**
+ * Browser funnel events (POST /api/events), keyed by the device's anonId. The A/B arm is derived
+ * here from the anonId (D-094), never taken from the browser.
+ */
 export async function recordClientEvents(
   db: Db,
   input: {
     anonId: string;
     attribution: Pick<Attribution, "utm_source" | "utm_campaign">;
     events: { event: ClientFunnelEvent; step?: number }[];
+    experiment?: Experiment | null;
   },
   now = new Date(),
 ): Promise<void> {
   if (input.events.length === 0) return;
+  const tag = experimentTag(input.experiment ?? null, input.anonId);
   await db.insert(funnelEvents).values(
     input.events.map((e) => ({
       id: crypto.randomUUID(),
@@ -73,12 +79,17 @@ export async function recordClientEvents(
       utmSource: input.attribution.utm_source ?? null,
       utmCampaign: input.attribution.utm_campaign ?? null,
       valueIdr: null,
+      experiment: tag?.experiment ?? null,
+      variant: tag?.variant ?? null,
       createdAt: now,
     })),
   );
 }
 
-/** Server funnel events (purchase, renewal, refund) for a user, joined to their device's anonId. */
+/**
+ * Server funnel events (purchase, renewal, refund) for a user, joined to their device's anonId,
+ * which also gives the A/B arm (D-094). Returns that arm, for the event's analytics properties.
+ */
 export async function recordServerEvent(
   db: Db,
   input: {
@@ -87,10 +98,12 @@ export async function recordServerEvent(
     valueIdr: number;
     utmCampaign: string | null;
     utmSource: string | null;
+    experiment?: Experiment | null;
   },
   now = new Date(),
-): Promise<void> {
+): Promise<ExperimentTag | null> {
   const a = await attributionFor(db, input.userId);
+  const tag = experimentTag(input.experiment ?? null, a?.anonId);
   await db.insert(funnelEvents).values({
     id: crypto.randomUUID(),
     event: input.event,
@@ -100,8 +113,11 @@ export async function recordServerEvent(
     utmSource: input.utmSource,
     utmCampaign: input.utmCampaign,
     valueIdr: input.valueIdr,
+    experiment: tag?.experiment ?? null,
+    variant: tag?.variant ?? null,
     createdAt: now,
   });
+  return tag;
 }
 
 /** A confirmed payment is the user's "purchase" if no paid one came before it, otherwise a "renewal". */

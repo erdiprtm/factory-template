@@ -1,6 +1,7 @@
 import {
   cleanAnswers,
   firstOpenStep,
+  frozenAnswers,
   isValidAnswer,
   type QuizAnswer,
   type QuizDefinition,
@@ -8,7 +9,7 @@ import {
   recapAnswers,
 } from "@factory/core/quiz";
 import { Button, Card, CardContent, CardHeader, CardTitle, cn, ErrorText, Input, Screen, Text } from "@factory/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { slots } from "../../features/slots";
 import { track } from "../analytics";
@@ -49,6 +50,7 @@ function Runner({
   const { t } = useI18n();
   const [answers, setAnswers] = useState(() => cleanAnswers(quiz, loadQuizProgress(quiz.id)?.answers));
   const [index, setIndex] = useState(() => firstOpenStep(quiz, answers));
+  const shown = useMemo(() => frozenAnswers(answers), [answers]);
   const started = useRef(false);
 
   useEffect(() => {
@@ -90,6 +92,7 @@ function Runner({
           key={step.id}
           step={step}
           value={answers[step.id]}
+          answers={shown}
           onAnswer={(v) => void onAnswer(v)}
           back={index > 0 ? () => setIndex(index - 1) : undefined}
           progress={{ step: index + 1, total }}
@@ -275,7 +278,7 @@ function Summary({
         </View>
       )}
       {Body ? (
-        <Body lines={lineTexts} recap={recap} />
+        <Body lines={lineTexts} recap={recap} answers={frozenAnswers(answers)} />
       ) : (
         <>
           {lineTexts.length > 0 ? (

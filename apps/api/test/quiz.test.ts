@@ -30,10 +30,13 @@ describe("POST /api/quiz", () => {
       { ...ok, quizId: "Bad Id" },
       { ...ok, answers: { a: "x".repeat(101) } },
       { ...ok, answers: { a: { nested: true } } },
-      { ...ok, answers: Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`k${i}`, "v"])) },
+      { ...ok, answers: Object.fromEntries(Array.from({ length: 17 }, (_, i) => [`k${i}`, "v"])) },
     ]) {
       expect((await post("/api/quiz", cookie, bad)).status).toBe(400);
     }
+    // A longer quiz arm (D-094): up to 16 answers.
+    const long = { ...ok, answers: Object.fromEntries(Array.from({ length: 14 }, (_, i) => [`k${i}`, "v"])) };
+    expect((await post("/api/quiz", cookie, long)).status).toBe(200);
   });
 
   it("is erased with the account", async () => {

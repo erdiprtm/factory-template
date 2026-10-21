@@ -206,6 +206,11 @@ export const id = {
     "Pengunjung unik per langkah dan konversi dari langkah sebelumnya. Merah: langkah pertama di bawah patokan, perbaiki ini dulu.",
   "econ.min": "min",
   "econ.firstBad": "Langkah pertama di bawah patokan: fokus perbaiki di sini.",
+  "econ.experiment": "Eksperimen",
+  "econ.experimentHint":
+    "Funnel yang sama, dipisah per varian. Bandingkan hanya setelah tiap varian punya cukup pengunjung.",
+  "econ.firstSeen": "pertama terlihat",
+  "econ.notSeen": "belum ada data",
   "econ.calc": "Kalkulator target CAC",
   "econ.calcHint": "CAC impas = harga setelah biaya pembayaran, dibagi (1 + pajak iklan). Target sedikit di bawahnya.",
   "econ.fee": "Biaya pembayaran (%)",

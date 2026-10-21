@@ -441,6 +441,25 @@ export const productSchema = z.object({
         purchase: 0.5,
       },
     }),
+  // A/B experiment (D-094): { <name>: { variants: { <arm>: <weight %> } } }, weights summing to 100.
+  // At most one at a time (one test per funnel stays readable at Rp100K/day). A device's arm comes
+  // from its anonId, so changing the weights or their order mid-test moves devices between arms:
+  // start a new experiment name instead. An experiment named in features/quiz.ts `quizzes` picks the
+  // quiz per arm; /admin's funnel splits by arm.
+  experiments: z
+    .record(
+      z.string().regex(/^[a-z][a-z0-9_]{1,30}$/, 'a name like "quiz_length"'),
+      z.object({
+        variants: z
+          .record(z.string().regex(/^[a-z][a-z0-9_]{0,19}$/, 'an arm like "short"'), z.int().min(1).max(99))
+          .refine((v) => Object.keys(v).length >= 2, { message: "an experiment needs at least 2 variants" })
+          .refine((v) => Object.values(v).reduce((a, b) => a + b, 0) === 100, {
+            message: "variant weights must sum to 100",
+          }),
+      }),
+    )
+    .refine((e) => Object.keys(e).length <= 1, { message: "run at most one experiment at a time" })
+    .default({}),
   // AI provider for the product's model calls (D-045, D-083, D-084). null = the product makes none.
   // Keys are Worker secrets (OPENAI_API_KEY, OPENROUTER_API_KEY, GEMINI_API_KEY), never here. The
   // caps bound cost: perUserPerDay per account or device per 24 h (all features together),

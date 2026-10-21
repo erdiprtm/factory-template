@@ -2,6 +2,8 @@
 // product's own 5–8 questions (from the spec). Strings are keys in ./messages.ts. Set
 // `export const quiz = null` to skip the quiz (landers then go straight to sign-in).
 // Health-adjacent products: ask only what the product needs, and never diagnose (CLAUDE.md).
+// A/B test (D-094): with an experiment in product.config.ts, also export
+// `quizzes: { [arm]: QuizDefinition }` (one per arm, each with its own id); the device's arm picks one.
 import type { QuizDefinition } from "@factory/core/quiz";
 import type { MessageKey } from "../core/i18n";
 

@@ -2,7 +2,9 @@
 // The touch (anonId, UTM tags, fbclid) is captured on the first visit, either fresh or handed
 // over from the site's CTA link, and attached to the user after sign-in.
 import { type ClientFunnelEvent, isClientFunnelEvent } from "@factory/core/analytics";
-import { parseTouch, resolveTouch, type Touch } from "@factory/core/attribution/touch";
+import { newAnonId, parseTouch, resolveTouch, type Touch } from "@factory/core/attribution/touch";
+import { activeExperiment, anonIdIn } from "@factory/core/experiments";
+import product from "../../../../product.config";
 import { apiBaseUrl } from "./api-base";
 
 const KEY = "factory.touch";
@@ -28,10 +30,24 @@ function write(key: string, value: string): void {
 /** This device's touch; the first call captures it from the current URL. */
 export function currentTouch(): Touch {
   if (!touch) {
-    touch = resolveTouch(parseTouch(read(KEY)), window.location.href);
+    touch = devArm() ?? resolveTouch(parseTouch(read(KEY)), window.location.href);
     write(KEY, JSON.stringify(touch));
   }
   return touch;
+}
+
+/**
+ * Expo dev server only (`__DEV__`, never an exported build): `?variant=<arm>` gives this device a
+ * new anonId in that A/B arm (D-094), so the real assignment path runs. E2E and previews use
+ * `?aid=<an id in the arm>` on a fresh device instead.
+ */
+function devArm(): Touch | null {
+  const experiment = activeExperiment(product.experiments);
+  const arm = new URL(window.location.href).searchParams.get("variant");
+  if (!arm || !__DEV__ || !experiment || !(arm in experiment.variants)) return null;
+  const url = new URL(window.location.href);
+  url.searchParams.set("aid", anonIdIn(experiment, arm, newAnonId().slice(0, 8)));
+  return resolveTouch(null, url);
 }
 
 /**
