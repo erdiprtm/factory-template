@@ -72,6 +72,11 @@
     },
     "logo": "/logo.svg",
     "favicon": "/favicon.svg",
+    "header": {
+      "show": "name",
+      "logoHeight": 32
+    },
+    "faviconPng": null,
     "darkMode": true
   },
   "trial": {

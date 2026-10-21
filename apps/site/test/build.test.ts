@@ -14,6 +14,38 @@ describe("built site", () => {
     expect(html.includes('<meta name="color-scheme" content="light"')).toBe(!product.brand.darkMode);
   });
 
+  it("links PNG and ICO favicons before the SVG one, and serves them at their sizes (D-095)", () => {
+    const html = page("index.html");
+    const at = (s: string) => html.indexOf(s);
+    expect(at('<link rel="icon" href="/favicon.ico" sizes="16x16 32x32"')).toBeGreaterThan(-1);
+    expect(at('sizes="32x32" href="/favicon-32.png"')).toBeGreaterThan(-1);
+    expect(at('sizes="16x16" href="/favicon-16.png"')).toBeGreaterThan(-1);
+    expect(at('sizes="16x16" href="/favicon-16.png"')).toBeLessThan(at(`href="${product.brand.favicon}"`));
+    for (const [file, size] of [
+      ["favicon-16.png", 16],
+      ["favicon-32.png", 32],
+    ] as const) {
+      const png = readFileSync(new URL(file, dist));
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)], file).toEqual([size, size]);
+    }
+    expect(readFileSync(new URL("favicon.ico", dist)).readUInt16LE(4)).toBe(2);
+  });
+
+  it("the header shows the name, the logo or both, per brand.header (D-095)", () => {
+    const header = page("index.html").match(/<header[\s\S]*?<\/header>/)?.[0] ?? "";
+    const link = header.match(/<a href="[^"]*" class="inline-flex min-h-11[^>]*>[\s\S]*?<\/a>/)?.[0] ?? "";
+    const { show, logoHeight } = product.brand.header;
+    expect(link.includes("<img")).toBe(show !== "name");
+    expect(link.replace(/<[^>]+>/g, "").includes(product.name)).toBe(show !== "logo");
+    if (show !== "name") {
+      expect(link).toContain(`src="${product.brand.logo}"`);
+      expect(link).toContain(`height="${logoHeight}"`);
+      // Astro writes an empty alt as a bare `alt` (decorative: the name follows as text).
+      if (show === "logo") expect(link).toContain(`alt="${product.name}"`);
+      else expect(link).toMatch(/<img[^>]*\salt(="")?[\s>]/);
+    }
+  });
+
   it("prices come from product.config.ts (no code edits needed)", () => {
     const html = page("harga/index.html");
     for (const plan of product.plans) {

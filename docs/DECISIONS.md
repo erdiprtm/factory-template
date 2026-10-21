@@ -1925,3 +1925,24 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - `transaction-status`: `txn_id, order_id, amount, is_sandbox, status, completed_at` (`pending` → `completed`), as the code expects;
   - `POST /api/v2/payment-simulation/{slug}/{txn_id}` (header `X-Api-Key`, no body) marks a sandbox transaction paid and sends the webhook. It answers `{"success":true}` (the docs show `{"message":"Berhasil"}`); nothing reads it.
 - **SETUP_HUMAN 3c step 9** now gives the simulation command.
+
+## D-095: The site header can show the logo; PNG and ICO favicons from `pnpm theme` (2026-10-22)
+
+- **Problem (Myna Fit, 2026-10-22, after its new logo).** Both changes sit in template-owned files, so the product couldn't make them.
+  - `apps/site/src/layouts/Base.astro` always wrote the product name as text in the header, even for products whose logo is a lockup.
+  - Only the SVG favicon was linked. Browsers without SVG favicons, and some crawlers, ask for `/favicon.ico`, which didn't exist.
+- **Decision: `brand.header`** `{ show: "name" | "logo" | "logo_name", logoHeight }`.
+  - The default is `"name"` at 32 px, which is today's look. `logoHeight` is 20–64 px; Myna Fit's lockup needs at least 34.
+  - With `"logo"`, the `<img>` has `alt` set to the product name. With `"logo_name"`, the image has an empty alt (it's decorative) and the name follows as text.
+  - The link keeps `min-h-11` (44 px).
+  - The `<img>` gets `width` and `height` attributes. The width is read at build time from the file the site serves (`src/lib/logo.mjs`): an SVG's viewBox (else its width and height), or a PNG's IHDR. So the browser reserves the logo's space and nothing shifts. An unreadable file gets the height only.
+- **Decision: favicons are generated.** `pnpm theme` writes `/favicon-16.png`, `/favicon-32.png` and `/favicon.ico` (holding the two PNGs) to both `apps/app/public` and `apps/site/public`. One domain may route a path to either.
+  - Source: `brand.faviconPng: { 16, 32 }`, hand-made PNGs relative to `apps/app` that must be exactly those sizes. Unset, `pwa.icon` is scaled down (area average, `scripts/png.mjs`). The favicons are made whether or not the app is installable.
+  - The site and the app's `index.html` link the ICO and the two PNGs **before** the SVG. Browsers that support SVG favicons still use the SVG.
+  - `pnpm theme --check` (in `verify`) compares the ICO and the PNGs by pixels, like the PWA icons (D-080).
+  - TEMPLATE_SYNC: these files are **Regenerate** rows (take either side, then run `pnpm theme`).
+- **Tests:**
+  - config: defaults and limits;
+  - `logo.mjs`: SVG viewBox, width and height, PNG, other formats;
+  - gen-theme: scaled and hand-made favicons, a hand-made one at the wrong size refused, an ICO round trip, the favicon tags in `index.html` with and without PWA, the files present for app and site;
+  - the built site: the favicon links come before the SVG one at the right sizes, and the header matches `brand.header`. With the template temporarily set to `"logo"` and to `"logo_name"` (36 px), the build test passed, and the header link measured 44 px with the logo at 36×36 in the browser. The config was then reverted.

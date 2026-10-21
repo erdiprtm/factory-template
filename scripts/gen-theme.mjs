@@ -29,6 +29,7 @@ const OUTPUTS = {
 };
 const APP_DIR = fileURLToPath(new URL("../apps/app/", import.meta.url));
 const APP_PUBLIC = fileURLToPath(new URL("../apps/app/public/", import.meta.url));
+const SITE_PUBLIC = fileURLToPath(new URL("../apps/site/public/", import.meta.url));
 
 export function hexToHslChannels(hex) {
   const n = Number.parseInt(hex.slice(1), 16);
@@ -161,6 +162,60 @@ export const PWA_FILES = {
   maskable: "/icons/maskable-512.png",
   appleTouch: "/apple-touch-icon.png",
 };
+// ---- PNG and ICO favicons (D-095) ----
+
+/** Served by the app and by the site alike (one domain may route a path to either). */
+export const FAVICON_FILES = { png16: "/favicon-16.png", png32: "/favicon-32.png", ico: "/favicon.ico" };
+
+/** The <link> tags, before the SVG favicon: browsers without SVG favicons, and crawlers, use these. */
+export const faviconTags = () => [
+  `<link rel="icon" href="${FAVICON_FILES.ico}" sizes="16x16 32x32" />`,
+  `<link rel="icon" type="image/png" sizes="32x32" href="${FAVICON_FILES.png32}" />`,
+  `<link rel="icon" type="image/png" sizes="16x16" href="${FAVICON_FILES.png16}" />`,
+];
+
+/** 16 and 32 px favicons, keyed by served path: the hand-made ones (exact sizes) or the source scaled down. */
+export function renderFavicons(source, own = null) {
+  if (own) {
+    for (const size of [16, 32]) {
+      const img = own[size];
+      if (img.width !== size || img.height !== size)
+        throw new Error(`brand.faviconPng.${size} must be ${size}x${size} (it is ${img.width}x${img.height})`);
+    }
+    return { [FAVICON_FILES.png16]: own[16], [FAVICON_FILES.png32]: own[32] };
+  }
+  return { [FAVICON_FILES.png16]: resize(source, 16), [FAVICON_FILES.png32]: resize(source, 32) };
+}
+
+/** A .ico holding PNG images (read by every current browser), smallest first. */
+export function encodeIco(pngs) {
+  const header = Buffer.alloc(6 + 16 * pngs.length);
+  header.writeUInt16LE(1, 2); // type: icon
+  header.writeUInt16LE(pngs.length, 4);
+  let offset = header.length;
+  pngs.forEach(({ size, bytes }, i) => {
+    const e = 6 + 16 * i;
+    header.writeUInt8(size >= 256 ? 0 : size, e);
+    header.writeUInt8(size >= 256 ? 0 : size, e + 1);
+    header.writeUInt16LE(1, e + 4); // colour planes
+    header.writeUInt16LE(32, e + 6); // bits per pixel
+    header.writeUInt32LE(bytes.length, e + 8);
+    header.writeUInt32LE(offset, e + 12);
+    offset += bytes.length;
+  });
+  return Buffer.concat([header, ...pngs.map((p) => p.bytes)]);
+}
+
+/** The images inside a .ico written by encodeIco. */
+export function decodeIco(buf) {
+  if (buf.readUInt16LE(0) !== 0 || buf.readUInt16LE(2) !== 1) throw new Error("not an .ico file");
+  return Array.from({ length: buf.readUInt16LE(4) }, (_, i) => {
+    const e = 6 + 16 * i;
+    const start = buf.readUInt32LE(e + 12);
+    return decodePng(buf.subarray(start, start + buf.readUInt32LE(e + 8)));
+  });
+}
+
 /** start_url: "?source=pwa" tells an open from the home screen apart (pwa_open). */
 export const PWA_START_URL = "/?source=pwa";
 
@@ -218,6 +273,7 @@ export function renderIndexHtml(product) {
     '    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />',
     '    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />',
     `    <title>${escapeHtml(product.name)}</title>`,
+    ...faviconTags().map((tag) => `    ${tag}`),
     ...pwaTags,
     "    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->",
     '    <style id="expo-reset">',
@@ -288,6 +344,25 @@ export function renderIcons(icon, background, maskableSource = null) {
 }
 
 const publicPath = (served) => `${APP_PUBLIC}${served.slice(1)}`;
+const sitePath = (served) => `${SITE_PUBLIC}${served.slice(1)}`;
+
+/** Whether a .ico on disk holds exactly these images (pixels, not bytes). */
+function sameIco(file, imgs) {
+  try {
+    const cur = decodeIco(readFileSync(file));
+    return (
+      cur.length === imgs.length &&
+      cur.every(
+        (c, i) =>
+          c.width === imgs[i].width &&
+          c.height === imgs[i].height &&
+          Buffer.from(c.data).equals(Buffer.from(imgs[i].data)),
+      )
+    );
+  } catch {
+    return false;
+  }
+}
 
 /** Whether a PNG on disk has exactly these pixels (the bytes can differ between zlib builds). */
 function samePixels(file, img) {
@@ -317,8 +392,31 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     for (const [served, img] of Object.entries(renderIcons(source, background, maskable)))
       icons[publicPath(served)] = img;
   }
+  // Favicons (D-095), installable or not: the hand-made ones, or pwa.icon scaled down.
+  const own = product.brand.faviconPng;
+  const favicons = own
+    ? renderFavicons(null, {
+        16: decodePng(readFileSync(`${APP_DIR}${own[16]}`)),
+        32: decodePng(readFileSync(`${APP_DIR}${own[32]}`)),
+      })
+    : renderFavicons(readSourceIcon(`${APP_DIR}${product.pwa.icon}`));
+  for (const [served, img] of Object.entries(favicons)) {
+    icons[publicPath(served)] = img;
+    icons[sitePath(served)] = img;
+  }
+  const icoImages = [favicons[FAVICON_FILES.png16], favicons[FAVICON_FILES.png32]];
   const check = process.argv.includes("--check");
   let stale = false;
+  for (const file of [publicPath(FAVICON_FILES.ico), sitePath(FAVICON_FILES.ico)]) {
+    if (sameIco(file, icoImages)) continue;
+    if (check) {
+      console.error(`${file} is out of date (the favicon source changed). Run: pnpm theme`);
+      stale = true;
+    } else {
+      writeFileSync(file, encodeIco(icoImages.map((img) => ({ size: img.width, bytes: encodePng(img) }))));
+      console.log(`Wrote ${file}`);
+    }
+  }
   for (const [file, img] of Object.entries(icons)) {
     if (samePixels(file, img)) continue;
     if (check) {

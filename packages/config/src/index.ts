@@ -269,6 +269,28 @@ export const productSchema = z.object({
       logo: z.string().startsWith("/"),
       favicon: z.string().startsWith("/"),
       /**
+       * The site header (D-095): the product name as text (today's look), the logo (`logo`, served
+       * by the site) or both. logoHeight in px; the link keeps its 44 px tap target.
+       */
+      header: z
+        .object({
+          show: z.enum(["name", "logo", "logo_name"]).default("name"),
+          logoHeight: z.int().min(20).max(64).default(32),
+        })
+        .default({ show: "name", logoHeight: 32 }),
+      /**
+       * Hand-made PNG favicons, relative to apps/app (D-095), exactly 16 and 32 px. Unset: `pnpm theme`
+       * scales pwa.icon down. Either way it writes /favicon-16.png, /favicon-32.png and /favicon.ico
+       * to the app and the site, linked next to the SVG favicon.
+       */
+      faviconPng: z
+        .object({
+          "16": z.string().regex(/^[\w-]+(\/[\w-]+)*\.png$/, "a PNG path relative to apps/app"),
+          "32": z.string().regex(/^[\w-]+(\/[\w-]+)*\.png$/, "a PNG path relative to apps/app"),
+        })
+        .nullable()
+        .default(null),
+      /**
        * Whether the product has a dark mode (D-076). false = light only: no colors.dark needed, no
        * .dark CSS, the app never switches to dark (no Tampilan row in Akun), the site loads no
        * /theme.js, and both say color-scheme "light". Default true: today's behaviour.
