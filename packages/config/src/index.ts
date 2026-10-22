@@ -269,7 +269,7 @@ export const productSchema = z.object({
       logo: z.string().startsWith("/"),
       favicon: z.string().startsWith("/"),
       /**
-       * The site header (D-095): the product name as text (today's look), the logo (`logo`, served
+       * The site header (D-096): the product name as text (today's look), the logo (`logo`, served
        * by the site) or both. logoHeight in px; the link keeps its 44 px tap target.
        */
       header: z
@@ -279,7 +279,7 @@ export const productSchema = z.object({
         })
         .default({ show: "name", logoHeight: 32 }),
       /**
-       * Hand-made PNG favicons, relative to apps/app (D-095), exactly 16 and 32 px. Unset: `pnpm theme`
+       * Hand-made PNG favicons, relative to apps/app (D-096), exactly 16 and 32 px. Unset: `pnpm theme`
        * scales pwa.icon down. Either way it writes /favicon-16.png, /favicon-32.png and /favicon.ico
        * to the app and the site, linked next to the SVG favicon.
        */

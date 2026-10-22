@@ -1,4 +1,4 @@
-// The site header's logo (D-095): its width at the configured height, read from the file the site
+// The site header's logo (D-096): its width at the configured height, read from the file the site
 // serves, so the <img> reserves its space (no layout shift). SVG: viewBox, else width/height; PNG: IHDR.
 import { readFileSync } from "node:fs";
 
