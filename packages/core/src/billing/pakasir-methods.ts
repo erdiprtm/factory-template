@@ -5,6 +5,8 @@
 export type PakasirMethod = {
   code: string;
   label: string;
+  /** The bank's short name, for compact chips ("VA BRI · BNI", D-098). QRIS has none. */
+  bank?: string;
   kind: "qris" | "va";
   minIdr: number;
   maxIdr: number;
@@ -12,15 +14,50 @@ export type PakasirMethod = {
 
 export const PAKASIR_METHODS: readonly PakasirMethod[] = [
   { code: "qris", label: "QRIS", kind: "qris", minIdr: 500, maxIdr: 10_000_000 },
-  { code: "bri_va", label: "BRI Virtual Account", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
-  { code: "bni_va", label: "BNI Virtual Account", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
-  { code: "cimb_niaga_va", label: "CIMB Niaga Virtual Account", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
-  { code: "maybank_va", label: "Maybank Virtual Account", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
-  { code: "danamon_va", label: "Danamon Virtual Account", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
-  { code: "bnc_va", label: "Bank Neo Commerce Virtual Account", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
-  { code: "bsi_va", label: "BSI Virtual Account", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
-  { code: "muamalat_va", label: "Muamalat Virtual Account", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
-  { code: "ocbc_va", label: "OCBC Virtual Account", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
+  { code: "bri_va", label: "BRI Virtual Account", bank: "BRI", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
+  { code: "bni_va", label: "BNI Virtual Account", bank: "BNI", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
+  {
+    code: "cimb_niaga_va",
+    label: "CIMB Niaga Virtual Account",
+    bank: "CIMB Niaga",
+    kind: "va",
+    minIdr: 10_000,
+    maxIdr: 50_000_000,
+  },
+  {
+    code: "maybank_va",
+    label: "Maybank Virtual Account",
+    bank: "Maybank",
+    kind: "va",
+    minIdr: 10_000,
+    maxIdr: 50_000_000,
+  },
+  {
+    code: "danamon_va",
+    label: "Danamon Virtual Account",
+    bank: "Danamon",
+    kind: "va",
+    minIdr: 10_000,
+    maxIdr: 50_000_000,
+  },
+  {
+    code: "bnc_va",
+    label: "Bank Neo Commerce Virtual Account",
+    bank: "BNC",
+    kind: "va",
+    minIdr: 10_000,
+    maxIdr: 50_000_000,
+  },
+  { code: "bsi_va", label: "BSI Virtual Account", bank: "BSI", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
+  {
+    code: "muamalat_va",
+    label: "Muamalat Virtual Account",
+    bank: "Muamalat",
+    kind: "va",
+    minIdr: 10_000,
+    maxIdr: 50_000_000,
+  },
+  { code: "ocbc_va", label: "OCBC Virtual Account", bank: "OCBC", kind: "va", minIdr: 10_000, maxIdr: 50_000_000 },
 ];
 
 export const pakasirMethod = (code: string): PakasirMethod | undefined => PAKASIR_METHODS.find((m) => m.code === code);

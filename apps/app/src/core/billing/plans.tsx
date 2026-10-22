@@ -1,7 +1,7 @@
 import {
   comparedPlan,
   highlightedPlan,
-  methodLabel,
+  methodChips,
   pakasirMethodsFor,
   perWeekIdr,
   savingVs,
@@ -135,9 +135,10 @@ export function PlanCards() {
       <View className="gap-1">
         <Text variant="muted">{t("pricing.methods")}</Text>
         <View className="flex-row flex-wrap gap-2">
-          {product.payments.methods.map((m) => (
+          {/* Compact (D-098): bank virtual accounts share one chip, "VA BRI · BNI · BSI". */}
+          {methodChips(product.payments.methods).map((m) => (
             <View key={m} className="rounded-md border border-border px-2 py-1">
-              <Text className="text-xs font-semibold text-foreground">{methodLabel(m)}</Text>
+              <Text className="text-xs font-semibold text-foreground">{m}</Text>
             </View>
           ))}
         </View>

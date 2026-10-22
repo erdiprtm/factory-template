@@ -49,7 +49,7 @@ export const id = {
   "home.openExample": "Buka fitur contoh (berbayar)",
   "home.pricing": "Langganan",
   "pricing.title": "Pilih paket",
-  "pricing.subtitle": "Bayar sekali, tanpa perpanjangan otomatis. Beli lebih awal, sisa hari tidak hangus.",
+  "pricing.subtitle": "Bayar sekali · tanpa perpanjangan otomatis",
   "pricing.months": "bulan",
   "pricing.best": "Paling hemat",
   "pricing.buy": "Bayar",
@@ -69,6 +69,7 @@ export const id = {
   "billing.return.timeout":
     "Pembayaran belum terkonfirmasi. Kalau sudah bayar, akses aktif otomatis dalam beberapa menit.",
   "billing.return.home": "Ke beranda",
+  "billing.return.until": "Aktif sampai",
   // The app's own checkout (Pakasir, D-092). {name} = the method's name.
   "billing.pay.choose": "Pilih cara bayar",
   "billing.pay.back": "Kembali ke paket",
@@ -180,6 +181,8 @@ export const id = {
   "quiz.summary.subtitle": "Kami susun dari jawabanmu. Simpan rencanamu dengan masuk lewat email.",
   "quiz.summary.answers": "Jawabanmu",
   "quiz.summary.cta": "Simpan rencanaku",
+  "quiz.summary.subtitleTry": "Kami susun dari jawabanmu. Coba dulu gratis, tanpa daftar.",
+  "quiz.summary.ctaTry": "Coba sekarang",
   "pricing.perWeek": "/minggu",
   "pricing.save": "Hemat",
   "pricing.vs": "dibanding",

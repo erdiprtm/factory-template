@@ -71,6 +71,7 @@ describe("checkout → webhook → access", () => {
     expect(redirectUrl).toContain(paymentId);
     expect(await (await get(`/api/billing/status?paymentId=${paymentId}`, cookie)).json()).toMatchObject({
       status: "pending",
+      accessUntil: null,
     });
 
     // Bad signature → 401
@@ -84,11 +85,14 @@ describe("checkout → webhook → access", () => {
     const replay = hook();
     expect((await app.request(replay.url, replay, env)).status).toBe(200);
 
-    expect(await (await get(`/api/billing/status?paymentId=${paymentId}`, cookie)).json()).toMatchObject({
-      status: "paid",
-      amountIdr: lastPlan.priceIdr,
-    });
-    expect(await db.select().from(entitlements).where(eq(entitlements.paymentId, paymentId))).toHaveLength(1);
+    const paid = await (await get(`/api/billing/status?paymentId=${paymentId}`, cookie)).json<{
+      accessUntil: string | null;
+    }>();
+    expect(paid).toMatchObject({ status: "paid", amountIdr: lastPlan.priceIdr });
+    const granted = await db.select().from(entitlements).where(eq(entitlements.paymentId, paymentId));
+    expect(granted).toHaveLength(1);
+    // "Aktif sampai" on the return screen (D-098): the access this payment just granted ends then.
+    expect(paid.accessUntil).toBe(granted[0]?.expiresAt.toISOString());
     expect((await get(PAID, cookie)).status).toBe(200);
     expect(capturedEmails().last(email)?.subject).toMatch(/Pembayaran .* berhasil/);
     expect(capturedEmails().last(email)?.replyTo).toBe(config.legal.contactEmail);

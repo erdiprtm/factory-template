@@ -1959,3 +1959,43 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - `port-free.mjs` is unchanged. It still stops the run within a second if the port is taken (two runs in the same repo, or a leftover server).
   - CI is unaffected: one run per job.
 - **Tests:** `e2e-port.test.mjs` checks the port is stable, in range and different for the four slugs; this repo's port is usable; the override works and bad values are refused.
+
+## D-098: The quiz summary says what comes next and can change an answer; a footer under the plans; compact payment methods; "Aktif sampai" after paying; one verify at a time (2026-10-23)
+
+- **Problem (Myna Fit, template-feedback-2026-10-22c, and the ScreenDesign team's sprint notes).**
+  - **The quiz summary assumed sign-up came next.** It said "Simpan rencanamu dengan masuk lewat email" / "Simpan rencanaku", even when `funnel.anonymousEntry` sends the visitor to a free first use. The button is core's, so the product couldn't fix it.
+  - **`pricing.subtitle` ran to two sentences** on a small screen.
+  - **No place for a short FAQ under the plans.** `pricingIntro` is above them, where an FAQ pushes the 12-month button off a 375 px screen.
+  - **The summary's slot could only read answers** (D-094). It couldn't offer a "Hari latihan" selector that updates the plan live.
+  - **The return screen didn't say how long access lasts.** Myna Fit had built its own `GET /api/fit/access` for that.
+  - **Payment methods ran as one long sentence on the site's /harga** ("Bayar dengan QRIS, BRI Virtual Account, BNI Virtual Account, …"). The site FAQ also said "e-wallet (seperti DANA, ShopeePay, OVO)" whatever the provider took.
+  - **Five Myna Fit sessions ran `pnpm verify` at once.** Load went past 100, `template-sync` tests hit vitest's 5 s timeout, and E2E servers raced for one port. D-097 separates repos but not worktrees of one repo.
+- **Decision: quiz summary.**
+  - `QuizRunner`'s `tryFirst` (set by `/quiz` when `anonymousEntry` is set and nobody is signed in) picks `quiz.summary.subtitleTry` / `ctaTry` ("Kami susun dari jawabanmu. Coba dulu gratis, tanpa daftar." / "Coba sekarang").
+  - `slots.labels.quizSummaryCta` (one of the product's message keys) names the button in the product's words, e.g. "Foto makanan pertamaku". It's the only label a product can set; consent and the button's action stay core's.
+  - `QuizSummaryBodySlotProps.onChange(stepId, value)` changes one earlier answer. Core checks that it's a step of this quiz and `isValidAnswer`, saves it as a new completion (`completedAt` = now, so `sendQuiz` sends the latest answers after sign-in) and redraws. It returns `false` and changes nothing for a refused answer.
+- **Decision: /pricing.**
+  - `pricing.subtitle` is now "Bayar sekali · tanpa perpanjangan otomatis". The early-renewal sentence was already a question in the site's FAQ.
+  - `slots.pricingFooter` renders under the plans, on the web only like the plans. It gets the compact methods, whether the user has access now, and `t`.
+- **Decision: compact methods.**
+  - `methodChips(codes)` (`@factory/core/pricing`) gives one chip per method, but all bank virtual accounts share one ("VA BRI · BNI · BSI", from a new `bank` short name on the Pakasir methods), placed where the first VA was in config.
+  - The app's plan list, the site's /harga and the `pricingFooter` slot use it. The site FAQ's "Bisa bayar pakai apa?" now lists the same chips from config.
+- **Decision: "Aktif sampai".** `GET /api/billing/status` adds `accessUntil` (the user's latest entitlement end, `latestExpiry`, now exported) once the payment is paid. The default return screen shows "Aktif sampai <tanggal>". `BillingReturnSlotProps` gets `accessUntil` (formatted for the locale) and `accessUntilIso`.
+- **Decision: one verify at a time.**
+  - `pnpm verify` now runs through `scripts/verify-lock.mjs`. The old chain is `verify:run`.
+  - The lock is a directory in the OS temp dir (an atomic mkdir), shared by every factory repo and worktree of this user. It records the holder's pid, folder and start time.
+  - A second run waits, printing who holds the lock every 30 s, and gives up after 60 minutes. A lock whose holder died is taken over.
+  - CI (one machine per job) and `VERIFY_LOCK=off` skip it.
+  - `template-sync.test.mjs` cases get 30 s each: they run real git, and a real hang still fails.
+  - Not done: `myna.notice` is Myna Fit's own key (`features/myna`), so Myna Fit shortens it itself.
+- **Tests:**
+  - core: chips (grouping, order, Duitku codes, empty);
+  - API: `accessUntil` is null while pending and equals the granted entitlement's end once paid;
+  - app render (mocked slots, core keys only):
+    - the summary's wording with and without `tryFirst`;
+    - the product's label wins;
+    - `onChange` saves a valid answer as a new completion and refuses an out-of-range value or an unknown step;
+    - `pricingFooter` is under the plans with the methods and access;
+    - the return screen shows "Aktif sampai 12 Oktober 2027" and passes both forms to a slot;
+  - site build: the chips and the FAQ come from config;
+  - `verify-lock`: one holder, freed only by its holder, a dead holder's lock taken over, a lock being created left alone.

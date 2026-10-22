@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { cheapestPerWeekIdr, comparedPlan, highlightedPlan, methodLabel, perWeekIdr, savingVs } from "./index";
+import {
+  cheapestPerWeekIdr,
+  comparedPlan,
+  highlightedPlan,
+  methodChips,
+  methodLabel,
+  perWeekIdr,
+  savingVs,
+} from "./index";
 
 const six = { id: "6m", months: 6, priceIdr: 149_000 };
 const twelve = { id: "12m", months: 12, priceIdr: 249_000 };
@@ -23,5 +31,12 @@ describe("pricing framing", () => {
     expect(comparedPlan([six, twelve], twelve)?.id).toBe("6m");
     expect(comparedPlan([six, twelve], six)).toBeUndefined();
     expect([methodLabel("SHOPEEPAY"), methodLabel("NEWPAY")]).toEqual(["ShopeePay", "NEWPAY"]);
+  });
+
+  it("method chips are compact: bank virtual accounts share one, where the first was (D-098)", () => {
+    expect(methodChips(["qris", "bri_va", "bni_va", "bsi_va"])).toEqual(["QRIS", "VA BRI · BNI · BSI"]);
+    expect(methodChips(["bri_va", "qris", "cimb_niaga_va"])).toEqual(["VA BRI · CIMB Niaga", "QRIS"]);
+    expect(methodChips(["QRIS", "SHOPEEPAY", "VIRTUAL_ACCOUNT"])).toEqual(["QRIS", "ShopeePay", "Virtual Account"]);
+    expect(methodChips([])).toEqual([]);
   });
 });

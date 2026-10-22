@@ -56,6 +56,20 @@ export type QuizSummaryBodySlotProps = {
   recap: { title: string; value: string }[];
   /** The raw answers by step id (D-094), read-only, for numbers the product derives from them. */
   answers: Readonly<QuizAnswers>;
+  /**
+   * Change one earlier answer from the summary (D-098), e.g. a "Hari latihan" selector. Core
+   * validates it (a step of this quiz, isValidAnswer), saves it and redraws the summary; it returns
+   * false and changes nothing when the answer is refused. Consent and the "next" button stay core's.
+   */
+  onChange: (stepId: string, value: QuizAnswer) => boolean;
+};
+
+export type PricingFooterSlotProps = {
+  /** The payment methods as compact labels ("QRIS", "VA BRI · BNI"), from config. */
+  methods: string[];
+  /** The user has access now (a renewal, not a first purchase). */
+  hasAccess: boolean;
+  t: (key: MessageKey) => string;
 };
 
 export type BillingReturnSlotProps = {
@@ -66,6 +80,10 @@ export type BillingReturnSlotProps = {
   done: boolean;
   homeLabel: string;
   onHome: () => void;
+  /** Paid: when the user's access now ends, formatted for the locale ("12 Okt 2027"), D-098. */
+  accessUntil: string | null;
+  /** The same moment as an ISO string, for a product's own formatting. */
+  accessUntilIso: string | null;
 };
 
 export type CoreSlots = {
@@ -85,6 +103,16 @@ export type CoreSlots = {
   /** /consent and the pre-signup consent gate. The checkboxes and button stay core's. */
   consentHeader?: ComponentType<HeaderSlotProps & { where: "account" | "anonymous" }>;
   pricingIntro?: ComponentType<HeaderSlotProps>;
+  /**
+   * Under the plan cards on /pricing (D-098): e.g. a short FAQ, which above the plans would push the
+   * buy buttons off a small screen. Display only; web only, like the plans (native shows no prices).
+   */
+  pricingFooter?: ComponentType<PricingFooterSlotProps>;
+  /**
+   * The product's own wording for a core button, as one of its message keys (D-098). quizSummaryCta:
+   * the summary's "next" button, e.g. "Foto makanan pertamaku" when the quiz leads to a free first use.
+   */
+  labels?: { quizSummaryCta?: MessageKey };
   /** One plan on /pricing and in UpgradePrompt (web only: native never shows prices). */
   planCard?: ComponentType<PlanCardSlotProps>;
   /** The content of one bottom tab; core keeps the press target, role and navigation. */

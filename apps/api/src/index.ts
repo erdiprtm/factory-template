@@ -26,7 +26,7 @@ import {
   revokeConsent,
 } from "@factory/core/consents";
 import { capturedDevEmails } from "@factory/core/email";
-import { grantTrial, hasAccess } from "@factory/core/entitlements";
+import { grantTrial, hasAccess, latestExpiry } from "@factory/core/entitlements";
 import { claimAnonymousFiles, deleteUserFiles, type FileBucket, fileKey, fileRow } from "@factory/core/files";
 import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
 import { QUIZ_MAX_STEPS } from "@factory/core/quiz";
@@ -455,7 +455,15 @@ const routes = app
       row.status === "paid"
         ? await paidEventKind(db(c.env), { id: query.data.paymentId, userId, paidAt: row.paidAt })
         : null;
-    return c.json({ status: row.status, planId: row.planId, amountIdr: row.amountIdr, event });
+    // Paid: when access now ends, for "Aktif sampai <tanggal>" on the return screen (D-098).
+    const until = row.status === "paid" ? await latestExpiry(db(c.env), userId) : null;
+    return c.json({
+      status: row.status,
+      planId: row.planId,
+      amountIdr: row.amountIdr,
+      event,
+      accessUntil: until ? until.toISOString() : null,
+    });
   })
   // The app's own checkout screen (Pakasir, D-092): what to pay, owner only.
   .get("/billing/charge", async (c) => {

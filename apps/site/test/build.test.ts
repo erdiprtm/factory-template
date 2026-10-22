@@ -1,4 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { methodChips } from "@factory/core/pricing";
 import { describe, expect, it } from "vitest";
 import product from "../../../product.config";
 
@@ -44,6 +45,15 @@ describe("built site", () => {
       if (show === "logo") expect(link).toContain(`alt="${product.name}"`);
       else expect(link).toMatch(/<img[^>]*\salt(="")?[\s>]/);
     }
+  });
+
+  it("payment methods are compact chips from config, and the FAQ lists the same ones (D-098)", () => {
+    const html = page("harga/index.html");
+    const chips = methodChips(product.payments.methods);
+    const block = html.match(/data-testid="pay-methods"[\s\S]*?<\/div>/)?.[0] ?? "";
+    for (const chip of chips) expect(block).toContain(`>${chip}</span>`);
+    expect(html).toContain(`${chips.join(", ")}.`);
+    expect(html).not.toContain("e-wallet (seperti DANA");
   });
 
   it("prices come from product.config.ts (no code edits needed)", () => {
