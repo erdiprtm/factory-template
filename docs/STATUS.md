@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-22: E2E port per repo (D-097)
+
+- E2E's `wrangler dev` listens on a port derived from the product slug (8800–9799; `E2E_PORT` overrides), so the template's and a product's `pnpm verify` can run at the same time.
+
+---
+
 ## 2026-10-22: Site header logo and PNG/ICO favicons (D-096), Myna Fit logo follow-up
 
 - `brand.header` (`name` / `logo` / `logo_name`, `logoHeight`) on the site header, with the logo's width read from the served file.
