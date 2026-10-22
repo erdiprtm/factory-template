@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-23: Site plan terms once under the cards (D-099), Myna Fit landing feedback
+
+- The per-card "bayar sekali, tanpa perpanjangan otomatis" moved to one line under the plans. The site's method chips were already in D-098.
+
+---
+
 ## 2026-10-23: Quiz summary wording and onChange, pricing footer, compact methods, "Aktif sampai", one verify at a time (D-098)
 
 - Myna Fit template-feedback-2026-10-22c plus the ScreenDesign team's notes. `myna.notice` is product-owned: Myna Fit shortens it.

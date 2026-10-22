@@ -28,9 +28,7 @@ const saving = (plan: (typeof product.plans)[number]) => {
         {saving(plan) && <p class="text-sm font-semibold text-primary">{saving(plan)}</p>}
         <h3 class="text-lg font-semibold">{plan.label}</h3>
         <p class="text-4xl font-extrabold">{formatIdr(plan.priceIdr)}</p>
-        <p class="text-sm text-muted-foreground">
-          ≈ {formatIdr(perWeekIdr(plan))}/minggu · bayar sekali, tanpa perpanjangan otomatis
-        </p>
+        <p class="text-sm text-muted-foreground">≈ {formatIdr(perWeekIdr(plan))}/minggu</p>
         <a
           href={`${appUrl}/sign-in`}
           data-event="cta_tap"
@@ -46,6 +44,8 @@ const saving = (plan: (typeof product.plans)[number]) => {
     ))
   }
 </div>
+{/* The terms once, under the cards (D-099), not repeated on each. */}
+<p class="mt-5 text-center text-sm text-muted-foreground" data-testid="plan-terms">Bayar sekali · tanpa perpanjangan otomatis</p>
 {/* Compact chips (D-098): bank virtual accounts share one, "VA BRI · BNI · BSI". */}
 <div class="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground" data-testid="pay-methods">
   <span>Bayar dengan</span>

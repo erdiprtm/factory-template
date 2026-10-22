@@ -47,6 +47,12 @@ describe("built site", () => {
     }
   });
 
+  it("the plans' terms show once under the cards, not on every card (D-099)", () => {
+    const html = page("harga/index.html");
+    expect(html.match(/tanpa perpanjangan otomatis<\/p>/g) ?? []).toHaveLength(1);
+    expect(html).toContain('data-testid="plan-terms">Bayar sekali · tanpa perpanjangan otomatis</p>');
+  });
+
   it("payment methods are compact chips from config, and the FAQ lists the same ones (D-098)", () => {
     const html = page("harga/index.html");
     const chips = methodChips(product.payments.methods);

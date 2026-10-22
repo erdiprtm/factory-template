@@ -1999,3 +1999,14 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
     - the return screen shows "Aktif sampai 12 Oktober 2027" and passes both forms to a slot;
   - site build: the chips and the FAQ come from config;
   - `verify-lock`: one holder, freed only by its holder, a dead holder's lock taken over, a lock being created left alone.
+
+## D-099: The site's plan terms show once under the cards (2026-10-23)
+
+- **Problem (Myna Fit, template-feedback-2026-10-23, landing P-076).**
+  - Every plan card on the site's /harga and landing ended with "≈ Rp…/minggu · bayar sekali, tanpa perpanjangan otomatis", so the same terms repeated on each card.
+  - The same feedback's other ask, the payment methods as short chips ("VA BRI"), was already done in D-098.
+- **Decision.**
+  - Each card keeps only its per-week price.
+  - "Bayar sekali · tanpa perpanjangan otomatis" shows once under the cards, with the same words as the app's `pricing.subtitle` (D-098), then the payment-method chips.
+  - The /harga meta description and the terms of service still say it in full.
+- **Test:** the built /harga shows the terms exactly once, in the line under the cards.
