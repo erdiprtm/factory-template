@@ -1,3 +1,4 @@
+import { methodChips } from "@factory/core/pricing";
 import registry from "../../../../factory.json";
 import product from "../../../../product.config";
 import { aiProcessorLine, fillTemplate, paymentProcessorLine, paymentProcessorName } from "./legal";
@@ -68,7 +69,8 @@ export const faqs = [
   },
   {
     q: "Bisa bayar pakai apa?",
-    a: "QRIS, e-wallet (seperti DANA, ShopeePay, OVO), dan virtual account bank.",
+    // From config (D-098), so a product on another provider never lists methods it doesn't take.
+    a: `${methodChips(product.payments.methods).join(", ")}.`,
   },
   {
     q: "Ada masa coba gratis?",

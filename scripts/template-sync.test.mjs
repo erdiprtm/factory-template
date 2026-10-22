@@ -2,8 +2,12 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { manualStep, templateSync } from "./template-sync.mjs";
+
+// Every case runs real git in a temp repo: on a loaded laptop (several verify runs at once, load
+// over 100) some took over vitest's 5 s default (D-098). 30 s each; a real hang still fails.
+vi.setConfig({ testTimeout: 30_000 });
 
 // D-061: a product with NO shared history gets exactly the template's changes since its last sync.
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8" });

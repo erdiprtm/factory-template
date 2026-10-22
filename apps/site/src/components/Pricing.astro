@@ -1,5 +1,5 @@
 ---
-import { comparedPlan, highlightedPlan, methodLabel, perWeekIdr, savingVs } from "@factory/core/pricing";
+import { comparedPlan, highlightedPlan, methodChips, perWeekIdr, savingVs } from "@factory/core/pricing";
 import { appUrl, formatIdr, product } from "../lib/site";
 // Plans come straight from product.config.ts: changing prices needs no code edits. Same framing
 // as the app's paywall (D-037): per week, and the highlighted plan's saving.
@@ -46,9 +46,11 @@ const saving = (plan: (typeof product.plans)[number]) => {
     ))
   }
 </div>
-<p class="mt-5 text-center text-sm text-muted-foreground">
-  Bayar dengan {product.payments.methods.map(methodLabel).join(", ")}
-</p>
+{/* Compact chips (D-098): bank virtual accounts share one, "VA BRI · BNI · BSI". */}
+<div class="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground" data-testid="pay-methods">
+  <span>Bayar dengan</span>
+  {methodChips(product.payments.methods).map((m) => <span class="rounded-md border border-border px-2 py-0.5 text-xs font-semibold text-foreground">{m}</span>)}
+</div>
 {
   product.trial.enabled && (
     <p class="mt-5 text-center text-sm text-muted-foreground">

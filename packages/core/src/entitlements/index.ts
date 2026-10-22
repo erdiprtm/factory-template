@@ -22,7 +22,8 @@ export async function hasAccess(db: Db, userId: string, now = new Date()): Promi
   return row !== undefined;
 }
 
-async function latestExpiry(db: Db, userId: string): Promise<Date | null> {
+/** When the user's latest access ends (past or future), or null without any (D-098: "Aktif sampai"). */
+export async function latestExpiry(db: Db, userId: string): Promise<Date | null> {
   const row = await db
     .select({ expiresAt: entitlements.expiresAt })
     .from(entitlements)

@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-23: Quiz summary wording and onChange, pricing footer, compact methods, "Aktif sampai", one verify at a time (D-098)
+
+- Myna Fit template-feedback-2026-10-22c plus the ScreenDesign team's notes. `myna.notice` is product-owned: Myna Fit shortens it.
+
+---
+
 ## 2026-10-22: E2E port per repo (D-097)
 
 - E2E's `wrangler dev` listens on a port derived from the product slug (8800–9799; `E2E_PORT` overrides), so the template's and a product's `pnpm verify` can run at the same time.

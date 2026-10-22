@@ -1,3 +1,4 @@
+import { methodChips } from "@factory/core/pricing";
 import { Button, ErrorText, Screen, Text } from "@factory/ui";
 import { useEffect, useState } from "react";
 import { Platform, View } from "react-native";
@@ -41,6 +42,7 @@ export function Pricing() {
   }
 
   const Intro = slots.pricingIntro;
+  const Footer = slots.pricingFooter;
   return (
     <Screen>
       {Intro ? (
@@ -52,6 +54,10 @@ export function Pricing() {
         </View>
       )}
       <PlanCards />
+      {/* Under the plans (D-098), so the buy buttons stay on a small screen. Web only, like the plans. */}
+      {Footer ? (
+        <Footer methods={methodChips(product.payments.methods)} hasAccess={Boolean(me.data?.access)} t={t} />
+      ) : null}
       {product.trial.enabled && !me.data?.access ? (
         <Button variant="ghost" onPress={startTrial} disabled={busy}>
           <Text>{`${t("pricing.trial")} (${product.trial.days} ${t("pricing.trialDays")})`}</Text>

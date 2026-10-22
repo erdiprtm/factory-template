@@ -23,7 +23,7 @@ The full design is in `FACTORY_BLUEPRINT.md`. Progress is in `docs/STATUS.md`, d
 ```sh
 pnpm install          # once, and after pulling dependency changes
 pnpm dev              # app (Expo web :8081) + API (wrangler dev :8787) locally
-pnpm verify           # lint + migration safety + typecheck + test + build + e2e: must be green
+pnpm verify           # lint + migration safety + typecheck + test + build + e2e: must be green (one at a time per laptop, D-098)
 pnpm db:generate      # new migration from schema changes (packages/db)
 pnpm db:migrate:local # apply migrations to the local D1;  pnpm db:seed:local loads dev data
 pnpm theme            # regenerate files derived from product.config.ts (theme CSS, the app's validated config JSON, and the installable app's manifest, head tags and icons, D-080) after ANY config change

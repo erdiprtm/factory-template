@@ -40,6 +40,8 @@ export default function QuizScreen() {
       : consentPlacement === "quiz_last"
         ? definition.steps.length - 1
         : undefined;
-  const runner = <QuizRunner quiz={definition} onDone={done} consentAt={consentAt} />;
+  // A visitor who gets a free first use goes there next, not to sign-up (D-098): the summary says so.
+  const tryFirst = Boolean(anonymousEntry) && !me.data?.user;
+  const runner = <QuizRunner quiz={definition} onDone={done} consentAt={consentAt} tryFirst={tryFirst} />;
   return anonymousEntry ? <AnonymousConsentGate>{runner}</AnonymousConsentGate> : runner;
 }

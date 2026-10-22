@@ -52,5 +52,29 @@ const METHOD_LABELS: Record<string, string> = {
 /** Display names for product.config.ts payments.methods (unknown codes are shown as given). */
 export const methodLabel = (code: string) => METHOD_LABELS[code] ?? pakasirMethod(code)?.label ?? code;
 
+/**
+ * Compact chips for /pricing (D-098): one per method, except bank virtual accounts, which share one
+ * chip ("VA BRI · BNI · BSI"). Config order is kept, the VA chip where the first VA was.
+ */
+export function methodChips(codes: readonly string[]): string[] {
+  const chips: string[] = [];
+  const banks: string[] = [];
+  let vaAt = -1;
+  for (const code of codes) {
+    const bank = pakasirMethod(code)?.bank;
+    if (!bank) {
+      chips.push(methodLabel(code));
+      continue;
+    }
+    if (vaAt === -1) {
+      vaAt = chips.length;
+      chips.push("");
+    }
+    banks.push(bank);
+  }
+  if (vaAt !== -1) chips[vaAt] = `VA ${banks.join(" · ")}`;
+  return chips;
+}
+
 // Pakasir's method codes, labels and limits, for the app's own checkout (D-092).
 export { PAKASIR_METHODS, type PakasirMethod, pakasirMethod, pakasirMethodsFor } from "../billing/pakasir-methods";

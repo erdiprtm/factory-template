@@ -25,28 +25,28 @@ import { loadQuizProgress, saveQuizProgress } from "./storage";
  *
  * `consentAt` (D-074): the step under which a visitor gives the pre-signup consent in one row.
  * That step can't be answered until the box is ticked, and answering it records the consent first.
+ *
+ * `tryFirst` (D-098): the summary leads to a free first use (funnel.anonymousEntry), not to sign-up,
+ * so its subtitle and button say so.
  */
-export function QuizRunner(props: { quiz: QuizDefinition<MessageKey>; onDone: () => void; consentAt?: number }) {
+export function QuizRunner(props: RunnerProps) {
   return props.consentAt === undefined ? <Runner {...props} consent={NO_CONSENT} /> : <RunnerWithConsent {...props} />;
 }
 
-const NO_CONSENT: InlineConsent = { needed: [], pending: false, ticked: true, accept: async () => true, row: null };
-
-function RunnerWithConsent(props: { quiz: QuizDefinition<MessageKey>; onDone: () => void; consentAt?: number }) {
-  return <Runner {...props} consent={useInlineConsent()} />;
-}
-
-function Runner({
-  quiz,
-  onDone,
-  consentAt,
-  consent,
-}: {
+type RunnerProps = {
   quiz: QuizDefinition<MessageKey>;
   onDone: () => void;
   consentAt?: number;
-  consent: InlineConsent;
-}) {
+  tryFirst?: boolean;
+};
+
+const NO_CONSENT: InlineConsent = { needed: [], pending: false, ticked: true, accept: async () => true, row: null };
+
+function RunnerWithConsent(props: RunnerProps) {
+  return <Runner {...props} consent={useInlineConsent()} />;
+}
+
+function Runner({ quiz, onDone, consentAt, tryFirst = false, consent }: RunnerProps & { consent: InlineConsent }) {
   const { t } = useI18n();
   const [answers, setAnswers] = useState(() => cleanAnswers(quiz, loadQuizProgress(quiz.id)?.answers));
   const [index, setIndex] = useState(() => firstOpenStep(quiz, answers));
@@ -72,8 +72,28 @@ function Runner({
     setIndex(at + 1);
   }
 
+  // From the summary (D-098): one earlier answer changed, validated like any other and saved as a
+  // new completion, so sendQuiz sends the latest answers after sign-in.
+  function change(stepId: string, value: QuizAnswer): boolean {
+    const step = quiz.steps.find((s) => s.id === stepId);
+    if (!step || !isValidAnswer(step, value)) return false;
+    const next = { ...answers, [stepId]: value };
+    setAnswers(next);
+    saveQuizProgress(quiz.id, { answers: next, completedAt: Date.now() });
+    return true;
+  }
+
   if (index >= quiz.steps.length)
-    return <Summary quiz={quiz} answers={answers} onBack={() => setIndex(quiz.steps.length - 1)} onDone={onDone} />;
+    return (
+      <Summary
+        quiz={quiz}
+        answers={answers}
+        onChange={change}
+        tryFirst={tryFirst}
+        onBack={() => setIndex(quiz.steps.length - 1)}
+        onDone={onDone}
+      />
+    );
   const step = quiz.steps[index] as QuizStep<MessageKey>;
   const total = quiz.steps.length;
   // Core's, under the step even when a product slot draws it: the slot can't skip the consent.
@@ -245,15 +265,22 @@ function StepInput({
 function Summary({
   quiz,
   answers,
+  onChange,
+  tryFirst,
   onBack,
   onDone,
 }: {
   quiz: QuizDefinition<MessageKey>;
   answers: Record<string, QuizAnswer>;
+  onChange: (stepId: string, value: QuizAnswer) => boolean;
+  tryFirst: boolean;
   onBack: () => void;
   onDone: () => void;
 }) {
   const { t, locale } = useI18n();
+  // What comes next decides the wording (D-098); a product's own button label wins.
+  const subtitle = t(tryFirst ? "quiz.summary.subtitleTry" : "quiz.summary.subtitle");
+  const cta = t(slots.labels?.quizSummaryCta ?? (tryFirst ? "quiz.summary.ctaTry" : "quiz.summary.cta"));
   const lineTexts = (quiz.summary?.(answers) ?? []).map((key) => t(key));
   // Answers translated and formatted for the locale ("71,5 kg" in Indonesian), for both views.
   const recap = recapAnswers(quiz, answers).map((r) => ({
@@ -268,17 +295,17 @@ function Summary({
   return (
     <Screen className="max-w-xl">
       {Header ? (
-        <Header title={t("quiz.summary.title")} subtitle={t("quiz.summary.subtitle")} />
+        <Header title={t("quiz.summary.title")} subtitle={subtitle} />
       ) : (
         <View className="gap-2">
           <Text variant="h1" role="heading">
             {t("quiz.summary.title")}
           </Text>
-          <Text variant="lead">{t("quiz.summary.subtitle")}</Text>
+          <Text variant="lead">{subtitle}</Text>
         </View>
       )}
       {Body ? (
-        <Body lines={lineTexts} recap={recap} answers={frozenAnswers(answers)} />
+        <Body lines={lineTexts} recap={recap} answers={frozenAnswers(answers)} onChange={onChange} />
       ) : (
         <>
           {lineTexts.length > 0 ? (
@@ -306,7 +333,7 @@ function Summary({
         </>
       )}
       <Button testID="quiz-done" onPress={onDone}>
-        <Text>{t("quiz.summary.cta")}</Text>
+        <Text>{cta}</Text>
       </Button>
       <Button variant="ghost" onPress={onBack}>
         <Text>{t("quiz.back")}</Text>

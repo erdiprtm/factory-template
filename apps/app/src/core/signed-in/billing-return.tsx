@@ -6,6 +6,7 @@ import { ActivityIndicator } from "react-native";
 import { slots } from "../../features/slots";
 import { api } from "../api";
 import { useRefreshMe } from "../auth/use-me";
+import { formatDate } from "../format";
 import { useI18n } from "../i18n";
 import { metaTrack } from "../marketing";
 import { InstallOffer } from "../pwa/install-card";
@@ -15,7 +16,7 @@ const TIMEOUT_MS = 90_000;
 
 /** Back from the provider. Polls our API (never trusts the redirect's resultCode). */
 export function BillingReturn() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { paymentId } = useLocalSearchParams<{ paymentId?: string }>();
   const router = useRouter();
   const refreshMe = useRefreshMe();
@@ -41,6 +42,8 @@ export function BillingReturn() {
   const state = status.data?.status;
   const event = status.data?.event;
   const amountIdr = status.data?.amountIdr;
+  const untilIso = state === "paid" ? (status.data?.accessUntil ?? null) : null;
+  const until = untilIso ? formatDate(untilIso, locale) : null;
   useEffect(() => {
     if (state === "paid") refreshMe();
     // purchase / renewal / payment_failed are sent by the server when the webhook lands (D-030).
@@ -71,6 +74,8 @@ export function BillingReturn() {
           done={done}
           homeLabel={t("billing.return.home")}
           onHome={() => router.replace("/")}
+          accessUntil={until}
+          accessUntilIso={untilIso}
         />
         {state === "paid" ? <InstallOffer placement="payment" onShownChange={setOffering} /> : null}
       </CenteredScreen>
@@ -83,6 +88,7 @@ export function BillingReturn() {
       <Text variant={state === "paid" ? "h2" : "lead"} accessibilityLiveRegion="polite" className="text-center">
         {text}
       </Text>
+      {until ? <Text variant="muted" className="text-center">{`${t("billing.return.until")} ${until}`}</Text> : null}
       {done ? (
         // With the install card on screen, its "Pasang" is the one filled button (D-081).
         <Button variant={offering ? "outline" : "default"} onPress={() => router.replace("/")}>
