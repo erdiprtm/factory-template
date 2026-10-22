@@ -1926,7 +1926,7 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - `POST /api/v2/payment-simulation/{slug}/{txn_id}` (header `X-Api-Key`, no body) marks a sandbox transaction paid and sends the webhook. It answers `{"success":true}` (the docs show `{"message":"Berhasil"}`); nothing reads it.
 - **SETUP_HUMAN 3c step 9** now gives the simulation command.
 
-## D-095: The site header can show the logo; PNG and ICO favicons from `pnpm theme` (2026-10-22)
+## D-096: The site header can show the logo; PNG and ICO favicons from `pnpm theme` (2026-10-22)
 
 - **Problem (Myna Fit, 2026-10-22, after its new logo).** Both changes sit in template-owned files, so the product couldn't make them.
   - `apps/site/src/layouts/Base.astro` always wrote the product name as text in the header, even for products whose logo is a lockup.

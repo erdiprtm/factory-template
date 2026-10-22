@@ -23,7 +23,7 @@ const ogImage = new URL(`/og/${og}.png`, Astro.site);
 const fullTitle = title === product.name ? title : `${title} | ${product.name}`;
 const year = new Date().getFullYear();
 const scheme = colorSchemeHead(product.brand.darkMode);
-// Header (D-095): the name as text, the logo, or both; the logo's width is read from the served file.
+// Header (D-096): the name as text, the logo, or both; the logo's width is read from the served file.
 const { show, logoHeight } = product.brand.header;
 // Astro builds from apps/site (pnpm --filter), so public/ is relative to the working directory.
 const logo = show === "name" ? null : logoSize(pathToFileURL(`${process.cwd()}/public/`), product.brand.logo, logoHeight);
@@ -39,7 +39,7 @@ const logo = show === "name" ? null : logoSize(pathToFileURL(`${process.cwd()}/p
     <link rel="canonical" href={canonical} />
     {minimal && <meta name="robots" content="noindex" />}
     <link rel="sitemap" href="/sitemap-index.xml" />
-    {/* PNG and ICO first (written by pnpm theme, D-095) for browsers and crawlers without SVG favicons. */}
+    {/* PNG and ICO first (written by pnpm theme, D-096) for browsers and crawlers without SVG favicons. */}
     <link rel="icon" href="/favicon.ico" sizes="16x16 32x32" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
