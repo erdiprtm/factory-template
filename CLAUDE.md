@@ -34,7 +34,7 @@ pnpm ai:eval          # compare AI models on the product's own photos (evals/, g
 
 - Migrations: see `packages/db/README.md`. Local only: `--local`. Remote databases are migrated **only by CI**.
 - Local sign-in: magic links are printed in the `wrangler dev` log (no email is sent without `RESEND_API_KEY`). Signing in from the Expo dev server (`:8081`) works: its origin is trusted in development only (D-061), and the link brings you back to `:8081`.
-- E2E needs Chromium once: `pnpm --filter @factory/e2e e2e:install`. It starts its own `wrangler dev` on :8788 (never reuses a running one, so `pnpm dev` can stay up) and stops at once if something else holds that port. `DEBUG=pw:webserver pnpm e2e` shows the server's log. Locally it runs 2 workers (`PW_WORKERS=<n>` to change, D-071).
+- E2E needs Chromium once: `pnpm --filter @factory/e2e e2e:install`. It starts its own `wrangler dev` on a port derived from the product slug (8800–9799, D-097; `E2E_PORT=<n>` overrides), never reuses a running one (so `pnpm dev` can stay up), and stops at once if something else holds that port. `DEBUG=pw:webserver pnpm e2e` shows the server's log. Locally it runs 2 workers (`PW_WORKERS=<n>` to change, D-071).
 - Preview URL: open a PR. CI comments `https://pr-<n>-<slug>-preview.<subdomain>.workers.dev` on it after the smoke test.
 - Native: `pnpm --filter @factory/app start` and scan the QR with Expo Go.
 

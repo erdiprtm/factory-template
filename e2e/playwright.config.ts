@@ -1,4 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
+import product from "../product.config";
+import { e2ePort } from "../scripts/e2e-port.mjs";
 
 // E2E against `wrangler dev` serving the built web app + API on one origin, with a local D1
 // and captured emails (APP_ENV=development). Run `pnpm build` first (pnpm e2e does).
@@ -7,6 +9,9 @@ import { defineConfig, devices } from "@playwright/test";
 // `wrangler dev` has old code or other vars, and another project's server on the port makes the
 // start-up time out. port-free.mjs stops the run at once instead. The server's log (stdout) is
 // hidden by Playwright; `DEBUG=pw:webserver pnpm e2e` shows it.
+//
+// The port comes from the product's slug (D-097), so the template's and each product's E2E can run
+// at the same time on one laptop. E2E_PORT=<port> overrides it.
 //
 // Its own local D1 and KV too (D-064): `--persist-to .wrangler/e2e`, emptied and migrated at the
 // start of every run, so counters (anonymous free uses per IP per day, rate limits) never carry
@@ -17,7 +22,7 @@ import { defineConfig, devices } from "@playwright/test";
 // on the server (sign-in mail, billing return) miss 5 s. PW_WORKERS overrides it. CI keeps
 // Playwright's defaults, so a slowdown there still shows.
 const CI = Boolean(process.env.CI);
-const PORT = 8788;
+const PORT = e2ePort(product.slug);
 const BASE = `http://localhost:${PORT}`;
 const STATE = "--persist-to .wrangler/e2e";
 

@@ -1946,3 +1946,16 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - `logo.mjs`: SVG viewBox, width and height, PNG, other formats;
   - gen-theme: scaled and hand-made favicons, a hand-made one at the wrong size refused, an ICO round trip, the favicon tags in `index.html` with and without PWA, the files present for app and site;
   - the built site: the favicon links come before the SVG one at the right sizes, and the header matches `brand.header`. With the template temporarily set to `"logo"` and to `"logo_name"` (36 px), the build test passed, and the header link measured 44 px with the logo at 36×36 in the browser. The config was then reverted.
+
+## D-097: Each repo's E2E server gets its own port, from the product slug (2026-10-22)
+
+- **Problem.** Both the template's and Myna Fit's E2E started `wrangler dev` on :8788 (D-051). Their two Claude sessions run `pnpm verify` on the same laptop.
+  - When both started at about the same time, each passed `port-free.mjs`'s check, and one lost with workerd's `bind(): Address already in use`. Every one of its E2E tests then failed with connection refused.
+  - When they didn't start together, the second run stopped at once on "Port 8788 is already in use".
+  - The sessions agreed on an "E2E start / done" handshake as a stopgap.
+- **Decision.** `scripts/e2e-port.mjs` `e2ePort(slug)`: 8800 + FNV-1a(slug) mod 1000, skipping 8787 (`pnpm dev`) and 9229 (the inspector). `e2e/playwright.config.ts` uses it for `--port`, `AUTH_HOSTS` and the base URL.
+  - It's stable per repo and differs between products: today the template gets 9042, myna-fit 8884, myna-flow 9077 and myna-health 9407.
+  - `E2E_PORT=<n>` overrides it, for a clash with something else on the laptop. A non-integer, below 1024, above 65535, 8787 or 9229 is refused.
+  - `port-free.mjs` is unchanged. It still stops the run within a second if the port is taken (two runs in the same repo, or a leftover server).
+  - CI is unaffected: one run per job.
+- **Tests:** `e2e-port.test.mjs` checks the port is stable, in range and different for the four slugs; this repo's port is usable; the override works and bad values are refused.
