@@ -27,7 +27,7 @@ describe("defineProduct", () => {
     expect(() => defineProduct({ ...base, experiments: { "Quiz Length": { variants: { a: 50, b: 50 } } } })).toThrow();
   });
 
-  it("site header and PNG favicons: today's look by default; logo height and file paths checked (D-095)", () => {
+  it("site header and PNG favicons: today's look by default; logo height and file paths checked (D-096)", () => {
     const brand = { ...base.brand, header: undefined, faviconPng: undefined };
     const parsed = defineProduct({ ...base, brand }).brand;
     expect(parsed.header).toEqual({ show: "name", logoHeight: 32 });

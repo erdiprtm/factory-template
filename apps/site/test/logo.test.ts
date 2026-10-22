@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { aspectRatio, logoSize } from "../src/lib/logo.mjs";
 
-// D-095: the header logo's width comes from the served file, so the <img> reserves its space.
+// D-096: the header logo's width comes from the served file, so the <img> reserves its space.
 const svg = (attrs: string) =>
   Buffer.from(`<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" ${attrs}></svg>`);
 

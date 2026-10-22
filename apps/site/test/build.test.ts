@@ -14,7 +14,7 @@ describe("built site", () => {
     expect(html.includes('<meta name="color-scheme" content="light"')).toBe(!product.brand.darkMode);
   });
 
-  it("links PNG and ICO favicons before the SVG one, and serves them at their sizes (D-095)", () => {
+  it("links PNG and ICO favicons before the SVG one, and serves them at their sizes (D-096)", () => {
     const html = page("index.html");
     const at = (s: string) => html.indexOf(s);
     expect(at('<link rel="icon" href="/favicon.ico" sizes="16x16 32x32"')).toBeGreaterThan(-1);
@@ -31,7 +31,7 @@ describe("built site", () => {
     expect(readFileSync(new URL("favicon.ico", dist)).readUInt16LE(4)).toBe(2);
   });
 
-  it("the header shows the name, the logo or both, per brand.header (D-095)", () => {
+  it("the header shows the name, the logo or both, per brand.header (D-096)", () => {
     const header = page("index.html").match(/<header[\s\S]*?<\/header>/)?.[0] ?? "";
     const link = header.match(/<a href="[^"]*" class="inline-flex min-h-11[^>]*>[\s\S]*?<\/a>/)?.[0] ?? "";
     const { show, logoHeight } = product.brand.header;

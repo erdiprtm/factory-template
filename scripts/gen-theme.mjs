@@ -162,7 +162,7 @@ export const PWA_FILES = {
   maskable: "/icons/maskable-512.png",
   appleTouch: "/apple-touch-icon.png",
 };
-// ---- PNG and ICO favicons (D-095) ----
+// ---- PNG and ICO favicons (D-096) ----
 
 /** Served by the app and by the site alike (one domain may route a path to either). */
 export const FAVICON_FILES = { png16: "/favicon-16.png", png32: "/favicon-32.png", ico: "/favicon.ico" };
@@ -392,7 +392,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     for (const [served, img] of Object.entries(renderIcons(source, background, maskable)))
       icons[publicPath(served)] = img;
   }
-  // Favicons (D-095), installable or not: the hand-made ones, or pwa.icon scaled down.
+  // Favicons (D-096), installable or not: the hand-made ones, or pwa.icon scaled down.
   const own = product.brand.faviconPng;
   const favicons = own
     ? renderFavicons(null, {

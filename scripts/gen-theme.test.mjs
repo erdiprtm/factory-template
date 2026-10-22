@@ -186,7 +186,7 @@ describe("installable web app (D-080)", () => {
     expect(icons[PWA_FILES.icon192].data[3]).toBe(0);
   });
 
-  it("favicons (D-095): pwa.icon scaled to 16 and 32, or hand-made ones at exactly those sizes", () => {
+  it("favicons (D-096): pwa.icon scaled to 16 and 32, or hand-made ones at exactly those sizes", () => {
     const blank = (n) => ({ width: n, height: n, data: new Uint8Array(n * n * 4).fill(200) });
     const scaled = renderFavicons(blank(512));
     expect([scaled[FAVICON_FILES.png16].width, scaled[FAVICON_FILES.png32].width]).toEqual([16, 32]);
