@@ -4,7 +4,7 @@
 // A slot only gets finished, display-ready props: it can't submit, skip or unlock anything.
 import type { QuizAnswer, QuizAnswers, QuizStep } from "@factory/core/quiz";
 import type { ComponentType } from "react";
-import type { MessageKey } from "./i18n";
+import type { Locale, MessageKey } from "./i18n";
 
 export type QuizStepSlotProps = {
   step: QuizStep<MessageKey>;
@@ -86,6 +86,11 @@ export type BillingReturnSlotProps = {
   accessUntilIso: string | null;
 };
 
+export type AdminPanelSlotProps = {
+  t: (key: MessageKey) => string;
+  locale: Locale;
+};
+
 export type CoreSlots = {
   /** One quiz step (question + input): e.g. a chat bubble with a stepper for numbers. */
   quizStep?: ComponentType<QuizStepSlotProps>;
@@ -122,4 +127,10 @@ export type CoreSlots = {
   /** Icons for the tabs core adds (D-058): Beranda (without product tabs), Akun, Admin. */
   coreTabIcons?: Partial<Record<"home" | "account" | "admin", ComponentType<{ size: number; color: string }>>>;
   accountHeader?: ComponentType<HeaderSlotProps & { productName: string; logo: string }>;
+  /**
+   * The product's own section on /admin (D-100), under the unit economics: e.g. scan feedback from
+   * a product table. Core renders it only for admins; its data comes from the product's own API
+   * route, guarded on the server with core's `requireAdmin` (apps/api/src/core/admin.ts).
+   */
+  adminPanel?: ComponentType<AdminPanelSlotProps>;
 };

@@ -2011,6 +2011,21 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - The /harga meta description and the terms of service still say it in full.
 - **Test:** the built /harga shows the terms exactly once, in the line under the cards.
 
+## D-100: Myna Fit is live in the registry; a product's own section on /admin (2026-10-23)
+
+- **Problem (Myna Fit's /launch-check, via the ScreenDesign team, on Erdi's go for autonomous work).**
+  - `factory.json` still listed Myna Fit as `building`, with no launch date, review date or metric targets, and its workers.dev URLs. Myna Fit launches on 2026-10-23 on https://fit.mynahealth.id, with app and site on one domain.
+  - Myna Fit stores 👍/👎 per scan in its own table (`fit_scan_feedback`) and wants to read them on /admin. /admin is core.
+- **Decision: the registry.** Myna Fit's entry now has:
+  - `status: "live"`, `launchDate: "2026-10-23"`, and both URLs set to `https://fit.mynahealth.id`;
+  - `metricTargets` from `specs/myna-fit.md` (Launch & distribution), with nothing invented: at least 20 paying users at day 30, blended CAC ≤ Rp200.000, target ROAS 1.75, an average order of about Rp340.000;
+  - `reviewDate: "2026-11-22"` (day 30, the success check) and `killReviewDate: "2026-12-22"` (day 60, the spec's kill check);
+  - the stray `** ` dropped from the kill criteria.
+- **Decision: `slots.adminPanel`.** A product component rendered on /admin under the unit economics, only past core's admin check. It gets `t` and `locale`.
+  - Its data comes from the product's own API route under `apps/api/src/features/**`, guarded with core's exported `sessionMiddleware` + `requireAdmin`. So the allowlist stays core's, and the product never edits /admin.
+  - Myna Fit can show `fit_scan_feedback` (counts, recent 👎) there.
+- **Tests:** an admin sees the panel under the economics with the locale; a non-admin sees "forbidden" and no panel.
+
 ## D-101: Slots can load on demand (`lazySlot`); the rest of /quiz's Lighthouse score is backlog (2026-10-23)
 
 - **Problem (Myna Fit production /quiz, Lighthouse mobile 66 via the ScreenDesign team).**
