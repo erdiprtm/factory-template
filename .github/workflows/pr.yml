@@ -15,8 +15,32 @@ permissions:
   contents: read
 
 jobs:
+  # Docs-only PRs (docs/**, specs/**, Markdown outside apps/site) skip verify and the preview
+  # (D-102): Actions minutes are capped on private product repos. Skipped jobs count as passed
+  # for the required checks. If this job fails, everything runs.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docs_only: ${{ steps.diff.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          docs_only=$(git diff --name-only "$BASE...$HEAD" | node scripts/docs-only.mjs || echo false)
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          echo "::notice::docs only: $docs_only"
+
   verify:
     name: verify
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -38,8 +62,8 @@ jobs:
   preview:
     name: preview
     needs: verify
-    # Fork PRs get no secrets; they stop at `verify`.
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Fork PRs get no secrets; they stop at `verify`. Docs-only PRs skip it with verify (D-102).
+    if: ${{ !cancelled() && needs.verify.result == 'success' && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

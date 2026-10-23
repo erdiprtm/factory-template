@@ -30,7 +30,24 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       ready: ${{ steps.check.outputs.ready }}
+      docs_only: ${{ steps.diff.outputs.docs_only }}
     steps:
+      # A docs-only merge (D-102) doesn't redeploy: nothing served changed. A manual run (the
+      # rollback drill) and the first push of a branch always deploy.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          docs_only=false
+          if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            docs_only=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | node scripts/docs-only.mjs || echo false)
+          fi
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          if [ "$docs_only" = "true" ]; then echo "::notice::Docs-only change: skipping the production deploy (D-102)."; fi
       - id: check
         env:
           HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
@@ -46,7 +63,7 @@ jobs:
   deploy:
     name: deploy
     needs: config
-    if: needs.config.outputs.ready == 'true'
+    if: needs.config.outputs.ready == 'true' && needs.config.outputs.docs_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
