@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-23: Docs-only PRs and merges skip CI (D-102), Actions minutes at 90%
+
+- `verify`, the preview and the production deploy are skipped when only docs, specs or Markdown outside apps/site change.
+
+---
+
 ## 2026-10-23: `lazySlot` for slots off the first screen (D-101), Myna Fit /quiz Lighthouse
 
 - Products can take slot code out of the first web bundle. Backlog: WOFF2 fonts on the web, and a bundle analysis of the entry.
