@@ -2070,3 +2070,18 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - the CLI reads git's list on stdin.
 
   This decision was itself merged in a docs-only PR, to check the skip on GitHub.
+
+## D-103: Template render tests of core behaviour don't render the product's slots (2026-10-23)
+
+- **Problem (Myna Fit, after syncing D-101).** With `planCard: lazySlot(...)` in Myna Fit's `slots.tsx`, as D-101's example suggests, the template's `pakasir-checkout-render.test.tsx` failed in the product.
+  - The test rendered core's `PlanCards` with the product's real slots and looked for "Bayar Rp5.000" at once, before the lazy chunk loaded.
+  - `single-consent.test.tsx` had the same weakness with `quizStep`: it clicks core's `quiz-option`, which a product's quizStep slot, lazy or not, needn't render.
+  - Template tests must hold in every product (D-028, D-078).
+- **Decision.**
+  - Render tests that check core behaviour through core's own UI mock `../src/features/slots` as `{ slots: {} }`: the checkout method choice in one, the consent lock in the other.
+  - Slots keep their own tests with mocked slot sets (`slots.test.tsx`, `slots-render`, `summary-pricing-render`, `admin-panel-render`).
+  - CLAUDE.md's definition of done says so, next to the `product.config` mock rule.
+- **Check.** With the template's `slots.tsx` temporarily set to a lazy `planCard` and a lazy `quizStep`:
+  - before the fix, 3 tests failed (the Pakasir method choice and two consent-lock cases);
+  - after it, all 10 in both files passed.
+  - `slots.tsx` was then restored.

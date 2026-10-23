@@ -50,7 +50,7 @@ pnpm ai:eval          # compare AI models on the product's own photos (evals/, g
 ## Definition of done
 
 - `pnpm verify` green (never claim success without running it).
-- Tests added for new logic. Template tests must hold in every product repo: use core message keys only (never the example product's), and mock `product.config` when a test needs a specific setting (D-028, D-078).
+- Tests added for new logic. Template tests must hold in every product repo: use core message keys only (never the example product's), mock `product.config` when a test needs a specific setting, and mock `features/slots` (`{ slots: {} }`) when a render test checks core behaviour through core's own UI (D-028, D-078, D-103).
 - All UI strings through i18n keys (`id` default, `en` secondary). No hardcoded copy.
 - `docs/STATUS.md` updated. Non-trivial choices recorded in `docs/DECISIONS.md`.
 - PR opened with a passing preview URL.
