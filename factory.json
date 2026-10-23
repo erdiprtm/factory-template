@@ -20,15 +20,22 @@
       "slug": "myna-fit",
       "name": "Myna Fit",
       "repo": "erdiprtm/myna-fit",
-      "status": "building",
+      "status": "live",
       "spec": "specs/myna-fit.md",
-      "launchDate": null,
-      "reviewDate": null,
-      "metricTargets": {},
-      "killCriteria": "** fewer than 30 paying users, or blended CAC above Rp400.000 (2× target) after at least Rp3.000.000 of ad spend. Then stop the ads and rework the funnel or positioning with Erdi.",
+      "launchDate": "2026-10-23",
+      "reviewDate": "2026-11-22",
+      "metricTargets": {
+        "$source": "specs/myna-fit.md, Launch & distribution",
+        "day30PayingUsersMin": 20,
+        "blendedCacIdrMax": 200000,
+        "targetRoas": 1.75,
+        "averageOrderIdr": 340000,
+        "killReviewDate": "2026-12-22"
+      },
+      "killCriteria": "Fewer than 30 paying users, or blended CAC above Rp400.000 (2× target) after at least Rp3.000.000 of ad spend. Then stop the ads and rework the funnel or positioning with Erdi.",
       "urls": {
-        "app": "https://myna-fit.erdiprtm.workers.dev",
-        "site": "https://myna-fit-site.erdiprtm.workers.dev"
+        "app": "https://fit.mynahealth.id",
+        "site": "https://fit.mynahealth.id"
       }
     },
     {

@@ -2,6 +2,7 @@ import { Button, Card, CardContent, CardTitle, ErrorText, Input, Loading, Screen
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { View } from "react-native";
+import { slots } from "../../features/slots";
 import { EconomicsSection } from "../admin/economics";
 import { api } from "../api";
 import { useMe } from "../auth/use-me";
@@ -36,6 +37,7 @@ export function Admin() {
   if (!me.data?.isAdmin) return <ErrorText className="p-5">{t("admin.forbidden")}</ErrorText>;
   if (stats.isPending) return <Loading label={t("common.loading")} />;
   const s = stats.data;
+  const Panel = slots.adminPanel;
 
   return (
     <Screen className="max-w-3xl">
@@ -51,6 +53,9 @@ export function Admin() {
       ) : null}
 
       <EconomicsSection />
+
+      {/* The product's own admin section (D-100); only reached past the admin check above. */}
+      {Panel ? <Panel t={t} locale={locale} /> : null}
 
       <Card>
         <CardTitle>{t("admin.revenue")}</CardTitle>

@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-23: Myna Fit live in factory.json; `adminPanel` slot on /admin (D-100)
+
+- Myna Fit: live since 2026-10-23 on fit.mynahealth.id, with targets from its spec and reviews on 22 Nov (day 30) and 22 Dec (day 60).
+- Products can add their own /admin section (e.g. scan feedback), with data from their own `requireAdmin` route.
+
+---
+
 ## 2026-10-23: Site plan terms once under the cards (D-099), Myna Fit landing feedback
 
 - The per-card "bayar sekali, tanpa perpanjangan otomatis" moved to one line under the plans. The site's method chips were already in D-098.
