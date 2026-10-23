@@ -2085,3 +2085,30 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - before the fix, 3 tests failed (the Pakasir method choice and two consent-lock cases);
   - after it, all 10 in both files passed.
   - `slots.tsx` was then restored.
+
+## D-104: No second verify for a tree the PR already verified; site-only changes skip the app's E2E and deploy only the site (2026-10-23)
+
+- **Problem (Myna Fit, on Erdi's go: "ya, minta ASF kerjain nomor 1 dan 2").** GitHub Actions minutes were at 90%.
+  - A code PR ran the full `verify` (about 10 minutes, mostly E2E) in `pr.yml`. Then `deploy.yml` ran the same `verify` on main for the same files.
+  - A PR that only changed the site (landing copy, photos) also paid for the app's E2E and the app's deploy.
+  - Auto-merge has no human review, so the tests must stay the gate.
+- **Decision: scope.** `scripts/ci-scope.mjs` replaces `docs-only.mjs` (D-102) and returns one of three scopes:
+  - `docs`: as D-102;
+  - `site`: only `apps/site/**`, with or without docs;
+  - `full`: anything else, including `packages/**` and `product.config.ts`, which the site builds from, workflows, lockfile, `factory.json`, and an empty list.
+- **Decision: PRs.**
+  - A `site` PR runs `pnpm verify:site` instead of `pnpm verify`: lint, the theme check, typecheck, the site's build and tests, the script tests, and the secret scan of the site bundle. No Playwright install and no E2E.
+  - The app preview is still deployed for `site` PRs. The site preview's links and its funnel beacons need an app of their own, and pointing them at production would put preview visits into the production funnel. The app preview costs a build and an upload, not E2E.
+- **Decision: record what was verified.**
+  - After `verify` passes, `pr.yml` posts a commit status `ci/verified-tree` on the PR head, with the description `<scope>:<tree>`. The tree is that of the checked-out merge of the PR into main, i.e. exactly the files tested.
+  - A fork PR's read-only token can't post it, and nothing breaks: the deploy just verifies.
+- **Decision: deploy.**
+  - `deploy.yml` asks GitHub for the PR merged as this commit. If its head has a `ci/verified-tree` status from `github-actions[bot]` naming this commit's tree, with scope `full` or the push's own scope, Playwright and `verify` are skipped, and `pnpm build` runs instead, because verify used to produce the app's build.
+  - Anything unproven runs `verify` as before: a direct push, main moved between the PR run and the merge (another tree), a fork PR, or a manual run such as the rollback drill.
+  - A `site` push skips the app steps (live version record, D1 bookmark, migrations, the Worker release and its smoke test) and releases only the site, with its smoke test and rollback.
+  - The backup, migrations, release, smoke tests, both rollbacks and the incident issue are otherwise unchanged.
+- **Tests and checks.**
+  - `ci-scope.test.mjs` covers docs, site (with docs and site tests), full (each kind of non-site file next to a site file, and the empty list) and the CLI.
+  - `pnpm verify:site` passed locally.
+  - The production workflow's lookup ran against GitHub for current main: it found the merged PR's head and answered `false`, since no status existed yet.
+  - This PR is the live check: its own run records the status, and its merge's production run should skip verify.

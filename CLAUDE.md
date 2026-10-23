@@ -44,7 +44,7 @@ pnpm ai:eval          # compare AI models on the product's own photos (evals/, g
 2. `pnpm verify` green locally.
 3. `git push -u origin <branch>`, then `gh pr create --fill`, then `gh pr merge <n> --auto --squash`.
 4. CI runs `verify` and `preview` (isolated preview Worker + D1, smoke test). When both pass, the PR auto-merges.
-5. `main` deploys to production: D1 bookmark, migrations, deploy, smoke test. A failed smoke test auto-rolls back the Worker and opens an incident issue.
+5. `main` deploys to production: D1 bookmark, migrations, deploy, smoke test. A failed smoke test auto-rolls back the Worker and opens an incident issue. Docs-only changes skip CI; site-only changes skip the app's E2E and release only the site; a tree the PR already verified isn't verified again (D-102, D-104).
 6. On an incident issue: fix forward in a new PR. Never re-run a failed deploy unchanged.
 
 ## Definition of done

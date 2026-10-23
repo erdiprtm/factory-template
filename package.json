@@ -22,6 +22,7 @@
     "test": "turbo run test --continue=dependencies-successful; t=$?; vitest run --dir scripts --testTimeout 30000 && exit $t",
     "check:migrations": "node scripts/check-migrations.mjs",
     "verify": "node scripts/verify-lock.mjs pnpm verify:run",
+    "verify:site": "pnpm lint && node scripts/gen-theme.mjs --check && pnpm typecheck && turbo run test --filter=@factory/site && vitest run --dir scripts --testTimeout 30000 && node scripts/check-bundle-secrets.mjs apps/site/dist",
     "verify:run": "pnpm lint && pnpm check:migrations && node scripts/gen-theme.mjs --check && pnpm typecheck && pnpm test && pnpm build && node scripts/check-bundle-secrets.mjs && pnpm e2e",
     "db:generate": "pnpm --filter @factory/db generate",
     "db:migrate:local": "pnpm --filter @factory/api db:migrate:local",

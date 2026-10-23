@@ -20,6 +20,9 @@ concurrency:
 permissions:
   contents: read
   issues: write
+  # D-104: read the merged PR and its "ci/verified-tree" status.
+  pull-requests: read
+  statuses: read
 
 jobs:
   # A repo fresh from the template (gh repo create --template pushes to main at once) has no
@@ -30,10 +33,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       ready: ${{ steps.check.outputs.ready }}
-      docs_only: ${{ steps.diff.outputs.docs_only }}
+      scope: ${{ steps.diff.outputs.scope }}
     steps:
-      # A docs-only merge (D-102) doesn't redeploy: nothing served changed. A manual run (the
-      # rollback drill) and the first push of a branch always deploy.
+      # What the push needs (scripts/ci-scope.mjs): docs-only doesn't redeploy (D-102), site-only
+      # deploys the site alone (D-104). A manual run (the rollback drill) and a push without a
+      # `before` are "full".
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -42,12 +46,12 @@ jobs:
           BEFORE: ${{ github.event.before }}
           EVENT: ${{ github.event_name }}
         run: |
-          docs_only=false
+          scope=full
           if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
-            docs_only=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | node scripts/docs-only.mjs || echo false)
+            scope=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | node scripts/ci-scope.mjs || echo full)
           fi
-          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
-          if [ "$docs_only" = "true" ]; then echo "::notice::Docs-only change: skipping the production deploy (D-102)."; fi
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
+          echo "::notice::CI scope: $scope"
       - id: check
         env:
           HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
@@ -63,7 +67,7 @@ jobs:
   deploy:
     name: deploy
     needs: config
-    if: needs.config.outputs.ready == 'true' && needs.config.outputs.docs_only != 'true'
+    if: needs.config.outputs.ready == 'true' && needs.config.outputs.scope != 'docs'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
@@ -74,6 +78,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
       COMMIT_SHA: ${{ github.sha }}
+      SCOPE: ${{ needs.config.outputs.scope || 'full' }}
       # Optional (set by /new-product): uploaded with the deploy, so the first production deploy
       # of a new product already has its auth secret (D-027).
       AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET_PRODUCTION }}
@@ -91,14 +96,44 @@ jobs:
             echo "::error::Repository variable PRODUCTION_URL is not set (run scripts/setup-github.sh)"
             exit 1
           fi
+      # D-104: skip a second verify when the PR's verify already passed on exactly these files: the
+      # merged PR's head carries a "ci/verified-tree" status from github-actions[bot] naming this
+      # commit's tree (with this scope, or "full"). Anything unproven (a direct push, main moved
+      # between the PR run and the merge, a fork PR, a manual run) runs verify as before.
+      - name: Already verified in the PR?
+        id: prior
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tree=$(git rev-parse 'HEAD^{tree}')
+          verified=false
+          heads=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq '.[] | select(.merged_at != null) | .head.sha' || true)
+          for head in $heads; do
+            if gh api "repos/${GITHUB_REPOSITORY}/commits/${head}/statuses" --paginate \
+              --jq '.[] | select(.context == "ci/verified-tree" and .state == "success" and .creator.login == "github-actions[bot]") | .description' \
+              | grep -qx -e "full:${tree}" -e "${SCOPE}:${tree}"; then
+              verified=true
+            fi
+          done
+          echo "done=${verified}" >> "$GITHUB_OUTPUT"
+          echo "Verified in the PR (tree \`${tree}\`): ${verified}" >> "$GITHUB_STEP_SUMMARY"
       - name: Install Playwright browser (E2E is part of verify)
+        if: steps.prior.outputs.done != 'true'
         run: pnpm --filter @factory/e2e exec playwright install --with-deps chromium
       - name: Verify
         id: verify
+        if: steps.prior.outputs.done != 'true'
         run: pnpm verify
+      # verify builds the app; without it, build here (the site builds below with production vars).
+      - name: Build (already verified in the PR)
+        if: steps.prior.outputs.done == 'true' && env.SCOPE != 'site'
+        run: pnpm build
 
+      # Site-only (D-104): the app Worker and the database stay as they are; only the site deploys.
       - name: Record the live production version
         id: before
+        if: env.SCOPE != 'site'
         working-directory: apps/api
         run: |
           id=""
@@ -108,7 +143,7 @@ jobs:
           echo "version_id=${id}" >> "$GITHUB_OUTPUT"
           echo "Live version before deploy: \`${id:-none (first deploy)}\`" >> "$GITHUB_STEP_SUMMARY"
       - name: Back up D1 (Time Travel bookmark)
-        if: hashFiles('packages/db/migrations/*.sql') != ''  # D1 arrives in Phase 2
+        if: env.SCOPE != 'site' && hashFiles('packages/db/migrations/*.sql') != ''  # D1 arrives in Phase 2
         id: backup
         working-directory: apps/api
         run: |
@@ -120,12 +155,13 @@ jobs:
           echo "bookmark=${bookmark}" >> "$GITHUB_OUTPUT"
           echo "D1 bookmark before migrations: \`${bookmark}\`" >> "$GITHUB_STEP_SUMMARY"
       - name: Apply migrations
-        if: hashFiles('packages/db/migrations/*.sql') != ''  # D1 arrives in Phase 2
+        if: env.SCOPE != 'site' && hashFiles('packages/db/migrations/*.sql') != ''  # D1 arrives in Phase 2
         id: migrate
         working-directory: apps/api
         run: pnpm exec wrangler d1 migrations apply DB --remote
       - name: Deploy
         id: deploy
+        if: env.SCOPE != 'site'
         working-directory: apps/api
         run: |
           # Additive: secrets not in the file (Resend, Duitku...) stay as they are on the Worker.
@@ -137,6 +173,7 @@ jobs:
             --secrets-file "$RUNNER_TEMP/worker-secrets.json"
       - name: Smoke test
         id: smoke
+        if: env.SCOPE != 'site'
         env:
           # The drill expects a commit that can never be live, so the check fails after a real deploy.
           EXPECT: ${{ inputs.rollback_drill && 'rollback-drill-never-live' || github.sha }}

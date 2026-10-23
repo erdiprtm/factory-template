@@ -15,15 +15,16 @@ permissions:
   contents: read
 
 jobs:
-  # Docs-only PRs (docs/**, specs/**, Markdown outside apps/site) skip verify and the preview
-  # (D-102): Actions minutes are capped on private product repos. Skipped jobs count as passed
-  # for the required checks. If this job fails, everything runs.
+  # What the PR needs (scripts/ci-scope.mjs): docs-only PRs skip verify and the preview (D-102);
+  # site-only PRs run the site's checks without the app's E2E (D-104). Actions minutes are capped
+  # on private product repos. Skipped jobs count as passed for the required checks. If this job
+  # fails, its output is empty and everything runs.
   changes:
     name: changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      docs_only: ${{ steps.diff.outputs.docs_only }}
+      scope: ${{ steps.diff.outputs.scope }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -33,16 +34,21 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          docs_only=$(git diff --name-only "$BASE...$HEAD" | node scripts/docs-only.mjs || echo false)
-          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
-          echo "::notice::docs only: $docs_only"
+          scope=$(git diff --name-only "$BASE...$HEAD" | node scripts/ci-scope.mjs || echo full)
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
+          echo "::notice::CI scope: $scope"
 
   verify:
     name: verify
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.scope != 'docs' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      statuses: write
+    env:
+      SCOPE: ${{ needs.changes.outputs.scope || 'full' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -56,8 +62,23 @@ jobs:
       - name: Migration safety (expand/contract)
         run: node scripts/check-migrations.mjs --base "origin/${{ github.base_ref }}"
       - name: Install Playwright browser (E2E is part of verify)
+        if: env.SCOPE != 'site'
         run: pnpm --filter @factory/e2e exec playwright install --with-deps chromium
-      - run: pnpm verify
+      - name: Verify (site-only PRs skip the app's E2E, D-104)
+        run: |
+          if [ "$SCOPE" = "site" ]; then pnpm verify:site; else pnpm verify; fi
+      # The tested tree (this run checks out the PR merged into main), so the production deploy can
+      # skip a second verify of the very same files (D-104). A fork PR's token can't write it, and
+      # then the deploy simply verifies again.
+      - name: Record the verified tree
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          tree=$(git rev-parse 'HEAD^{tree}')
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" -f state=success \
+            -f context=ci/verified-tree -f "description=${SCOPE}:${tree}" >/dev/null \
+            || echo "::notice::Could not record the verified tree; the deploy will verify again."
 
   preview:
     name: preview
