@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-23: No double verify; site-only PRs skip the app's E2E and release only the site (D-104)
+
+- The production workflow skips `verify` when the PR's `verify` passed on the identical tree (`ci/verified-tree` status), and builds instead. Site-only changes run `pnpm verify:site` and release the site alone.
+
+---
+
 ## 2026-10-23: Core render tests ignore product slots (D-103), Myna Fit lazy planCard
 
 - The Pakasir checkout and single-consent tests now pass whatever (or however lazily) a product's slots render. Myna Fit can lazy-load `planCard` after the next sync.
