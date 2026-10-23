@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-23: `lazySlot` for slots off the first screen (D-101), Myna Fit /quiz Lighthouse
+
+- Products can take slot code out of the first web bundle. Backlog: WOFF2 fonts on the web, and a bundle analysis of the entry.
+
+---
+
 ## 2026-10-23: Site plan terms once under the cards (D-099), Myna Fit landing feedback
 
 - The per-card "bayar sekali, tanpa perpanjangan otomatis" moved to one line under the plans. The site's method chips were already in D-098.
