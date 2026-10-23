@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-23: Core render tests ignore product slots (D-103), Myna Fit lazy planCard
+
+- The Pakasir checkout and single-consent tests now pass whatever (or however lazily) a product's slots render. Myna Fit can lazy-load `planCard` after the next sync.
+
+---
+
 ## 2026-10-23: Docs-only PRs and merges skip CI (D-102), Actions minutes at 90%
 
 - `verify`, the preview and the production deploy are skipped when only docs, specs or Markdown outside apps/site change.

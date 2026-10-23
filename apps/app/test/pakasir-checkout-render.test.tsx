@@ -6,6 +6,9 @@ import type { PakasirCheckoutProps } from "../src/core/billing/pakasir-checkout"
 // copied, the fee and total are shown, and the countdown ends in the expired state. Strings come
 // from core keys via t(), so a product's locale doesn't matter.
 vi.mock("../src/core/analytics", () => ({ track: vi.fn(), initAnalytics: () => Promise.resolve() }));
+// Core's own plan cards and checkout, whatever the product's slots draw (or lazy-load, D-101): this
+// tests what core does, not how a product's planCard looks (D-103).
+vi.mock("../src/features/slots", () => ({ slots: {} }));
 
 let view: typeof import("../src/core/billing/pakasir-checkout");
 let i18n: typeof import("../src/core/i18n");

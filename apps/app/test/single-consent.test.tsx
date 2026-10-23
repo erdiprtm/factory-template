@@ -14,6 +14,9 @@ vi.mock("../../../product.config", async (orig) => {
     },
   };
 });
+// Core's own quiz step, whatever the product's quizStep slot draws (or lazy-loads, D-101): the
+// consent rules are core's (D-103). Slots get their own tests (slots.test.tsx, slots-render).
+vi.mock("../src/features/slots", () => ({ slots: {} }));
 const needed = ["terms", "privacy", "sensitive_data"];
 const accept = vi.fn(async (_types: string[]) => {});
 const refresh = vi.fn(async () => {});
