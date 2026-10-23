@@ -4,6 +4,8 @@
 //   export const slots: CoreSlots = {
 //     signInHeader: ({ title, subtitle }) => <MyHero title={title} subtitle={subtitle} />,
 //     quizStep: ChatBubbleStep,
+//     // Not on the first screen: load on demand, out of the first web bundle (D-101).
+//     planCard: lazySlot(() => import("./my/plan-card").then((m) => m.PlanCard)),
 //   };
 import type { CoreSlots } from "../core/slots";
 

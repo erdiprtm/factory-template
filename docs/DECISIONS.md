@@ -2025,3 +2025,24 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - Its data comes from the product's own API route under `apps/api/src/features/**`, guarded with core's exported `sessionMiddleware` + `requireAdmin`. So the allowlist stays core's, and the product never edits /admin.
   - Myna Fit can show `fit_scan_feedback` (counts, recent 👎) there.
 - **Tests:** an admin sees the panel under the economics with the locale; a non-admin sees "forbidden" and no panel.
+
+## D-101: Slots can load on demand (`lazySlot`); the rest of /quiz's Lighthouse score is backlog (2026-10-23)
+
+- **Problem (Myna Fit production /quiz, Lighthouse mobile 66 via the ScreenDesign team).**
+  - LCP is 5.4 s, about 2.2 s of it element render delay; TBT is 360 ms.
+  - One 404 KB entry bundle with about 174 KB of unused JS takes 844 ms to boot. Every slot component, and all it imports, rides in it, because `features/slots.tsx` is imported statically by core screens on the first route.
+  - Four Plus Jakarta Sans TTFs (28 KB each) download early.
+- **Decision: `lazySlot(load, fallback?)`** (`apps/app/src/core/lazy-slot.tsx`).
+  - It wraps `React.lazy` in its own `Suspense`, so a product can write `planCard: lazySlot(() => import("./my/plan-card").then((m) => m.PlanCard))` in `slots.tsx`. That slot's code then leaves the first web bundle, and core screens need no change.
+  - Use it for slots off the first screen: `planCard`, `pricingIntro`, `pricingFooter`, `billingReturn`, `accountHeader`, `adminPanel`, `consentHeader`, `signInHeader` when the quiz comes first.
+  - Keep `quizStep` and the summary slots static on a quiz-first funnel. Lazy-loading them would put their download in front of the first paint.
+- **Fonts are not the render delay.**
+  - Since D-065 the web app never waits for its fonts: the first screen paints in the fallback stack and swaps faces in (`font-display: swap`).
+  - The 2.2 s of render delay is the entry bundle being downloaded, parsed and booted. That's what `lazySlot`, and any product code moved off the first route, reduce.
+- **Backlog (not done here):**
+  1. Serve the bundled fonts as WOFF2 on the web, about 40% smaller than TTF. This needs checking that Metro and expo-font take `.woff2` assets, with `pnpm theme` writing both formats from one source.
+  2. Measure what else is in the entry with a bundle analysis of a product build, e.g. whether `@tanstack/react-query`, NativeWind's runtime or `features/messages.ts` (all locales) could be split. Act on the largest piece.
+- **Also: script tests get 30 s each.**
+  - `vitest run --dir scripts --testTimeout 30000`, extending D-098's `template-sync` change to every script test.
+  - With the laptop's load at 81 from other work, `new-product` and `setup-secrets` tests timed out at 5 s while spawning `node` and `git`.
+- **Test:** `lazySlot` renders its fallback, then the loaded slot with the props core passes.

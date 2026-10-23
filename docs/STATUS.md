@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-23: `lazySlot` for slots off the first screen (D-101), Myna Fit /quiz Lighthouse
+
+- Products can take slot code out of the first web bundle. Backlog: WOFF2 fonts on the web, and a bundle analysis of the entry.
+
+---
+
 ## 2026-10-23: Myna Fit live in factory.json; `adminPanel` slot on /admin (D-100)
 
 - Myna Fit: live since 2026-10-23 on fit.mynahealth.id, with targets from its spec and reviews on 22 Nov (day 30) and 22 Dec (day 60).
