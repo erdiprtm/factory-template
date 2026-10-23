@@ -2042,4 +2042,7 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Backlog (not done here):**
   1. Serve the bundled fonts as WOFF2 on the web, about 40% smaller than TTF. This needs checking that Metro and expo-font take `.woff2` assets, with `pnpm theme` writing both formats from one source.
   2. Measure what else is in the entry with a bundle analysis of a product build, e.g. whether `@tanstack/react-query`, NativeWind's runtime or `features/messages.ts` (all locales) could be split. Act on the largest piece.
+- **Also: script tests get 30 s each.**
+  - `vitest run --dir scripts --testTimeout 30000`, extending D-098's `template-sync` change to every script test.
+  - With the laptop's load at 81 from other work, `new-product` and `setup-secrets` tests timed out at 5 s while spawning `node` and `git`.
 - **Test:** `lazySlot` renders its fallback, then the loaded slot with the props core passes.
