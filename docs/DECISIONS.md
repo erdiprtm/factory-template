@@ -2046,3 +2046,27 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - `vitest run --dir scripts --testTimeout 30000`, extending D-098's `template-sync` change to every script test.
   - With the laptop's load at 81 from other work, `new-product` and `setup-secrets` tests timed out at 5 s while spawning `node` and `git`.
 - **Test:** `lazySlot` renders its fallback, then the loaded slot with the props core passes.
+
+## D-102: Docs-only changes skip CI's verify, preview and deploy (2026-10-23)
+
+- **Problem.** Erdi's GitHub Actions minutes reached 90% (2,702 of 3,000, resetting on 1 November).
+  - Private product repos count against them; the public template doesn't.
+  - Myna Fit's sprint used about 700 minutes, much of it full runs (verify with E2E, the preview deploy, then the production deploy with verify again) for PRs that only touched `docs/STATUS.md` and `docs/DECISIONS.md`, often after conflicts.
+- **Decision.** `scripts/docs-only.mjs` judges a list of changed files.
+  - Docs only means `docs/**`, `specs/**` and Markdown anywhere else, except anything under `apps/site/`: SEO pages, landers, legal text and Markdown pages are built into the site.
+  - An empty list counts as code, so everything runs.
+- **`pr.yml`.**
+  - A `changes` job diffs the PR (base...head). When it says docs only, `verify` and `preview` are skipped.
+  - Skipped jobs count as passed for the required checks, so auto-merge still works.
+  - If `changes` fails, its output is empty and everything runs. Both jobs use `!cancelled()`, so a newer push still cancels them.
+  - The existing `concurrency` with `cancel-in-progress` per PR already cancels an older run on a new push.
+- **`deploy.yml`.**
+  - The `config` job diffs the push (`before`..`sha`). A docs-only merge skips the deploy, since nothing served changed.
+  - A manual run (the rollback drill) and a push without a `before` always deploy.
+  - Code changes keep verify, the smoke test and the rollback unchanged.
+- **Tests:** `docs-only.test.mjs` checks:
+  - docs, specs and Markdown elsewhere count as docs; code, config, workflows, `factory.json` and site Markdown don't;
+  - an empty list runs everything;
+  - the CLI reads git's list on stdin.
+
+  This decision was itself merged in a docs-only PR, to check the skip on GitHub.
