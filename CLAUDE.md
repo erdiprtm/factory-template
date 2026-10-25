@@ -12,7 +12,7 @@ The full design is in `FACTORY_BLUEPRINT.md`. Progress is in `docs/STATUS.md`, d
 
 | May edit in a product repo | Must not edit in a product repo |
 |---|---|
-| `apps/app/src/features/**` (incl. `messages.ts` for UI strings, `theme.ts` for component variants, `slots.tsx` for how core screens look), `apps/api/src/features/**` (incl. `user-data.ts` export/delete hooks), `apps/app/src/features/device-data.ts` (`onDeviceWipe`, D-105) | `apps/app/src/core/**`, `apps/api/src/core/**` |
+| `apps/app/src/features/**` (incl. `messages.ts` for UI strings, `theme.ts` for component variants, `slots.tsx` for how core screens look), `apps/api/src/features/**` (incl. `user-data.ts` export/delete hooks), `apps/app/src/features/device-data.ts` (`onDeviceWipe`, D-106) | `apps/app/src/core/**`, `apps/api/src/core/**` |
 | `product.config.ts`, `specs/**`, site content in `apps/site` | `packages/**` (core, db, ui, config), `factory.secrets.json` |
 | Route files in `apps/app/src/app/**` that only re-export a screen from `src/features/**` | Core route files (`quiz.tsx`, `sign-in.tsx`, `consent.tsx`, `(app)/_layout.tsx`, …) |
 | New `dependencies` in `apps/app` / `apps/api` `package.json` that a feature needs (D-047) | The template's own dependency versions, scripts and other `package.json` fields |

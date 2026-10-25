@@ -1,4 +1,4 @@
-// Web: after an account deletion, nothing of the person stays in this browser (D-105, UU PDP):
+// Web: after an account deletion, nothing of the person stays in this browser (D-106, UU PDP):
 // localStorage (core's keys, the product's, and the site's when it shares the domain) and
 // sessionStorage, keeping only the theme and language choice.
 import { onDeviceWipe } from "../features/device-data";

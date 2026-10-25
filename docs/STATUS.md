@@ -4,7 +4,7 @@ Progress log, newest entry on top.
 
 ---
 
-## 2026-10-25: Account deletion wipes the device (D-105), Myna Fit production report
+## 2026-10-25: Account deletion wipes the device (D-106), Myna Fit production report
 
 - Quiz answers, attribution, drafts and the product's own storage are cleared after Hapus akun; only theme and language stay. Products clear other storage in `features/device-data.ts` `onDeviceWipe()`.
 

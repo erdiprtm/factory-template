@@ -2122,7 +2122,7 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Fixed.** Auth errors come as `{"error":{"code","message","type"}}`, not `error_messages`, so the log said "HTTP 400: -". Both are read now (a test pins the live shape).
 - **SETUP_HUMAN 3b.** DOKU's sandbox is a separate account at `sandbox.doku.com/bo/sandbox-registration`; production keys are refused there. A verified product may skip it: creating a checkout moves no money. Only Client ID and Secret Key are used (the SNAP keys are not).
 
-## D-105: Deleting the account also wipes the device (2026-10-25)
+## D-106: Deleting the account also wipes the device (2026-10-25)
 
 - **Problem (Myna Fit production, 2026-10-25).** Erdi deleted test accounts with Akun → Hapus akun. The server deleted everything, but the phone kept the person's data:
   - the quiz answers (health data) and their completion time;

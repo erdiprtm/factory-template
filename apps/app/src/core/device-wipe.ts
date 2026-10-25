@@ -1,4 +1,4 @@
-// Native: after an account deletion, nothing of the person stays on the device (D-105, UU PDP).
+// Native: after an account deletion, nothing of the person stays on the device (D-106, UU PDP).
 import { onDeviceWipe } from "../features/device-data";
 import { forgetTouch } from "./attribution";
 import { kvClearExcept } from "./kv";

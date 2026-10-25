@@ -20,7 +20,7 @@ export function kvSet(key: string, value: string): void {
   } catch {}
 }
 
-/** Removes every key but `keep` (account deletion, D-105). */
+/** Removes every key but `keep` (account deletion, D-106). */
 export function kvClearExcept(keep: readonly string[]): void {
   try {
     const keys = Array.from({ length: window.localStorage.length }, (_, i) => window.localStorage.key(i));

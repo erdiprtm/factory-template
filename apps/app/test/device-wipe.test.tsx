@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-// D-105 (UU PDP): deleting the account leaves nothing of the person on the device. Core's own UI
+// D-106 (UU PDP): deleting the account leaves nothing of the person on the device. Core's own UI
 // (slots mocked, D-103) and core message keys only, so this holds in every product repo.
 const hook = vi.hoisted(() => ({ calls: 0, fail: false }));
 vi.mock("../src/features/device-data", () => ({

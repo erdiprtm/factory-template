@@ -252,7 +252,7 @@ function Privacy() {
     track("account_deleted");
     resetAnalytics();
     setMonitoringUser(null);
-    // UU PDP (D-105): the person asked for their data to be gone, from this device too: quiz answers,
+    // UU PDP (D-106): the person asked for their data to be gone, from this device too: quiz answers,
     // attribution, drafts and the product's own storage.
     await wipeDevice();
     await refreshMe();
