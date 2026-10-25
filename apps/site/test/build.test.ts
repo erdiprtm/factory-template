@@ -48,13 +48,23 @@ describe("built site", () => {
   });
 
   it("landers list the configured methods and follow the terms switch (D-109)", () => {
-    // The line under the CTA only: the lander's own body text is the product's.
-    const line = page("l/contoh/index.html").match(/Mulai dari[^<]*/)?.[0] ?? "";
-    expect(line).toContain(methodChips(product.payments.methods).join(", "));
-    expect(line.includes("tanpa tagihan otomatis")).toBe(product.payments.showTerms);
-    expect(page("harga/index.html").includes("Tidak ada tagihan otomatis.")).toBe(product.payments.showTerms);
-    const html = page("l/contoh/index.html");
-    expect(html).not.toContain("QRIS, e-wallet, virtual account");
+    // Every lander the product ships (products replace the template's example, D-035); none = nothing to check.
+    const dir = new URL("../src/content/landers/", import.meta.url);
+    const slugs = existsSync(dir)
+      ? readdirSync(dir)
+          .filter((f) => f.endsWith(".md"))
+          .map((f) => f.replace(/\.md$/, ""))
+      : [];
+    for (const slug of slugs) {
+      const html = page(`l/${slug}/index.html`);
+      // The line under the CTA only: the lander's own body text is the product's.
+      const line = html.match(/Mulai dari[^<]*/)?.[0] ?? "";
+      expect(line, slug).toContain(methodChips(product.payments.methods).join(", "));
+      expect(line.includes("tanpa tagihan otomatis"), slug).toBe(product.payments.showTerms);
+      expect(html, slug).not.toContain("QRIS, e-wallet, virtual account");
+    }
+    // Turned off, core's /harga intro sentence is gone (turned on, a product may have reworded its page).
+    if (!product.payments.showTerms) expect(page("harga/index.html")).not.toContain("Tidak ada tagihan otomatis.");
   });
 
   it("the plans' terms show once under the cards, not on every card (D-099)", () => {
