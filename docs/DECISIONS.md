@@ -2185,3 +2185,16 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Decision: retry the site upload.** It's static assets, so a retry can't leave a half-state: 3 attempts, 20 s apart, then fail as before. The site smoke test and rollback are unchanged. The app's release isn't retried; its smoke test and rollback cover it.
 - **Decision: say what happened.** When the app deployed and passed its smoke test but the site failed, the incident issue says so, and names the site step's outcome.
 - **The fix forward.** This PR's merge runs the production workflow again with the retry, so the site gets D-107's two-button banner. Incident #112 is closed once that run passes. The failed run wasn't re-run unchanged (CLAUDE.md).
+
+## D-109: A product can turn off the "Bayar sekali · tanpa perpanjangan otomatis" line (2026-10-26)
+
+- **Problem (Myna Fit, from Erdi: "HAPUS AJA dari semua halaman. ga semua harus diexplain. manusia juga tau paketnya berapa lama").** The line came from template-owned code in two places:
+  - the site, under the plans (D-099), which `build.test.ts` required exactly once;
+  - the app, as /pricing's subtitle (D-098).
+- **Decision.** `payments.showTerms`, default `true` (today's look).
+  - With `false`, the site renders no `plan-terms` line.
+  - The app's /pricing shows no subtitle, and the `pricingIntro` slot gets an empty `subtitle`.
+  - The FAQ ("Apakah langganan diperpanjang otomatis?"), the terms of service and /harga's meta description still say it, for the visitors who look.
+- **Tests:**
+  - the site build test expects the line once when on and never when off. It was run on a build with `showTerms: false` (0 lines, 13 passed), and the template's config was then restored;
+  - app render: with `showTerms` false, the slot gets an empty subtitle and the default view has none.
