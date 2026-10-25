@@ -2121,3 +2121,29 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - Unlike Pakasir (D-095), no field differed from the docs.
 - **Fixed.** Auth errors come as `{"error":{"code","message","type"}}`, not `error_messages`, so the log said "HTTP 400: -". Both are read now (a test pins the live shape).
 - **SETUP_HUMAN 3b.** DOKU's sandbox is a separate account at `sandbox.doku.com/bo/sandbox-registration`; production keys are refused there. A verified product may skip it: creating a checkout moves no money. Only Client ID and Secret Key are used (the SNAP keys are not).
+
+## D-106: Deleting the account also wipes the device (2026-10-25)
+
+- **Problem (Myna Fit production, 2026-10-25).** Erdi deleted test accounts with Akun → Hapus akun. The server deleted everything, but the phone kept the person's data:
+  - the quiz answers (health data) and their completion time;
+  - `factory.afterSignIn` and `factory.firstResult`;
+  - the attribution touch, and the device's A/B arm id;
+  - the product's own keys (drafts, caches).
+
+  Signing in again made a fresh account that skipped the quiz and went straight to Beranda without a plan, while the deleted person's answers stayed on the device. UU PDP: the person asked for their data to be gone.
+- **Decision.** After a successful delete, `deleteAccount()` calls `wipeDevice()` (`core/device-wipe.ts`, `.web.ts`):
+  1. The product's `onDeviceWipe()` (`apps/app/src/features/device-data.ts`, product-owned, new) runs first. It's for storage outside core/kv: IndexedDB, the Cache API, files. Its errors are ignored, so the wipe always happens.
+  2. Every core/kv key is removed except `theme` and `locale` (display choices, no personal data), via `kvClearExcept`.
+     - On the web that is the whole localStorage of the origin: core's keys, the product's, and the site's when it shares the domain (touch, marketing consent).
+     - It also clears sessionStorage.
+     - On native it covers the kv cache and AsyncStorage.
+  3. `forgetTouch()` drops the in-memory touch, so the next visit is a new device and the deleted person's anonId isn't attached to a new account.
+- **Then the person leaves.**
+  - On the web, a full page load into `/sign-in`, so nothing the page holds in memory survives.
+  - On native, `router.replace("/sign-in")` after refreshing `/api/me`.
+- **Not changed.**
+  - **Sign-out keeps the device's data.** It's usually the same person, and their drafts and quiz progress should survive.
+  - **No /admin "delete a user by email".** Deleting someone else's account is irreversible and needs a human's decision on how support requests are checked, so it waits for Erdi. Until then the person deletes their own account in Akun, or Erdi does it for test accounts by signing in as them.
+- **Tests (core keys only, slots mocked, D-103):**
+  - after the wipe, localStorage holds only `theme` and `locale`, sessionStorage is empty, the product hook ran, `loadQuizProgress` is null, the touch is a new anonId, and the quiz renders step 1 of 5;
+  - a failing product hook still leaves the device wiped.

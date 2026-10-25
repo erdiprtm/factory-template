@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-25: Account deletion wipes the device (D-106), Myna Fit production report
+
+- Quiz answers, attribution, drafts and the product's own storage are cleared after Hapus akun; only theme and language stay. Products clear other storage in `features/device-data.ts` `onDeviceWipe()`.
+
+---
+
 ## 2026-10-25: DOKU Checkout checked against the live API (D-105)
 
 - Create checkout and status match the code; DOKU's auth-error object is now read (logs showed "-"). SETUP_HUMAN 3b: the sandbox is a separate site; only Client ID and Secret Key are needed.

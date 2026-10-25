@@ -27,6 +27,11 @@ function write(key: string, value: string): void {
   }
 }
 
+/** Forgets the in-memory touch (account deletion, D-106): the next call starts a fresh device. */
+export function forgetTouch(): void {
+  touch = null;
+}
+
 /** This device's touch; the first call captures it from the current URL. */
 export function currentTouch(): Touch {
   if (!touch) {

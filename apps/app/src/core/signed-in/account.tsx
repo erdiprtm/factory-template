@@ -27,6 +27,7 @@ import { apiBaseUrl } from "../api-base";
 import { anonymousHome, leaveTo } from "../auth/anonymous-home";
 import { authClient } from "../auth/client";
 import { useMe, useRefreshMe } from "../auth/use-me";
+import { leaveAfterWipe, wipeDevice } from "../device-wipe";
 import { formatDate, formatIdr } from "../format";
 import { type Locale, type MessageKey, useI18n } from "../i18n";
 import { setMarketingChoice } from "../marketing";
@@ -251,8 +252,11 @@ function Privacy() {
     track("account_deleted");
     resetAnalytics();
     setMonitoringUser(null);
+    // UU PDP (D-106): the person asked for their data to be gone, from this device too: quiz answers,
+    // attribution, drafts and the product's own storage.
+    await wipeDevice();
     await refreshMe();
-    router.replace("/sign-in");
+    leaveAfterWipe((path) => router.replace(path));
   }
 
   return (
