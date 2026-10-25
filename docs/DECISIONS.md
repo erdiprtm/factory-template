@@ -2176,3 +2176,12 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - core: the counts, including a changed mind and a choice without a recorded ask;
   - config: defaults and validation;
   - API: the events are accepted, and the counts are correct overall and per arm.
+
+## D-108: The site upload retries; the incident issue says when only the site failed (2026-10-25)
+
+- **Problem.** The production run for D-107 (#111) deployed the app, and its smoke test passed. Then "Deploy the site" failed on Cloudflare's assets-upload API, which answered "An unknown error has occurred [code: 10013]". This came from Cloudflare, not from the code, which had built and passed in the PR.
+  - The site kept its previous version.
+  - Incident #112 said "Nothing new went live", which was wrong: the new app was live.
+- **Decision: retry the site upload.** It's static assets, so a retry can't leave a half-state: 3 attempts, 20 s apart, then fail as before. The site smoke test and rollback are unchanged. The app's release isn't retried; its smoke test and rollback cover it.
+- **Decision: say what happened.** When the app deployed and passed its smoke test but the site failed, the incident issue says so, and names the site step's outcome.
+- **The fix forward.** This PR's merge runs the production workflow again with the retry, so the site gets D-107's two-button banner. Incident #112 is closed once that run passes. The failed run wasn't re-run unchanged (CLAUDE.md).

@@ -208,7 +208,15 @@ jobs:
         id: site_deploy
         if: ${{ !inputs.rollback_drill }}
         working-directory: apps/site
-        run: pnpm exec wrangler deploy --message "main @ ${COMMIT_SHA}"
+        # The site is static assets, so a retry is safe. Cloudflare's assets-upload API sometimes
+        # fails with an unknown error (code 10013, D-108): try 3 times, 20 s apart, before failing.
+        run: |
+          for attempt in 1 2 3; do
+            pnpm exec wrangler deploy --message "main @ ${COMMIT_SHA}" && exit 0
+            echo "::warning::Site upload failed (attempt ${attempt}/3)"
+            [ "$attempt" -lt 3 ] && sleep 20
+          done
+          exit 1
       - name: Smoke test the site
         id: site_smoke
         if: ${{ !inputs.rollback_drill }}
@@ -258,12 +266,21 @@ jobs:
           PREVIOUS_VERSION: ${{ steps.before.outputs.version_id }}
           BOOKMARK: ${{ steps.backup.outputs.bookmark }}
           ROLLBACK: ${{ steps.rollback.outcome }}
+          APP_DEPLOY: ${{ steps.deploy.outcome }}
+          APP_SMOKE: ${{ steps.smoke.outcome }}
+          SITE_DEPLOY: ${{ steps.site_deploy.outcome }}
           MIGRATE: ${{ steps.migrate.outcome }}
         run: |
           case "$ROLLBACK" in
             success) live="Rolled back to \`${PREVIOUS_VERSION}\` and the old version passed its smoke test." ;;
             failure) live="**Rollback FAILED. Production may be down. A human needs to act now.**" ;;
-            *) live="Nothing new went live; the previously deployed version is still serving." ;;
+            *)
+              # D-108: say what really happened when only the site failed after a healthy app deploy.
+              if [ "$APP_DEPLOY" = "success" ] && [ "$APP_SMOKE" = "success" ]; then
+                live="The app's new version is live and passed its smoke test. The site (step outcome: ${SITE_DEPLOY}) still serves its previous version."
+              else
+                live="Nothing new went live; the previously deployed version is still serving."
+              fi ;;
           esac
           db="No migrations ran."
           if [ "$MIGRATE" = "success" ] || [ "$MIGRATE" = "failure" ]; then

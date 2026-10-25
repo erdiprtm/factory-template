@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-25: Site upload retries on Cloudflare's transient error (D-108), incident #112
+
+- D-107's app went live; its site upload hit Cloudflare code 10013. The site upload now retries 3 times, and the incident text tells an app-live/site-failed run apart.
+
+---
+
 ## 2026-10-25: Marketing consent: product words, equal buttons, askAt, /admin counts (D-107)
 
 - `marketing.consent.askAt` (first_visit / after_first_result / after_signup) and `copy`; "Izinkan" and "Tidak, terima kasih" side by side; consent counts per campaign and arm on /admin. Nothing reaches Meta before "Izinkan" (D-034). Legal review of the product's wording and of asking later: Erdi.
