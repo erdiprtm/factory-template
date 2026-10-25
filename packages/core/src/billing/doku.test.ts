@@ -147,6 +147,15 @@ describe("DokuProvider.createCheckout", () => {
     await expect(provider(fetchImpl).createCheckout(input)).rejects.toThrow(/invoice_number must be filled/);
   });
 
+  it("throws with the live API's error object too (e.g. a wrong Client-Id)", async () => {
+    // The shape api-sandbox.doku.com answered on 2026-10-25 for a production Client-Id.
+    const body = { error: { code: "invalid_client_id", message: "Invalid Client-Id", type: "invalid_request_error" } };
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(body), { status: 400 }));
+    await expect(provider(fetchImpl).createCheckout(input)).rejects.toThrow(
+      "DOKU checkout failed (HTTP 400: invalid_client_id: Invalid Client-Id)",
+    );
+  });
+
   it("rejects non-integer amounts before calling the API", async () => {
     const fetchImpl = vi.fn();
     await expect(provider(fetchImpl).createCheckout({ ...input, amountIdr: 1.5 })).rejects.toThrow();

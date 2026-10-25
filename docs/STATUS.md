@@ -4,6 +4,10 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-25: DOKU Checkout checked against the live API (D-105)
+
+- Create checkout and status match the code; DOKU's auth-error object is now read (logs showed "-"). SETUP_HUMAN 3b: the sandbox is a separate site; only Client ID and Secret Key are needed.
+
 ## 2026-10-23: No double verify; site-only PRs skip the app's E2E and release only the site (D-104)
 
 - The production workflow skips `verify` when the PR's `verify` passed on the identical tree (`ci/verified-tree` status), and builds instead. Site-only changes run `pnpm verify:site` and release the site alone.

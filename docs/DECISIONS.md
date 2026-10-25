@@ -2112,3 +2112,12 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - `pnpm verify:site` passed locally.
   - The production workflow's lookup ran against GitHub for current main: it found the merged PR's head and answered `false`, since no status existed yet.
   - This PR is the live check: its own run records the status, and its merge's production run should skip verify.
+
+## D-105: DOKU Checkout checked against the live API; its error object is read too (2026-10-25)
+
+- **Checked.** Myna Fit (moving off Pakasir, which closes 2026-11-25) ran the template's own `DokuProvider` from a laptop against a verified production account:
+  - `POST /checkout/v1/payment` answered 200 with `response.payment.url` and `token_id`, as the code expects. A 32-character invoice was accepted (no card channel active; DOKU caps invoices at 30 when cards are on).
+  - `GET /orders/v1/status/{invoice}` answered 200 with `transaction.status: "PENDING"`, which the code maps to pending.
+  - Unlike Pakasir (D-095), no field differed from the docs.
+- **Fixed.** Auth errors come as `{"error":{"code","message","type"}}`, not `error_messages`, so the log said "HTTP 400: -". Both are read now (a test pins the live shape).
+- **SETUP_HUMAN 3b.** DOKU's sandbox is a separate account at `sandbox.doku.com/bo/sandbox-registration`; production keys are refused there. A verified product may skip it: creating a checkout moves no money. Only Client ID and Secret Key are used (the SNAP keys are not).

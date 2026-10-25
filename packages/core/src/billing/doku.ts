@@ -166,11 +166,14 @@ export class DokuProvider implements PaymentProvider {
     const json = (await res.json().catch(() => ({}))) as {
       response?: { payment?: { url?: string; token_id?: string } };
       error_messages?: string[];
+      /** What the live API sends for auth errors (2026-10-25): {"error":{"code","message","type"}}. */
+      error?: { code?: string; message?: string };
     };
     const url = json.response?.payment?.url;
     const token = json.response?.payment?.token_id;
     if (!res.ok || !url || !token) {
-      const why = json.error_messages?.join("; ") ?? "-";
+      const why =
+        json.error_messages?.join("; ") ?? ([json.error?.code, json.error?.message].filter(Boolean).join(": ") || "-");
       throw new Error(`DOKU checkout failed (HTTP ${res.status}: ${why})`);
     }
     return { redirectUrl: url, providerRef: token };

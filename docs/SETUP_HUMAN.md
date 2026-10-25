@@ -252,10 +252,10 @@ Sumber: <https://docs.duitku.com/pop/en/>
 
 Template mendukung DOKU Checkout sebagai penyedia kedua. Langkah ini **hanya** perlu kalau di `product.config.ts` tertulis `payments: { provider: "doku", ... }`. Kalau masih Duitku, lewati.
 
-1. Daftar akun sandbox: <https://dashboard.doku.com/> → pilih **Sandbox** saat mendaftar/masuk.
+1. Daftar akun sandbox: **akun terpisah di situs terpisah**, <https://sandbox.doku.com/bo/sandbox-registration> (D-105). Di dashboard produksi (<https://dashboard.doku.com/>) tidak ada tombol Sandbox, dan kunci produksi ditolak server sandbox ("Invalid Client-Id"). Kalau akun produksi sudah terverifikasi, sandbox boleh dilewati: uji pembuatan checkout ke API produksi tidak menarik uang selama halaman bayarnya tidak dibayar.
 2. Di Back Office: **Integration → API Keys**. Salin dua nilai ini ke password manager:
    - **Client ID** (contoh bentuknya `BRN-xxxx-xxxxxxxxxxxx`)
-   - **Secret Key** (bukan *Public Key*)
+   - **Secret Key** (bukan *Public Key*). Hanya dua ini yang dipakai: DOKU Public Key, Merchant Public Key dan Token URL di "Pengaturan SNAP" untuk API SNAP, yang tidak dipakai template.
 3. **Notification URL** (wajib, beda dengan Duitku): DOKU tidak menerima alamat callback per transaksi, jadi harus diisi di dashboard **untuk setiap channel** yang dipakai. Buka **Settings → Payment Settings**, lalu untuk Virtual Account, e-Wallet, QRIS, dan lainnya klik **CONFIGURE** dan isi:
    - Preview: `https://factory-template-preview.erdiprtm.workers.dev/api/webhooks/doku`
    - Produksi (akun produksi, nanti): `https://factory-template.erdiprtm.workers.dev/api/webhooks/doku`
