@@ -2168,7 +2168,7 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - So asking later still attributes. A buyer who allows before paying gets a Purchase with `fbc` built from the stored `fbclid`, and CAPI Purchase is sent once granted.
   - A purchase made before the choice sends nothing to Meta, and a later "Izinkan" doesn't send it retroactively.
   - Keeping `fbclid` first-party before the choice isn't new: D-033 already did it. But asking later stretches that window. This reading is not legal advice; Erdi's legal team should confirm it together with the product's wording.
-  - **Erdi approved both on 2026-10-26** ("gas aja"): Myna Fit's proposed wording and asking later. It's his decision for Myna Fit, without a separate lawyer's review.
+  - **Approved.** Erdi's lawyer said "fine" (2026-10-25) to Myna Fit's proposed wording and to asking after the first result, including keeping UTM tags and `fbclid` first-party before the choice. Erdi approved both (2026-10-26, confirmed in the factory chat).
 - **Decision: measuring it.** New first-party funnel events: `consent_shown` (once per device), `consent_granted`, `consent_denied`.
   - The site sends them by beacon and the app with `track`. They go to D1, never to Meta, and carry the device's campaign and A/B arm (D-094).
   - `/admin` shows a card: devices asked, allowed (with the rate), declined, and no choice yet (asked and never answered). It's shown overall and per arm, within the date range and campaign filter. A device's latest choice counts (`computeConsent`).
