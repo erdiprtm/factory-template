@@ -5,4 +5,5 @@ export function currentTouch(): Touch | null {
   return null;
 }
 export async function sendTouch(_userId: string): Promise<void> {}
+export function forgetTouch(): void {}
 export function trackFunnel(_event: string, _step?: number): void {}

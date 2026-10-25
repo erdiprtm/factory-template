@@ -31,6 +31,14 @@ export function kvSet(key: string, value: string): void {
   void AsyncStorage.setItem(key, value).catch(() => {});
 }
 
+/** Removes every key but `keep` (account deletion, D-105), from the cache and from storage. */
+export function kvClearExcept(keep: readonly string[]): void {
+  for (const key of [...cache.keys()]) if (!keep.includes(key)) cache.delete(key);
+  void AsyncStorage.getAllKeys()
+    .then((keys) => AsyncStorage.multiRemove(keys.filter((k) => !keep.includes(k))))
+    .catch(() => {});
+}
+
 export function kvRemove(key: string): void {
   cache.delete(key);
   void AsyncStorage.removeItem(key).catch(() => {});
