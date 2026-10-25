@@ -325,10 +325,13 @@ export const productSchema = z.object({
     }),
   // Duitku and DOKU show their hosted page; methods there only document intent (D-017). Pakasir
   // (D-092) uses the app's own checkout: methods are Pakasir codes, QRIS shown first.
+  // showTerms (D-109): the "Bayar sekali · tanpa perpanjangan otomatis" line under the site's plans
+  // and as the app's /pricing subtitle. false = neither shows (the FAQ and terms still say it).
   payments: z
     .object({
       provider: z.enum(["duitku", "doku", "pakasir"]),
       methods: z.array(z.string().min(1)).nonempty(),
+      showTerms: z.boolean().default(true),
     })
     .superRefine((p, ctx) => {
       if (p.provider !== "pakasir") return;

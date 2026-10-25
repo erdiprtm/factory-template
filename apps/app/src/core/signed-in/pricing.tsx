@@ -42,15 +42,17 @@ export function Pricing() {
   }
 
   const Intro = slots.pricingIntro;
+  // payments.showTerms false (D-109): no "Bayar sekali · tanpa perpanjangan otomatis" subtitle.
+  const subtitle = product.payments.showTerms ? t("pricing.subtitle") : "";
   const Footer = slots.pricingFooter;
   return (
     <Screen>
       {Intro ? (
-        <Intro title={t("pricing.title")} subtitle={t("pricing.subtitle")} />
+        <Intro title={t("pricing.title")} subtitle={subtitle} />
       ) : (
         <View className="gap-2">
           <Text variant="h1">{t("pricing.title")}</Text>
-          <Text variant="lead">{t("pricing.subtitle")}</Text>
+          {subtitle ? <Text variant="lead">{subtitle}</Text> : null}
         </View>
       )}
       <PlanCards />

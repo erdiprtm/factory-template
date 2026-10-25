@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-26: `payments.showTerms` (D-109), Myna Fit drops "bayar sekali"
+
+- `false` hides the terms line under the site's plans and the app's /pricing subtitle.
+
+---
+
 ## 2026-10-25: Site upload retries on Cloudflare's transient error (D-108), incident #112
 
 - D-107's app went live; its site upload hit Cloudflare code 10013. The site upload now retries 3 times, and the incident text tells an app-live/site-failed run apart.

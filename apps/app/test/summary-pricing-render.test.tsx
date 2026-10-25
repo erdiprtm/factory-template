@@ -139,6 +139,38 @@ describe("/pricing footer slot (D-098)", () => {
   });
 });
 
+describe("/pricing terms switch (D-109)", () => {
+  it("payments.showTerms false: no terms subtitle, in the default view or a slot", async () => {
+    vi.resetModules();
+    vi.doMock("../../../product.config", async (orig) => {
+      const real = ((await orig()) as { default: { payments: object } }).default;
+      return { default: { ...real, payments: { ...real.payments, showTerms: false } } };
+    });
+    const fresh = await import("../src/core/signed-in/pricing");
+    const i18n = await import("../src/core/i18n");
+    const seen: string[] = [];
+    mock.slots.pricingIntro = ({ subtitle }: { subtitle: string }) => {
+      seen.push(subtitle);
+      return null;
+    };
+    // The fresh modules' own I18nProvider (vi.resetModules gave this test new instances).
+    const show = () =>
+      render(
+        <QueryClientProvider client={new QueryClient()}>
+          <i18n.I18nProvider>
+            <fresh.Pricing />
+          </i18n.I18nProvider>
+        </QueryClientProvider>,
+      );
+    show();
+    expect(seen.at(-1)).toBe("");
+    delete mock.slots.pricingIntro;
+    show();
+    expect(screen.queryByText(i18n.t("pricing.subtitle"))).toBeNull();
+    vi.doUnmock("../../../product.config");
+  });
+});
+
 describe("payment return knows when access ends (D-098)", () => {
   it("default view shows it; a slot gets it formatted and raw", async () => {
     const { unmount } = wrap(<BillingReturn />);

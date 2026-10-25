@@ -47,10 +47,22 @@ describe("built site", () => {
     }
   });
 
+  it("landers list the configured methods and follow the terms switch (D-109)", () => {
+    // The line under the CTA only: the lander's own body text is the product's.
+    const line = page("l/contoh/index.html").match(/Mulai dari[^<]*/)?.[0] ?? "";
+    expect(line).toContain(methodChips(product.payments.methods).join(", "));
+    expect(line.includes("tanpa tagihan otomatis")).toBe(product.payments.showTerms);
+    expect(page("harga/index.html").includes("Tidak ada tagihan otomatis.")).toBe(product.payments.showTerms);
+    const html = page("l/contoh/index.html");
+    expect(html).not.toContain("QRIS, e-wallet, virtual account");
+  });
+
   it("the plans' terms show once under the cards, not on every card (D-099)", () => {
     const html = page("harga/index.html");
-    expect(html.match(/tanpa perpanjangan otomatis<\/p>/g) ?? []).toHaveLength(1);
-    expect(html).toContain('data-testid="plan-terms">Bayar sekali · tanpa perpanjangan otomatis</p>');
+    // Once, or not at all when the product turns it off (payments.showTerms, D-109).
+    const on = product.payments.showTerms;
+    expect(html.match(/tanpa perpanjangan otomatis<\/p>/g) ?? []).toHaveLength(on ? 1 : 0);
+    expect(html.includes('data-testid="plan-terms"')).toBe(on);
   });
 
   it("payment methods are compact chips from config, and the FAQ lists the same ones (D-098)", () => {

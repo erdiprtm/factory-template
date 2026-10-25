@@ -106,7 +106,8 @@
       "SHOPEEPAY",
       "OVO",
       "VIRTUAL_ACCOUNT"
-    ]
+    ],
+    "showTerms": true
   },
   "legal": {
     "companyName": "PT Contoh Studio",
