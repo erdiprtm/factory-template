@@ -163,6 +163,14 @@ export const id = {
   "admin.grantButton": "Beri akses",
   "admin.grantDone": "Akses diberikan sampai",
   "admin.grantNotFound": "Pengguna tidak ditemukan.",
+  "admin.deleteUser": "Hapus akun pengguna",
+  "admin.deleteUserHint":
+    "Untuk permintaan penghapusan data (UU PDP) atau akun uji. Semua data akun itu dihapus permanen, sama seperti Hapus akun di menu Akun.",
+  "admin.deleteUserEmail": "Email akun yang dihapus",
+  "admin.deleteUserConfirm": "Ketik ulang email untuk konfirmasi",
+  "admin.deleteUserButton": "Hapus akun permanen",
+  "admin.deleteUserDone": "Akun dihapus.",
+  "admin.deleteUserAdmin": "Akun admin tidak bisa dihapus dari sini. Hapus akunmu sendiri lewat menu Akun.",
   "admin.forbidden": "Halaman ini khusus admin.",
   "marketing.banner.title": "Privasi & iklan",
   "marketing.banner.body":

@@ -71,6 +71,7 @@ export function Admin() {
       </Card>
 
       <GrantForm />
+      <DeleteUserForm />
 
       <Card>
         <CardTitle>{t("admin.payments")}</CardTitle>
@@ -124,6 +125,59 @@ function Row({ left, right, sub }: { left: string; right: string; sub?: string }
       </View>
       <Text className="text-right">{right}</Text>
     </View>
+  );
+}
+
+/** D-110: delete someone's account on their request, or a test account. The email is typed twice. */
+function DeleteUserForm() {
+  const { t } = useI18n();
+  const client = useQueryClient();
+  const [email, setEmail] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const same = email.trim() !== "" && email.trim().toLowerCase() === confirm.trim().toLowerCase();
+
+  async function remove() {
+    setBusy(true);
+    const res = await api.api.admin["delete-user"].$post({ json: { email: email.trim(), confirm: confirm.trim() } });
+    setBusy(false);
+    if (res.status === 404) return setMessage({ ok: false, text: t("admin.grantNotFound") });
+    if (res.status === 409) return setMessage({ ok: false, text: t("admin.deleteUserAdmin") });
+    if (!res.ok) return setMessage({ ok: false, text: t("common.error") });
+    setMessage({ ok: true, text: t("admin.deleteUserDone") });
+    setEmail("");
+    setConfirm("");
+    client.invalidateQueries({ queryKey: ["admin-stats"] });
+  }
+
+  return (
+    <Card>
+      <CardTitle>{t("admin.deleteUser")}</CardTitle>
+      <CardContent>
+        <Text variant="muted">{t("admin.deleteUserHint")}</Text>
+        <Input
+          accessibilityLabel={t("admin.deleteUserEmail")}
+          placeholder={t("admin.deleteUserEmail")}
+          autoCapitalize="none"
+          inputMode="email"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <Input
+          accessibilityLabel={t("admin.deleteUserConfirm")}
+          placeholder={t("admin.deleteUserConfirm")}
+          autoCapitalize="none"
+          inputMode="email"
+          value={confirm}
+          onChangeText={setConfirm}
+        />
+        <Button variant="destructive" onPress={remove} disabled={!same || busy} testID="admin-delete-user">
+          <Text>{t("admin.deleteUserButton")}</Text>
+        </Button>
+        {message ? message.ok ? <Text>{message.text}</Text> : <ErrorText>{message.text}</ErrorText> : null}
+      </CardContent>
+    </Card>
   );
 }
 
