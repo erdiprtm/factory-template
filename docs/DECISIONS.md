@@ -2190,9 +2190,11 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 
 - **Problem (Myna Fit, from Erdi: "HAPUS AJA dari semua halaman. ga semua harus diexplain. manusia juga tau paketnya berapa lama").** The line came from template-owned code in two places:
   - the site, under the plans (D-099), which `build.test.ts` required exactly once;
-  - the app, as /pricing's subtitle (D-098).
+  - the app, as /pricing's subtitle (D-098);
+  - ad landers (`/l/<slug>`), as "tanpa tagihan otomatis" in the line under the CTA.
 - **Decision.** `payments.showTerms`, default `true` (today's look).
-  - With `false`, the site renders no `plan-terms` line.
+  - With `false`, the site renders no `plan-terms` line, landers drop "tanpa tagihan otomatis", and /harga drops its intro sentence ("Bayar sekali di muka. Tidak ada tagihan otomatis. …").
+  - Landers now list the payment methods from config (`methodChips`) instead of a fixed "QRIS, e-wallet, virtual account", which was wrong for a provider without e-wallets.
   - The app's /pricing shows no subtitle, and the `pricingIntro` slot gets an empty `subtitle`.
   - The FAQ ("Apakah langganan diperpanjang otomatis?"), the terms of service and /harga's meta description still say it, for the visitors who look.
 - **Tests:**

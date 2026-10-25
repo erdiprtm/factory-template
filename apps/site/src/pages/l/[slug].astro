@@ -4,7 +4,7 @@
 // above-the-fold image, one CTA. The headline is the ad's hook, word for word (scent).
 import { Image } from "astro:assets";
 import { getCollection, render } from "astro:content";
-import { cheapestPerWeekIdr } from "@factory/core/pricing";
+import { cheapestPerWeekIdr, methodChips } from "@factory/core/pricing";
 import Base from "../../layouts/Base.astro";
 import { appUrl, formatIdr, product } from "../../lib/site";
 
@@ -32,7 +32,12 @@ const quizUrl = `${appUrl}/quiz`;
       {cta}
     </a>
     <p class="text-center text-sm text-muted-foreground">
-      Mulai dari ≈ {formatIdr(cheapest)}/minggu · QRIS, e-wallet, virtual account · tanpa tagihan otomatis
+      {/* Methods from config (D-098); the terms follow payments.showTerms (D-109). */}
+      {[
+        `Mulai dari ≈ ${formatIdr(cheapest)}/minggu`,
+        methodChips(product.payments.methods).join(", "),
+        ...(product.payments.showTerms ? ["tanpa tagihan otomatis"] : []),
+      ].join(" · ")}
     </p>
   </section>
 

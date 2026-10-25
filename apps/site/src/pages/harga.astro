@@ -17,9 +17,14 @@ const site = Astro.site as URL;
 >
   <section class="mx-auto w-full max-w-5xl px-5 py-14">
     <h1 class="mb-3 text-4xl font-extrabold tracking-tight">Harga</h1>
-    <p class="mb-8 max-w-2xl text-lg text-muted-foreground">
-      Bayar sekali di muka. Tidak ada tagihan otomatis. Memperpanjang lebih awal tidak menghanguskan sisa hari.
-    </p>
+    {/* The terms follow payments.showTerms (D-109); the FAQ below still answers it. */}
+    {
+      product.payments.showTerms && (
+        <p class="mb-8 max-w-2xl text-lg text-muted-foreground">
+          Bayar sekali di muka. Tidak ada tagihan otomatis. Memperpanjang lebih awal tidak menghanguskan sisa hari.
+        </p>
+      )
+    }
     <Pricing />
   </section>
   <section id="faq" class="mx-auto w-full max-w-3xl px-5 pb-16">
