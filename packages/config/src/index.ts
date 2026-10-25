@@ -530,8 +530,30 @@ export const productSchema = z.object({
         .regex(/^\d{10,20}$/, "a Meta Pixel ID (digits)")
         .nullable()
         .default(null),
+      // The "iklan/marketing" consent ask (D-107). Core keeps the rules: nothing reaches Meta before
+      // "Izinkan", no choice = no, Akun changes it later.
+      // askAt: when to ask. "first_visit" (today: the site and the app's first screen),
+      // "after_first_result" (the app, right after the product's first real result; the site and
+      // landers don't ask), "after_signup" (the app, once signed in; the site doesn't ask).
+      // copy: the product's own words per language, else core's.
+      consent: z
+        .object({
+          askAt: z.enum(["first_visit", "after_first_result", "after_signup"]).default("first_visit"),
+          copy: z
+            .partialRecord(
+              z.enum(["id", "en"]),
+              z.object({
+                title: z.string().min(3).max(80),
+                body: z.string().min(20).max(400),
+                allow: z.string().min(2).max(30),
+                deny: z.string().min(2).max(30),
+              }),
+            )
+            .default({}),
+        })
+        .default({ askAt: "first_visit", copy: {} }),
     })
-    .default({ metaPixelId: null }),
+    .default({ metaPixelId: null, consent: { askAt: "first_visit", copy: {} } }),
 });
 
 export type ProductConfigInput = z.input<typeof productSchema>;

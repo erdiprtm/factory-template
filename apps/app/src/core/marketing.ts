@@ -4,6 +4,7 @@ import type { MarketingChoice } from "@factory/core/meta/events";
 export const marketingActive = async () => false;
 export const marketingChoice = (): MarketingChoice | null => null;
 export const onMarketingChange = (_listener: () => void) => () => {};
+export function notifyMarketingChange(): void {}
 export async function initMarketing(): Promise<void> {}
 export function setMarketingChoice(_choice: MarketingChoice, _synced = false): void {}
 export async function syncMarketingConsent(_serverGranted: boolean): Promise<void> {}

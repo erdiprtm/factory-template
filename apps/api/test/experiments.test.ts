@@ -100,3 +100,31 @@ describe("/admin economics split by arm", () => {
     expect(variantFor({ ...experiment }, id)).toBe("short");
   });
 });
+
+describe("/admin consent counts (D-107)", () => {
+  it("the consent events are accepted first-party and counted overall and per arm", async () => {
+    const a = deviceIn("short");
+    const b = deviceIn("long");
+    const c = deviceIn("long");
+    const ev = (...names: string[]) => names.map((event) => ({ event }));
+    expect(
+      (await beacon({ anonId: a, utm_campaign: "c-consent", events: ev("consent_shown", "consent_granted") })).status,
+    ).toBe(204);
+    await beacon({ anonId: b, utm_campaign: "c-consent", events: ev("consent_shown", "consent_denied") });
+    await beacon({ anonId: c, utm_campaign: "c-consent", events: ev("consent_shown") });
+    const today = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
+    const e = await loadEconomics(db, {
+      from: today,
+      to: today,
+      campaign: "c-consent",
+      plans: [],
+      steps: ["lp_view"],
+      benchmarks: {},
+      experiment,
+    });
+    expect(e.consent).toEqual({ shown: 3, granted: 1, denied: 1, noChoice: 1 });
+    const arm = (v: string) => e.experiment?.variants.find((x) => x.variant === v)?.consent;
+    expect(arm("short")).toEqual({ shown: 1, granted: 1, denied: 0, noChoice: 0 });
+    expect(arm("long")).toEqual({ shown: 2, granted: 0, denied: 1, noChoice: 1 });
+  });
+});

@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-25: Marketing consent: product words, equal buttons, askAt, /admin counts (D-107)
+
+- `marketing.consent.askAt` (first_visit / after_first_result / after_signup) and `copy`; "Izinkan" and "Tidak, terima kasih" side by side; consent counts per campaign and arm on /admin. Nothing reaches Meta before "Izinkan" (D-034). Legal review of the product's wording and of asking later: Erdi.
+
+---
+
 ## 2026-10-25: Account deletion wipes the device (D-106), Myna Fit production report
 
 - Quiz answers, attribution, drafts and the product's own storage are cleared after Hapus akun; only theme and language stay. Products clear other storage in `features/device-data.ts` `onDeviceWipe()`.

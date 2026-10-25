@@ -168,7 +168,8 @@ export const id = {
   "marketing.banner.body":
     "Kami memakai analitik anonim untuk memperbaiki layanan. Dengan izinmu, kami juga memakai Meta Pixel untuk mengukur iklan kami di Facebook dan Instagram. Kamu bisa mengubah pilihan ini kapan saja di menu Akun.",
   "marketing.banner.toggle": "Izinkan pelacakan iklan (Meta)",
-  "marketing.banner.save": "Simpan pilihan",
+  "marketing.banner.allow": "Izinkan",
+  "marketing.banner.deny": "Tidak, terima kasih",
   "account.marketingHint":
     "Jika diizinkan, data kunjungan dan pembelian (email dalam bentuk acak/hash) dikirim ke Meta untuk mengukur iklan.",
   "quiz.back": "Kembali",
@@ -209,6 +210,12 @@ export const id = {
     "Pengunjung unik per langkah dan konversi dari langkah sebelumnya. Merah: langkah pertama di bawah patokan, perbaiki ini dulu.",
   "econ.min": "min",
   "econ.firstBad": "Langkah pertama di bawah patokan: fokus perbaiki di sini.",
+  "econ.consent": "Izin iklan (Meta)",
+  "econ.consentHint": "Perangkat yang ditanya, dan pilihannya. Tanpa pilihan = tidak.",
+  "econ.asked": "Ditanya",
+  "econ.granted": "Izinkan",
+  "econ.denied": "Tolak",
+  "econ.noChoice": "Belum memilih",
   "econ.experiment": "Eksperimen",
   "econ.experimentHint":
     "Funnel yang sama, dipisah per varian. Bandingkan hanya setelah tiap varian punya cukup pengunjung.",
