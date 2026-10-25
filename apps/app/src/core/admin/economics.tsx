@@ -91,6 +91,12 @@ export function EconomicsSection() {
           </Card>
           <Funnel steps={e.funnel} />
           {e.experiment ? <ExperimentFunnels experiment={e.experiment} /> : null}
+          {e.consent.shown > 0 ? (
+            <ConsentCard
+              total={e.consent}
+              arms={e.experiment?.variants.map((v) => ({ name: v.variant, counts: v.consent })) ?? []}
+            />
+          ) : null}
           <Calculator ltvIdr={e.totals.ltvIdr} settings={e.settings} />
         </>
       ) : q.isError ? (
@@ -148,6 +154,26 @@ function Funnel({
 }
 
 type FunnelSteps = Parameters<typeof Funnel>[0]["steps"];
+type ConsentCounts = { shown: number; granted: number; denied: number; noChoice: number };
+
+/** The marketing consent ask (D-107): asked, allowed, declined, no choice, overall and per A/B arm. */
+function ConsentCard({ total, arms }: { total: ConsentCounts; arms: { name: string; counts: ConsentCounts }[] }) {
+  const { t } = useI18n();
+  const line = (c: ConsentCounts) =>
+    `${t("econ.asked")} ${c.shown} · ${t("econ.granted")} ${c.granted} (${pct(c.shown ? c.granted / c.shown : null)}) · ${t("econ.denied")} ${c.denied} · ${t("econ.noChoice")} ${c.noChoice}`;
+  return (
+    <Card>
+      <CardTitle>{t("econ.consent")}</CardTitle>
+      <CardDescription>{t("econ.consentHint")}</CardDescription>
+      <CardContent className="gap-2">
+        <Text testID="consent-total">{line(total)}</Text>
+        {arms.map((a) => (
+          <Text key={a.name} variant="small">{`${a.name}: ${line(a.counts)}`}</Text>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
 
 /** The funnel per A/B arm (D-094): visitors and step rate per arm, side by side per step. */
 function ExperimentFunnels({

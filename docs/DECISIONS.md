@@ -2147,3 +2147,32 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Tests (core keys only, slots mocked, D-103):**
   - after the wipe, localStorage holds only `theme` and `locale`, sessionStorage is empty, the product hook ran, `loadQuizProgress` is null, the touch is a new anonId, and the quiz renders step 1 of 5;
   - a failing product hook still leaves the device wiped.
+
+## D-107: The marketing ask: the product's words, two equal buttons, the product's moment, measured (2026-10-25)
+
+- **Problem (Myna Fit, from Erdi: raise the "iklan/marketing" consent rate, honestly).** The ask was entirely core's, and products could change none of it:
+  - the site's `#consent-banner` and the app's `MarketingBanner` used core's words, "Privasi & iklan";
+  - they showed on the very first screen, and on landers as a fixed overlay over the hook and CTA;
+  - the choice was an unticked toggle plus "Simpan pilihan".
+- **Decision: config.** `product.config.ts` gets `marketing.consent: { askAt, copy }`. The default is `first_visit` with core's words, which is today's ask.
+  - `copy` holds the product's words per language (`id`, `en`), as `{ title, body, allow, deny }` with lengths checked. They replace core's on the app's banner and, in the default language, on the site's.
+  - Core keeps the rules: nothing reaches Meta before "Izinkan", no choice = no, and Akun → Privasi changes it later (D-034).
+- **Decision: two equal buttons.** "Tidak, terima kasih" and "Izinkan" (core's defaults) have the same variant, size and weight, on the app and on the site. Declining is one tap, nothing is pre-selected, and there's no toggle or save button any more. The Akun toggle stays.
+- **Decision: `askAt`.**
+  - `first_visit`: as today, on the site and on the app's first screen.
+  - `after_first_result`: the app asks right after the product's first real result. `reportFirstResult` records it in core/kv, now on native too, and wakes the banner. The site and landers show no banner.
+  - `after_signup`: the app asks once signed in, and the choice goes to the account at once. The site shows no banner.
+- **Attribution and D-034 (Myna Fit's question).**
+  - Before a choice, the device keeps its first touch first-party, as since D-033: a random anonId, UTM tags, `fbclid` and the first-visit time, in its own storage. They're attached to the account at sign-up and copied onto payments.
+  - None of it goes to Meta without "Izinkan": no Pixel loads, and no CAPI event is sent. Checkout saves the CAPI context (`payment_tracking`) only when the buyer has consented by then.
+  - So asking later still attributes. A buyer who allows before paying gets a Purchase with `fbc` built from the stored `fbclid`, and CAPI Purchase is sent once granted.
+  - A purchase made before the choice sends nothing to Meta, and a later "Izinkan" doesn't send it retroactively.
+  - Keeping `fbclid` first-party before the choice isn't new: D-033 already did it. But asking later stretches that window. This reading is not legal advice; Erdi's legal team should confirm it together with the product's wording.
+- **Decision: measuring it.** New first-party funnel events: `consent_shown` (once per device), `consent_granted`, `consent_denied`.
+  - The site sends them by beacon and the app with `track`. They go to D1, never to Meta, and carry the device's campaign and A/B arm (D-094).
+  - `/admin` shows a card: devices asked, allowed (with the rate), declined, and no choice yet (asked and never answered). It's shown overall and per arm, within the date range and campaign filter. A device's latest choice counts (`computeConsent`).
+- **Tests:**
+  - app banner: equal buttons and no checkbox; core's words or the product's; one tap to decline; `consent_shown` once; `after_first_result` hidden until the first result, then shown; `after_signup` hidden for a visitor and shown once signed in; no banner after a choice;
+  - core: the counts, including a changed mind and a choice without a recorded ask;
+  - config: defaults and validation;
+  - API: the events are accepted, and the counts are correct overall and per arm.

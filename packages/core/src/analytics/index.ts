@@ -18,6 +18,11 @@ export const FUNNEL_EVENTS = [
   "purchase",
   "renewal",
   "refund",
+  // The "iklan/marketing" consent ask (D-107): shown once per device, then the choice. First-party
+  // only, so /admin can measure the consent rate per campaign and A/B arm.
+  "consent_shown",
+  "consent_granted",
+  "consent_denied",
 ] as const;
 export type FunnelEvent = (typeof FUNNEL_EVENTS)[number];
 
@@ -31,6 +36,9 @@ export const CLIENT_FUNNEL_EVENTS = [
   "first_result",
   "paywall_view",
   "checkout_start",
+  "consent_shown",
+  "consent_granted",
+  "consent_denied",
 ] as const satisfies readonly FunnelEvent[];
 export type ClientFunnelEvent = (typeof CLIENT_FUNNEL_EVENTS)[number];
 

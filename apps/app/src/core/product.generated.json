@@ -162,6 +162,10 @@
     "promptAfter": "never"
   },
   "marketing": {
-    "metaPixelId": "1134506435670666"
+    "metaPixelId": "1134506435670666",
+    "consent": {
+      "askAt": "first_visit",
+      "copy": {}
+    }
   }
 }

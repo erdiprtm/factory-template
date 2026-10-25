@@ -4,7 +4,14 @@ import { and, desc, eq, gt, gte, inArray, lt, lte, min } from "drizzle-orm";
 import { recordServerEvent } from "../attribution";
 import type { Db } from "../entitlements";
 import type { Experiment } from "../experiments";
-import { type Acquisition, computeEconomics, computeFunnel, type PaidPayment, type SpendEntry } from "./metrics";
+import {
+  type Acquisition,
+  computeConsent,
+  computeEconomics,
+  computeFunnel,
+  type PaidPayment,
+  type SpendEntry,
+} from "./metrics";
 
 export * from "./csv";
 export * from "./metrics";
@@ -146,6 +153,8 @@ export async function loadEconomics(db: Db, o: EconomicsOptions) {
     range: { from: o.from, to: o.to, campaign: o.campaign ?? null },
     ...economics,
     funnel,
+    // The marketing consent ask (D-107): devices asked, granted, denied, no choice.
+    consent: computeConsent(visits),
     experiment: o.experiment ? await experimentFunnels(db, o.experiment, visits, o) : null,
   };
 }
@@ -163,6 +172,7 @@ async function experimentFunnels(
     .where(eq(funnelEvents.experiment, experiment.name))
     .groupBy(funnelEvents.variant);
   const firstSeen = new Map(first.map((r) => [r.variant, r.at]));
+  const arm = (variant: string) => visits.filter((v) => v.experiment === experiment.name && v.variant === variant);
   return {
     name: experiment.name,
     variants: Object.entries(experiment.variants).map(([variant, weight]) => {
@@ -171,11 +181,8 @@ async function experimentFunnels(
         variant,
         weight,
         firstSeen: at ? jakartaDay(new Date(at)) : null,
-        funnel: computeFunnel(
-          visits.filter((v) => v.experiment === experiment.name && v.variant === variant),
-          o.steps,
-          o.benchmarks,
-        ),
+        funnel: computeFunnel(arm(variant), o.steps, o.benchmarks),
+        consent: computeConsent(arm(variant)),
       };
     }),
   };

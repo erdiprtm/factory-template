@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseAmount, parseCsv, parseDay, spendFromMetaCsv } from "./csv";
-import { cacTargets, computeEconomics, computeFunnel } from "./metrics";
+import { cacTargets, computeConsent, computeEconomics, computeFunnel } from "./metrics";
 
 const d = (s: string) => new Date(s);
 const now = d("2027-12-01T00:00:00Z");
@@ -144,5 +144,27 @@ describe("Meta Ads Manager CSV", () => {
     expect(r.rows).toEqual([{ date: "2026-10-01", channel: "meta", campaign: "Promo A", amountIdr: 100_000 }]);
     expect(r.errors[0]).toMatch(/Breakdown → By time → Day/);
     expect(spendFromMetaCsv("foo,bar\n1,2").errors).toHaveLength(3);
+  });
+});
+
+describe("computeConsent (D-107)", () => {
+  it("counts devices asked and their latest choice; asked and never answered = no choice", () => {
+    const ev = (event: string, visitor: string) => ({ event, visitor });
+    expect(
+      computeConsent([
+        ev("consent_shown", "a"),
+        ev("consent_granted", "a"),
+        ev("consent_shown", "b"),
+        ev("consent_denied", "b"),
+        ev("consent_shown", "c"),
+        ev("consent_shown", "c"),
+        ev("consent_denied", "d"), // answered on the site before asks were counted
+        ev("consent_shown", "e"),
+        ev("consent_denied", "e"),
+        ev("consent_granted", "e"), // changed their mind: latest wins
+        ev("lp_view", "f"),
+      ]),
+    ).toEqual({ shown: 5, granted: 2, denied: 2, noChoice: 1 });
+    expect(computeConsent([])).toEqual({ shown: 0, granted: 0, denied: 0, noChoice: 0 });
   });
 });

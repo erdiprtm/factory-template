@@ -1,5 +1,7 @@
 import product from "../../../../../product.config";
 import { track } from "../analytics";
+import { kvGet, kvSet } from "../kv";
+import { notifyMarketingChange } from "../marketing";
 
 // Paywall placement (D-037), from product.config.ts funnel.paywallPlacement:
 //   after_quiz          the paywall follows the quiz summary and sign-in
@@ -15,6 +17,10 @@ export const anonymousEntry: string | null =
   product.funnel.anonymousFreeUses > 0 ? product.funnel.anonymousEntry : null;
 
 let reported = false;
+const FIRST_RESULT = "factory.firstResult";
+
+/** Whether this device has seen the product's first real result (the marketing ask can wait for it, D-107). */
+export const firstResultSeen = () => kvGet(FIRST_RESULT) !== null;
 
 /**
  * Call when a product feature shows its first real result (the "aha"). Tracks first_result once
@@ -23,9 +29,9 @@ let reported = false;
 export function reportFirstResult(): void {
   if (reported) return;
   reported = true;
-  try {
-    if (globalThis.localStorage?.getItem("factory.firstResult")) return;
-    globalThis.localStorage?.setItem("factory.firstResult", "1");
-  } catch {}
+  if (firstResultSeen()) return;
+  kvSet(FIRST_RESULT, "1");
   track("first_result");
+  // marketing.consent.askAt "after_first_result": the ask comes right after this (D-107).
+  notifyMarketingChange();
 }

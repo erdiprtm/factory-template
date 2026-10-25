@@ -160,6 +160,31 @@ export function computeFunnel(
   });
 }
 
+// ---- Marketing consent (D-107) ----------------------------------------------------------------
+
+export type ConsentCounts = { shown: number; granted: number; denied: number; noChoice: number };
+
+/**
+ * Distinct devices asked for the "iklan/marketing" consent and what they chose. A device that chose
+ * counts once, by its latest choice; "no choice" = asked and never answered (which counts as no).
+ * Devices that answered without a recorded ask (e.g. the site asked before this was counted) still
+ * count as asked.
+ */
+export function computeConsent(events: { event: string; visitor: string }[]): ConsentCounts {
+  const asked = new Set<string>();
+  const latest = new Map<string, "granted" | "denied">();
+  for (const e of events) {
+    if (e.event === "consent_shown") asked.add(e.visitor);
+    if (e.event === "consent_granted" || e.event === "consent_denied") {
+      asked.add(e.visitor);
+      latest.set(e.visitor, e.event === "consent_granted" ? "granted" : "denied");
+    }
+  }
+  const granted = [...latest.values()].filter((c) => c === "granted").length;
+  const denied = latest.size - granted;
+  return { shown: asked.size, granted, denied, noChoice: asked.size - latest.size };
+}
+
 // ---- Target CAC ------------------------------------------------------------------------------
 
 /**

@@ -50,6 +50,11 @@ export function marketingChoice(): MarketingChoice | null {
   return handed;
 }
 
+/** Tells the banner to look again (e.g. the first result just appeared, D-107). */
+export function notifyMarketingChange(): void {
+  for (const l of listeners) l();
+}
+
 export function onMarketingChange(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);

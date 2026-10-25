@@ -44,6 +44,29 @@ describe("defineProduct", () => {
     ).toThrow();
   });
 
+  it("marketing consent: today's ask by default; product words checked (D-107)", () => {
+    const marketing = { metaPixelId: null };
+    expect(defineProduct({ ...base, marketing }).marketing.consent).toEqual({ askAt: "first_visit", copy: {} });
+    const copy = {
+      id: {
+        title: "Bantu iklan kami?",
+        body: "Kalau kamu izinkan, Meta bisa mengukur iklan kami.",
+        allow: "Izinkan",
+        deny: "Tidak, terima kasih",
+      },
+    };
+    expect(
+      defineProduct({ ...base, marketing: { ...marketing, consent: { askAt: "after_first_result", copy } } }).marketing
+        .consent,
+    ).toEqual({ askAt: "after_first_result", copy });
+    expect(() =>
+      defineProduct({ ...base, marketing: { ...marketing, consent: { askAt: "never" as never } } }),
+    ).toThrow();
+    expect(() =>
+      defineProduct({ ...base, marketing: { ...marketing, consent: { copy: { id: { ...copy.id, allow: "" } } } } }),
+    ).toThrow();
+  });
+
   it("rejects a default locale that isn't supported", () => {
     expect(() => defineProduct({ ...base, locale: { default: "en", supported: ["id"] } })).toThrow(
       /default locale must be in supported/,
