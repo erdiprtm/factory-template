@@ -2200,3 +2200,8 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Tests:**
   - the site build test expects the line once when on and never when off. It was run on a build with `showTerms: false` (0 lines, 13 passed), and the template's config was then restored;
   - app render: with `showTerms` false, the slot gets an empty subtitle and the default view has none.
+- **Follow-up (Myna Fit, after syncing e9767c4 with `showTerms: false`).** Two of these tests assumed the template's own setup, against D-078, and failed in the product:
+  - The lander test read `l/contoh`, which Myna Fit doesn't have. It now checks every lander the product ships, and nothing when there are none.
+  - The /pricing footer test expected the subtitle. It now expects it only when `showTerms` is on.
+  - The /harga intro is checked only when the switch is off, since a product may reword its own page.
+  - Both now pass with `showTerms: false` and a lander under another name, which was simulated in the template and then restored.

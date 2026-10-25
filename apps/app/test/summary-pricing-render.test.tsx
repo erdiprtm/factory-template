@@ -125,7 +125,7 @@ describe("summary body slot can change an earlier answer (D-098)", () => {
 });
 
 describe("/pricing footer slot (D-098)", () => {
-  it("sits under the plans and gets the compact methods and the access state", () => {
+  it("sits under the plans and gets the compact methods and the access state", async () => {
     mock.slots.pricingFooter = ({ methods, hasAccess }: { methods: string[]; hasAccess: boolean }) => (
       <p data-testid="footer">{`${methods.length > 0}:${hasAccess}`}</p>
     );
@@ -134,7 +134,9 @@ describe("/pricing footer slot (D-098)", () => {
     const footer = screen.getByTestId("footer");
     expect(footer.textContent).toBe("true:true");
     expect(plans.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByText(t("pricing.subtitle"))).toBeTruthy();
+    // The subtitle follows the product's payments.showTerms (D-109); the next describe turns it off.
+    const product = (await import("../../../product.config")).default;
+    expect(screen.queryByText(t("pricing.subtitle")) !== null).toBe(product.payments.showTerms);
     delete mock.slots.pricingFooter;
   });
 });
