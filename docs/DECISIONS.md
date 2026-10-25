@@ -2143,7 +2143,7 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - On native, `router.replace("/sign-in")` after refreshing `/api/me`.
 - **Not changed.**
   - **Sign-out keeps the device's data.** It's usually the same person, and their drafts and quiz progress should survive.
-  - **No /admin "delete a user by email".** Deleting someone else's account is irreversible and needs a human's decision on how support requests are checked, so it waits for Erdi. Until then the person deletes their own account in Akun, or Erdi does it for test accounts by signing in as them.
+  - **No /admin "delete a user by email"** at first. Erdi approved it on 2026-10-26; see D-110.
 - **Tests (core keys only, slots mocked, D-103):**
   - after the wipe, localStorage holds only `theme` and `locale`, sessionStorage is empty, the product hook ran, `loadQuizProgress` is null, the touch is a new anonId, and the quiz renders step 1 of 5;
   - a failing product hook still leaves the device wiped.
@@ -2168,6 +2168,7 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - So asking later still attributes. A buyer who allows before paying gets a Purchase with `fbc` built from the stored `fbclid`, and CAPI Purchase is sent once granted.
   - A purchase made before the choice sends nothing to Meta, and a later "Izinkan" doesn't send it retroactively.
   - Keeping `fbclid` first-party before the choice isn't new: D-033 already did it. But asking later stretches that window. This reading is not legal advice; Erdi's legal team should confirm it together with the product's wording.
+  - **Erdi approved both on 2026-10-26** ("gas aja"): Myna Fit's proposed wording and asking later. It's his decision for Myna Fit, without a separate lawyer's review.
 - **Decision: measuring it.** New first-party funnel events: `consent_shown` (once per device), `consent_granted`, `consent_denied`.
   - The site sends them by beacon and the app with `track`. They go to D1, never to Meta, and carry the device's campaign and A/B arm (D-094).
   - `/admin` shows a card: devices asked, allowed (with the rate), declined, and no choice yet (asked and never answered). It's shown overall and per arm, within the date range and campaign filter. A device's latest choice counts (`computeConsent`).
@@ -2205,3 +2206,28 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - The /pricing footer test expected the subtitle. It now expects it only when `showTerms` is on.
   - The /harga intro is checked only when the switch is off, since a product may reword its own page.
   - Both now pass with `showTerms: false` and a lander under another name, which was simulated in the template and then restored.
+
+## D-110: An admin can delete a user's account by email (2026-10-26)
+
+- **Problem.** People ask for their data to be deleted by email (UU PDP), and test accounts pile up.
+  - Until now only the person could delete their account, in Akun → Hapus akun.
+  - Erdi asked for an /admin way, Myna Fit's ask from D-106, and approved it on 2026-10-26.
+- **Decision.**
+  - `POST /api/admin/delete-user` `{ email, confirm }` sits behind core's `requireAdmin`.
+  - It runs the same erasure as the user's own delete, `eraseAccount()` (`apps/api/src/core/erase-account.ts`), which both routes now share:
+    1. the product's `deleteProductData`;
+    2. the uploaded files;
+    3. core's rows, the account and its sessions.
+
+    The deleted person's sessions stop working at once.
+  - **Safeguards:**
+    - the email must be typed twice; whitespace and capitals are ignored, but anything else must match;
+    - an unknown email answers 404;
+    - an admin can't delete their own account here (they use Akun), nor another admin's (`admin.emails` ∪ `ADMIN_EMAILS`);
+    - Workers logs record who deleted whom by opaque user ids, never the email.
+  - **/admin** has a "Hapus akun pengguna" card: the email, the email again, and one destructive button, disabled until the two match. It says the deletion is permanent.
+  - **The device.** The deleted person's own device isn't wiped (D-106 runs on that device only). Its next request finds no session, and any leftover data there belongs to no account.
+- **Tests:**
+  - API: 401 signed out, 403 for a member; the account, its access and its sessions gone, with an old session cookie now signed out; 400 for a mismatched confirmation, 404 for an unknown email, 409 for the admin's own account and for a second admin;
+  - app: the button stays disabled until both emails match, then sends both.
+  - E2E (`admin.spec.ts`): the admin deletes the member the test created, and a later grant to that email finds no user. The delete form has its own field label, "Email akun yang dihapus", so it's never confused with the grant form's.

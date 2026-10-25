@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 // D-100: a product's own /admin section (e.g. scan feedback) shows to admins only, under the unit
 // economics. Its data comes from the product's own requireAdmin-guarded route, not tested here.
-const mock = vi.hoisted(() => ({ isAdmin: true }));
+const mock = vi.hoisted(() => ({ isAdmin: true, deleted: [] as unknown[] }));
 vi.mock("../src/features/slots", () => ({
   slots: { adminPanel: ({ locale }: { locale: string }) => <p data-testid="panel">{`panel:${locale}`}</p> },
 }));
@@ -28,6 +28,12 @@ vi.mock("../src/core/api", () => ({
         payments: { $get: ok({ payments: [] }) },
         webhooks: { $get: ok({ events: [] }) },
         grant: { $post: ok({ ok: true }) },
+        "delete-user": {
+          $post: async (args: unknown) => {
+            mock.deleted.push(args);
+            return { ok: true, status: 200, json: async () => ({ ok: true }) };
+          },
+        },
       },
     },
   },
@@ -59,5 +65,23 @@ describe("/admin product panel slot", () => {
     await waitFor(() => expect(screen.getByText(t("admin.forbidden"))).toBeTruthy());
     expect(screen.queryByTestId("panel")).toBeNull();
     mock.isAdmin = true;
+  });
+});
+
+describe("/admin delete a user (D-110)", () => {
+  it("stays disabled until the email is typed twice the same, then sends both", async () => {
+    show();
+    const button = await screen.findByTestId("admin-delete-user");
+    const email = screen.getByLabelText(/Email akun yang dihapus|Email of the account to delete/);
+    const confirm = screen.getByLabelText(/Ketik ulang email|Type the email again/);
+    fireEvent.change(email as HTMLElement, { target: { value: "budi@example.com" } });
+    fireEvent.change(confirm as HTMLElement, { target: { value: "budi@exampel.com" } });
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.change(confirm as HTMLElement, { target: { value: "Budi@example.com" } });
+    expect(button.getAttribute("aria-disabled")).not.toBe("true");
+    fireEvent.click(button);
+    await waitFor(() =>
+      expect(mock.deleted).toEqual([{ json: { email: "budi@example.com", confirm: "Budi@example.com" } }]),
+    );
   });
 });

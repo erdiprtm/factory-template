@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-26: Admin deletes a user by email (D-110); Erdi approved Myna Fit's consent wording and asking later (D-107)
+
+- /admin "Hapus akun pengguna": the email typed twice, same erasure as Akun, never an admin's account.
+
+---
+
 ## 2026-10-26: `payments.showTerms` (D-109), Myna Fit drops "bayar sekali"
 
 - `false` hides the terms line under the site's plans and the app's /pricing subtitle.

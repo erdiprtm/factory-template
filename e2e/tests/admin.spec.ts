@@ -27,4 +27,14 @@ test("admin sees metrics and grants access", async ({ page, request }) => {
   await expect(page.getByText("Tersimpan.")).toBeVisible();
   await expect(page.getByRole("button", { name: campaign })).toBeVisible();
   await expect(page.getByText("Target CAC", { exact: false }).first()).toBeVisible();
+
+  // Delete a user by email (D-110): the email twice, then the member's account is gone.
+  await page.getByLabel("Email akun yang dihapus").fill(member);
+  await page.getByLabel("Ketik ulang email untuk konfirmasi").fill(member);
+  await page.getByRole("button", { name: "Hapus akun permanen" }).click();
+  await expect(page.getByText("Akun dihapus.")).toBeVisible();
+  await page.getByLabel("Email pengguna").fill(member);
+  await page.getByLabel("Jumlah hari").fill("7");
+  await page.getByRole("button", { name: "Beri akses" }).click();
+  await expect(page.getByText("Pengguna tidak ditemukan.")).toBeVisible();
 });

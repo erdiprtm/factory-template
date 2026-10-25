@@ -1,5 +1,5 @@
 import { config } from "@factory/config/product";
-import { deleteUserData, exportUserData, subscriptionSummary } from "@factory/core/account";
+import { exportUserData, subscriptionSummary } from "@factory/core/account";
 import { isAdminEmail } from "@factory/core/admin";
 import { claimAnonymousAiUsage } from "@factory/core/ai/usage";
 import { CLIENT_FUNNEL_EVENTS } from "@factory/core/analytics";
@@ -27,7 +27,7 @@ import {
 } from "@factory/core/consents";
 import { capturedDevEmails } from "@factory/core/email";
 import { grantTrial, hasAccess, latestExpiry } from "@factory/core/entitlements";
-import { claimAnonymousFiles, deleteUserFiles, type FileBucket, fileKey, fileRow } from "@factory/core/files";
+import { claimAnonymousFiles, type FileBucket, fileKey, fileRow } from "@factory/core/files";
 import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
 import { QUIZ_MAX_STEPS } from "@factory/core/quiz";
 import { quizResponsesFor, saveQuizResponse } from "@factory/core/quiz/store";
@@ -46,6 +46,7 @@ import { type AnalyticsEnv, experiment } from "./core/analytics";
 import { anonymousHomeRedirect } from "./core/anonymous-home";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
+import { eraseAccount } from "./core/erase-account";
 import { hasMarketingConsent, type MarketingEnv, marketingTrackingOn } from "./core/marketing";
 import { captureError, withMonitoring } from "./core/monitoring";
 import { afterPaymentSettled } from "./core/payment-events";
@@ -55,7 +56,7 @@ import { requireSession, type SessionVariables, sessionMiddleware } from "./core
 import { apiBodyLimit } from "./core/uploads";
 import { exampleFeature } from "./features/example";
 import { uploadLimits } from "./features/uploads";
-import { claimAnonymousData, deleteProductData, exportProductData } from "./features/user-data";
+import { claimAnonymousData, exportProductData } from "./features/user-data";
 
 // Bindings are typed explicitly (not via worker-configuration.d.ts globals) so the app package
 // can type-check the RPC client against this source without pulling in Worker ambient types.
@@ -533,9 +534,7 @@ const routes = app
   .post("/account/delete", async (c) => {
     if (!deleteBody.safeParse(await c.req.json().catch(() => null)).success)
       return c.json({ error: "confirmation_required" as const }, 400);
-    await deleteProductData(db(c.env), c.get("user").id);
-    if (c.env.FILES) await deleteUserFiles(db(c.env), c.env.FILES, c.get("user").id);
-    await deleteUserData(db(c.env), c.get("user").id);
+    await eraseAccount(c.env, c.get("user").id);
     for (const name of [
       "better-auth.session_token",
       "better-auth.session_data",

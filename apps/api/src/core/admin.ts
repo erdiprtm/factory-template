@@ -18,6 +18,7 @@ import { createMiddleware } from "hono/factory";
 import { z } from "zod";
 import type { Bindings } from "../index";
 import { experiment, serverAnalytics } from "./analytics";
+import { eraseAccount } from "./erase-account";
 import { type SessionVariables, sessionMiddleware } from "./session";
 
 /** 401 signed out, 403 not on the allowlist (product.config.ts admin.emails ∪ ADMIN_EMAILS var). */
@@ -31,6 +32,8 @@ export const requireAdmin = createMiddleware<{ Bindings: Bindings; Variables: Se
 });
 
 const grantBody = z.object({ email: z.email(), days: z.int().min(1).max(366) });
+// D-110: the email typed twice, so a slip in one field can't delete the wrong person.
+const deleteUserBody = z.object({ email: z.email(), confirm: z.string().max(320) });
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const spendBody = z.object({
   date: day,
@@ -113,4 +116,24 @@ export const adminRoutes = new Hono<{ Bindings: Bindings; Variables: SessionVari
     if (!target) return c.json({ error: "user_not_found" as const }, 404);
     const e = await grantAdminDays(db(c.env), target.id, parsed.data.days);
     return c.json({ ok: true as const, expiresAt: e.expiresAt.toISOString() });
+  })
+  // Delete someone's account on their request (support, UU PDP) or a test account (D-110): the same
+  // erasure as Akun → Hapus akun. Not an admin's own account (use Akun) and not another admin's.
+  .post("/delete-user", async (c) => {
+    const parsed = deleteUserBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
+    const email = parsed.data.email.trim().toLowerCase();
+    if (parsed.data.confirm.trim().toLowerCase() !== email)
+      return c.json({ error: "confirmation_mismatch" as const }, 400);
+    const target = await findUserByEmail(db(c.env), email);
+    if (!target) return c.json({ error: "user_not_found" as const }, 404);
+    const me = c.get("user");
+    if (!me) return c.json({ error: "unauthorized" as const }, 401);
+    if (target.id === me.id) return c.json({ error: "own_account" as const }, 409);
+    if (isAdminEmail(email, config.admin.emails, c.env.ADMIN_EMAILS))
+      return c.json({ error: "admin_account" as const }, 409);
+    await eraseAccount(c.env, target.id);
+    // Workers logs keep who deleted whom by opaque ids only, never the email.
+    console.info("admin_delete_user", JSON.stringify({ by: me.id, user: target.id }));
+    return c.json({ ok: true as const });
   });
