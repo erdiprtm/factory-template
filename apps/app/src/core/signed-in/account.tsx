@@ -39,6 +39,7 @@ export function Account() {
   const { t, locale } = useI18n();
   const router = useRouter();
   const refreshMe = useRefreshMe();
+  const me = useMe();
 
   const summary = useQuery({
     queryKey: ["account-summary"],
@@ -103,6 +104,12 @@ export function Account() {
         >
           <Text>{t("auth.signOut")}</Text>
         </Button>
+        {/* nav.adminTab false (D-111): no Admin tab, so admins get here from Akun. */}
+        {!product.nav.adminTab && me.data?.isAdmin ? (
+          <Button variant="outline" testID="account-admin" onPress={() => router.push("/admin")}>
+            <Text>{t("nav.admin")}</Text>
+          </Button>
+        ) : null}
       </Card>
 
       <Card>

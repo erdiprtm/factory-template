@@ -8,7 +8,7 @@ import { productTabs } from "../../features/nav";
 import { slots } from "../../features/slots";
 import { useMe } from "../auth/use-me";
 import { type MessageKey, useI18n } from "../i18n";
-import { isActiveTab, type NavTab, navTabs, navTestId, withCoreIcons } from "./tabs";
+import { isActiveTab, type NavTab, navTabs, navTestId, splitForCenter, withCoreIcons } from "./tabs";
 
 /** Wide web screens get the top bar; phones and native get the bottom tab bar. */
 export const WIDE = 768;
@@ -21,9 +21,15 @@ function useTabs(): NavTab<MessageKey>[] {
       home: "nav.home",
       account: "nav.account",
       admin: "nav.admin",
+      adminTab: product.nav.adminTab,
     }),
     slots.coreTabIcons ?? {},
   );
+}
+
+/** Theme colors for slots that draw icons (native SVG can't read CSS variables). */
+function useNavColors() {
+  return product.brand.tokens.colors[useColorScheme().colorScheme === "dark" ? "dark" : "light"];
 }
 
 /** Top bar: the product name and its tabs as links (wide web). */
@@ -31,6 +37,8 @@ export function TopNav() {
   const { t } = useI18n();
   const router = useRouter();
   const path = usePathname();
+  const colors = useNavColors();
+  const Center = slots.centerAction;
   return (
     <View role="navigation" className="w-full flex-row items-center justify-between border-b border-border px-4 py-2">
       <Text className="text-base font-bold text-foreground">{product.name}</Text>
@@ -50,6 +58,8 @@ export function TopNav() {
             </Pressable>
           );
         })}
+        {/* The product's center action (D-111), after the links on wide screens. */}
+        {Center ? <Center placement="top" colors={colors} /> : null}
       </View>
     </View>
   );
@@ -62,39 +72,50 @@ export function BottomNav() {
   const path = usePathname();
   const insets = useSafeAreaInsets();
   // Icons need real colors (native SVG can't read CSS variables): the theme tokens themselves.
-  const colors = product.brand.tokens.colors[useColorScheme().colorScheme === "dark" ? "dark" : "light"];
+  const colors = useNavColors();
   const TabItem = slots.tabItem;
+  const Center = slots.centerAction;
+  const tabs = useTabs();
+  // With a center action (D-111) the tabs split around it; without, one row as before.
+  const [left, right] = Center ? splitForCenter(tabs) : [tabs, []];
+  const renderTab = (tab: NavTab<MessageKey>) => {
+    const active = isActiveTab(path, tab.href);
+    const Icon = tab.icon;
+    return (
+      <Pressable
+        key={tab.href}
+        testID={navTestId(tab.href)}
+        role="tab"
+        accessibilityState={{ selected: active }}
+        onPress={() => router.push(tab.href as never)}
+        className="min-h-14 flex-1 items-center justify-center gap-0.5 pt-1.5"
+      >
+        {TabItem ? (
+          <TabItem label={t(tab.label)} active={active} Icon={Icon} colors={colors} />
+        ) : (
+          <>
+            {Icon ? <Icon size={22} color={active ? colors.primary : colors.mutedForeground} /> : null}
+            <Text className={`text-xs ${active ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+              {t(tab.label)}
+            </Text>
+          </>
+        )}
+      </Pressable>
+    );
+  };
   return (
     <View
       role="tablist"
       className={cn("w-full flex-row border-t border-border bg-card", slots.tabBarClassName)}
       style={{ paddingBottom: Math.max(insets.bottom, 4) }}
     >
-      {useTabs().map((tab) => {
-        const active = isActiveTab(path, tab.href);
-        const Icon = tab.icon;
-        return (
-          <Pressable
-            key={tab.href}
-            testID={navTestId(tab.href)}
-            role="tab"
-            accessibilityState={{ selected: active }}
-            onPress={() => router.push(tab.href as never)}
-            className="min-h-14 flex-1 items-center justify-center gap-0.5 pt-1.5"
-          >
-            {TabItem ? (
-              <TabItem label={t(tab.label)} active={active} Icon={Icon} colors={colors} />
-            ) : (
-              <>
-                {Icon ? <Icon size={22} color={active ? colors.primary : colors.mutedForeground} /> : null}
-                <Text className={`text-xs ${active ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-                  {t(tab.label)}
-                </Text>
-              </>
-            )}
-          </Pressable>
-        );
-      })}
+      {left.map(renderTab)}
+      {Center ? (
+        <View testID="nav-center" className="flex-1 items-center justify-center">
+          <Center placement="bottom" colors={colors} />
+        </View>
+      ) : null}
+      {right.map(renderTab)}
     </View>
   );
 }

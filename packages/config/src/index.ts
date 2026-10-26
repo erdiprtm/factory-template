@@ -466,6 +466,9 @@ export const productSchema = z.object({
         purchase: 0.5,
       },
     }),
+  // Navigation (D-111). adminTab: admins get an "Admin" tab (today's default); false puts an "Admin"
+  // row in Akun instead, for a bar that's full (4 product tabs, or a center action).
+  nav: z.object({ adminTab: z.boolean().default(true) }).default({ adminTab: true }),
   // A/B experiment (D-094): { <name>: { variants: { <arm>: <weight %> } } }, weights summing to 100.
   // At most one at a time (one test per funnel stays readable at Rp100K/day). A device's arm comes
   // from its anonId, so changing the weights or their order mid-test moves devices between arms:

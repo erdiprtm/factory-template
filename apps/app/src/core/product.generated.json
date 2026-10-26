@@ -153,6 +153,9 @@
       "purchase": 0.5
     }
   },
+  "nav": {
+    "adminTab": true
+  },
   "experiments": {},
   "ai": null,
   "pwa": {
