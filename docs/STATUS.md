@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-26: Center action in the bottom bar; `nav.adminTab` (D-111), Myna Fit camera button
+
+- `slots.centerAction` sits between the halves of the bottom tabs (and after the top bar's links). `nav.adminTab: false` moves Admin into Akun.
+
+---
+
 ## 2026-10-26: Admin deletes a user by email (D-110); Myna Fit's consent wording and asking later approved by Erdi and his lawyer (D-107)
 
 - /admin "Hapus akun pengguna": the email typed twice, same erasure as Akun, never an admin's account.

@@ -2231,3 +2231,22 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - API: 401 signed out, 403 for a member; the account, its access and its sessions gone, with an old session cookie now signed out; 400 for a mismatched confirmation, 404 for an unknown email, 409 for the admin's own account and for a second admin;
   - app: the button stays disabled until both emails match, then sends both.
   - E2E (`admin.spec.ts`): the admin deletes the member the test created, and a later grant to that email finds no user. The delete form has its own field label, "Email akun yang dihapus", so it's never confused with the grant form's.
+
+## D-111: A center action in the bottom bar; Admin can live in Akun (2026-10-26)
+
+- **Problem (Myna Fit, approved by Erdi: "ok gas semua").** Myna Fit wants a raised round camera button in the middle of the bar: Beranda · Nutrisi · 📷 · Gym · Profil. MyFitnessPal, Lose It, MacroFactor, Cronometer, Numify and Cal AI all put a center "+" there.
+  - A route tab can't do it. On the web a file picker must open inside the tap's own handler, and navigation loses the user activation (Myna Fit's P-022 picker gate).
+  - `tabProblems` caps product tabs at 4 and refuses a query in a path.
+  - With 4 tabs plus the center button, an admin's extra "Admin" tab crowds the bar.
+- **Decision: `slots.centerAction`** (`{ placement, colors }`), the product's own component.
+  - `BottomNav` renders it in the middle, with the tabs split around it by `splitForCenter`: the larger half on the left, so 4 tabs go 2 · center · 2.
+  - `TopNav` (wide web) renders it after the links with `placement: "top"`, so the product can draw a compact button there.
+  - It handles its own press and supplies its own `role="button"` and label. It isn't a tab and doesn't count toward `MAX_TABS`.
+  - Without the slot nothing changes.
+- **Decision: `nav.adminTab`** in `product.config.ts`, default `true` (today: admins get an Admin tab).
+  - With `false`, `navTabs` adds no Admin tab, and Akun shows admins an "Admin" button under sign-out, which opens `/admin`.
+  - The API's admin allowlist is unchanged.
+- **Tests:**
+  - `splitForCenter` (4, 5, 1, 0 tabs); `navTabs` with `adminTab` false;
+  - bottom bar: order home · nutrition · center · gym · account, 4 tabs, the action not a tab, `placement` "bottom"; top bar: after the links, "top";
+  - Akun: the Admin row for an admin only, opening `/admin`.

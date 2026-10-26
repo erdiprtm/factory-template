@@ -26,12 +26,22 @@ export const MAX_TABS = 5;
  */
 export function navTabs<K extends string>(
   product: ProductTab<K>[],
-  opts: { isAdmin: boolean; home: K; account: K; admin: K },
+  opts: { isAdmin: boolean; home: K; account: K; admin: K; adminTab?: boolean },
 ): NavTab<K>[] {
   const tabs: NavTab<K>[] = product.length > 0 ? [...product] : [{ href: "/", label: opts.home }];
   if (!tabs.some((t) => t.href === "/account")) tabs.push({ href: "/account", label: opts.account, core: "account" });
-  if (opts.isAdmin) tabs.push({ href: "/admin", label: opts.admin, core: "admin" });
+  // nav.adminTab false (D-111): admins reach /admin from Akun instead.
+  if (opts.isAdmin && opts.adminTab !== false) tabs.push({ href: "/admin", label: opts.admin, core: "admin" });
   return tabs;
+}
+
+/**
+ * The tabs either side of a product's center action (D-111): the larger half first, so
+ * Beranda · Nutrisi · [📷] · Gym · Akun, and with an odd count the extra tab goes left.
+ */
+export function splitForCenter<T>(tabs: T[]): [T[], T[]] {
+  const left = Math.ceil(tabs.length / 2);
+  return [tabs.slice(0, left), tabs.slice(left)];
 }
 
 /** Whether a tab is the current screen: "/" only on the home screen, others on their subpaths too. */

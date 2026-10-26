@@ -86,6 +86,13 @@ export type BillingReturnSlotProps = {
   accessUntilIso: string | null;
 };
 
+export type CenterActionSlotProps = {
+  /** "bottom": the phone tab bar's middle (room for a raised round button); "top": the wide web bar. */
+  placement: "bottom" | "top";
+  /** Theme colors (native SVG can't read CSS variables). */
+  colors: { primary: string; primaryForeground: string; mutedForeground: string; foreground: string };
+};
+
 export type AdminPanelSlotProps = {
   t: (key: MessageKey) => string;
   locale: Locale;
@@ -124,6 +131,13 @@ export type CoreSlots = {
   tabItem?: ComponentType<TabItemSlotProps>;
   /** Extra classes for the bottom tab bar container. */
   tabBarClassName?: string;
+  /**
+   * The product's center action (D-111), e.g. a raised camera button: rendered between the two
+   * halves of the bottom tabs, and after the links in the wide web bar. It handles its own press
+   * (so a web file picker opens inside the tap) and supplies its own role="button" and label. Not a
+   * tab: it doesn't count toward MAX_TABS.
+   */
+  centerAction?: ComponentType<CenterActionSlotProps>;
   /** Icons for the tabs core adds (D-058): Beranda (without product tabs), Akun, Admin. */
   coreTabIcons?: Partial<Record<"home" | "account" | "admin", ComponentType<{ size: number; color: string }>>>;
   accountHeader?: ComponentType<HeaderSlotProps & { productName: string; logo: string }>;
