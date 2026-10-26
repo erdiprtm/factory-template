@@ -11,6 +11,11 @@ vi.mock("react-native-safe-area-context", () => ({
 }));
 vi.mock("../src/core/auth/use-me", () => ({ useMe: () => ({ data: { isAdmin: true } }) }));
 vi.mock("../src/features/slots", () => ({ slots: {} }));
+// The Admin tab is checked below, so it's on whatever the product's nav.adminTab says (D-078, D-111).
+vi.mock("../../../product.config", async (orig) => {
+  const real = ((await orig()) as { default: Record<string, unknown> }).default;
+  return { default: { ...real, nav: { adminTab: true } } };
+});
 vi.mock("../src/features/nav", () => ({
   productTabs: [
     { href: "/", label: "nav.home" },

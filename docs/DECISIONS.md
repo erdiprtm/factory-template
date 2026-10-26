@@ -2250,3 +2250,8 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - `splitForCenter` (4, 5, 1, 0 tabs); `navTabs` with `adminTab` false;
   - bottom bar: order home · nutrition · center · gym · account, 4 tabs, the action not a tab, `placement` "bottom"; top bar: after the links, "top";
   - Akun: the Admin row for an admin only, opening `/admin`.
+- **Follow-up (Myna Fit, after syncing 5e08e5d with `adminTab: false`).**
+  - `nav-render.test.tsx` expected an Admin tab from the product's real config, against D-078. It now mocks `nav.adminTab: true` for that check.
+  - `admin.spec.ts` (E2E) opens /admin through the tab or, with the tab off, through Akun's "Admin" row.
+  - With the template set to `adminTab: false` temporarily, all 83 app tests and the admin E2E passed. They passed again with the setting restored.
+  - The slot's JSDoc now says to import native-only modules (expo-router, expo-image-picker, expo-haptics) inside a `centerAction` component, not at the top of the file, since template tests import `features/slots` unmocked.

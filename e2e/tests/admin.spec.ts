@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import product from "../../product.config";
 import { navItem, signIn } from "./support";
 
 // /admin: allowlisted admin (admin@example.com via ADMIN_EMAILS in `pnpm dev`) sees metrics and can grant access.
@@ -11,7 +12,12 @@ test("admin sees metrics and grants access", async ({ page, request }) => {
   await expect(page).toHaveURL(/\/sign-in$/); // sign-out finished before signing in again
 
   await signIn(page, request, "admin@example.com");
-  await navItem(page, "/admin").click();
+  // The Admin tab, or with nav.adminTab false the "Admin" row in Akun (D-111).
+  if (product.nav.adminTab) await navItem(page, "/admin").click();
+  else {
+    await navItem(page, "/account").click();
+    await page.getByTestId("account-admin").click();
+  }
   await expect(page.getByText("Pendapatan per bulan")).toBeVisible();
   await page.getByLabel("Email pengguna").fill(member);
   await page.getByLabel("Jumlah hari").fill("14");

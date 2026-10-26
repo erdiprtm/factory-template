@@ -135,7 +135,9 @@ export type CoreSlots = {
    * The product's center action (D-111), e.g. a raised camera button: rendered between the two
    * halves of the bottom tabs, and after the links in the wide web bar. It handles its own press
    * (so a web file picker opens inside the tap) and supplies its own role="button" and label. Not a
-   * tab: it doesn't count toward MAX_TABS.
+   * tab: it doesn't count toward MAX_TABS. Import native-only modules (expo-router, expo-image-picker,
+   * expo-haptics) inside the component, e.g. `await import(...)` on mount or press, not at the top of
+   * the file: template tests import features/slots without mocks, and vitest can't load them.
    */
   centerAction?: ComponentType<CenterActionSlotProps>;
   /** Icons for the tabs core adds (D-058): Beranda (without product tabs), Akun, Admin. */
