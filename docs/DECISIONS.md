@@ -2301,6 +2301,7 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **New expand-only migration** `20261031040128_admin_dashboard_indexes`, so the feed and the active count don't scan whole tables:
   - `payments(created_at)` for the feed;
   - `entitlements(source, expires_at)` for active subscribers.
+- **Found on the way:** `POST /api/events` accepts up to 20 events, but D1 binds at most 100 variables per statement, and a funnel event row has 11 columns. A batch of 10 or more would have failed with "too many SQL variables". Browsers send one event at a time, so it hadn't happened. `recordClientEvents` now inserts 9 rows per statement (`FUNNEL_ROWS_PER_INSERT`), and a test stores a full batch of 20.
 - **Tests:**
   - core: whole Jakarta days and the previous period; `trend`, including nothing before; `biggestDrop`;
   - API (D1): KPIs, trends, the per-day series, and sources with CAC and ROAS on seeded events; an empty range (zeros, no invented trend, no sources); a feed with masked emails, newest first; the routes refuse members and a bad range;

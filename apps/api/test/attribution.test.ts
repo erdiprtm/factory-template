@@ -52,6 +52,16 @@ describe("POST /api/events", () => {
     ]);
   });
 
+  it("stores a full batch of 20 events (D1's 100-variable limit, D-113)", async () => {
+    const anonId = anon();
+    const res = await beacon({
+      anonId,
+      events: Array.from({ length: 20 }, (_, i) => ({ event: "quiz_step", step: i })),
+    });
+    expect(res.status).toBe(204);
+    expect(await db.select().from(funnelEvents).where(eq(funnelEvents.anonId, anonId))).toHaveLength(20);
+  });
+
   it("rejects money events, bad ids and oversized batches", async () => {
     const anonId = anon();
     expect((await beacon({ anonId, events: [{ event: "purchase" }] })).status).toBe(400);

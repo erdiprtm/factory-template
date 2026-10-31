@@ -32,20 +32,20 @@ describe("loadDashboard", () => {
     const today = new Date("2025-03-10T03:00:00Z");
     const yesterday = new Date("2025-03-09T03:00:00Z");
     const meta = { utmSource: "meta", utmCampaign: "c-dash" };
-    await db
-      .insert(funnelEvents)
-      .values([
-        row("lp_view", "v1", today, meta),
-        row("lp_view", "v1", today, meta),
-        row("lp_view", "v2", today, meta),
-        row("lp_view", "v3", today),
-        row("first_result", "v1", today, meta),
-        row("purchase", "v1", today, { ...meta, valueIdr: 249000 }),
-        row("renewal", "v9", today, { valueIdr: 149000 }),
-        row("refund", "v8", today, { valueIdr: 49000 }),
-        row("lp_view", "p1", yesterday, meta),
-        row("purchase", "p1", yesterday, { ...meta, valueIdr: 100000 }),
-      ]);
+    const seed = [
+      row("lp_view", "v1", today, meta),
+      row("lp_view", "v1", today, meta),
+      row("lp_view", "v2", today, meta),
+      row("lp_view", "v3", today),
+      row("first_result", "v1", today, meta),
+      row("purchase", "v1", today, { ...meta, valueIdr: 249000 }),
+      row("renewal", "v9", today, { valueIdr: 149000 }),
+      row("refund", "v8", today, { valueIdr: 49000 }),
+      row("lp_view", "p1", yesterday, meta),
+      row("purchase", "p1", yesterday, { ...meta, valueIdr: 100000 }),
+    ];
+    // D1: at most 100 bound variables per statement (11 columns → 9 rows).
+    for (let i = 0; i < seed.length; i += 9) await db.insert(funnelEvents).values(seed.slice(i, i + 9));
     await db.insert(adSpend).values({
       id: crypto.randomUUID(),
       day: "2025-03-10",
