@@ -160,6 +160,13 @@ export function computeFunnel(
   });
 }
 
+/** The step that loses the most visitors relative to the one before (D-113), or null without data. */
+export function biggestDrop(steps: FunnelStepResult[]): string | null {
+  let worst: FunnelStepResult | null = null;
+  for (const s of steps) if (s.rate !== null && (worst === null || s.rate < (worst.rate ?? 1))) worst = s;
+  return worst && (worst.rate ?? 1) < 1 ? worst.step : null;
+}
+
 // ---- Marketing consent (D-107) ----------------------------------------------------------------
 
 export type ConsentCounts = { shown: number; granted: number; denied: number; noChoice: number };

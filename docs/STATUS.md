@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-31: /admin monitoring dashboard (D-113), Myna Fit
+
+- Range toggle, KPI cards with trends, revenue and visitors per day, sortable traffic sources, a live feed (masked emails), the funnel's biggest drop. First-party data only; two new indexes.
+
+---
+
 ## 2026-10-31: Owner alerts on Telegram (D-112), Myna Fit
 
 - `notifications.telegram`: purchase, renewal, refund (and optionally rejected webhooks) ping the owner, with a masked email or none; optional daily summary at a Jakarta hour. Secrets TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID (SETUP_HUMAN 14).

@@ -1,4 +1,4 @@
-import { cacTargets } from "@factory/core/economics/metrics";
+import { biggestDrop, cacTargets } from "@factory/core/economics/metrics";
 import { Button, Card, CardContent, CardDescription, CardTitle, cn, ErrorText, Input, Text } from "@factory/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -121,6 +121,8 @@ function Funnel({
 }) {
   const { t } = useI18n();
   const top = Math.max(1, steps[0]?.visitors ?? 1);
+  // The step losing the most visitors (D-113), highlighted even when every step meets its benchmark.
+  const drop = biggestDrop(steps);
   return (
     <Card>
       <CardTitle>{t("econ.funnel")}</CardTitle>
@@ -146,6 +148,12 @@ function Funnel({
               />
             </View>
             {s.firstBad ? <Text className="text-sm text-destructive">{t("econ.firstBad")}</Text> : null}
+            {s.step === drop ? (
+              <Text
+                testID="biggest-drop"
+                className="text-sm font-semibold text-foreground"
+              >{`▼ ${t("dash.biggestDrop")}`}</Text>
+            ) : null}
           </View>
         ))}
       </CardContent>

@@ -69,22 +69,27 @@ export async function recordClientEvents(
 ): Promise<void> {
   if (input.events.length === 0) return;
   const tag = experimentTag(input.experiment ?? null, input.anonId);
-  await db.insert(funnelEvents).values(
-    input.events.map((e) => ({
-      id: crypto.randomUUID(),
-      event: e.event,
-      anonId: input.anonId,
-      userId: null,
-      step: e.step ?? null,
-      utmSource: input.attribution.utm_source ?? null,
-      utmCampaign: input.attribution.utm_campaign ?? null,
-      valueIdr: null,
-      experiment: tag?.experiment ?? null,
-      variant: tag?.variant ?? null,
-      createdAt: now,
-    })),
-  );
+  const rows = input.events.map((e) => ({
+    id: crypto.randomUUID(),
+    event: e.event,
+    anonId: input.anonId,
+    userId: null,
+    step: e.step ?? null,
+    utmSource: input.attribution.utm_source ?? null,
+    utmCampaign: input.attribution.utm_campaign ?? null,
+    valueIdr: null,
+    experiment: tag?.experiment ?? null,
+    variant: tag?.variant ?? null,
+    createdAt: now,
+  }));
+  // D1 binds at most 100 variables per query: 11 columns → 9 rows a statement (D-113). A batch of
+  // up to 20 events used to fail with "too many SQL variables".
+  for (let i = 0; i < rows.length; i += FUNNEL_ROWS_PER_INSERT)
+    await db.insert(funnelEvents).values(rows.slice(i, i + FUNNEL_ROWS_PER_INSERT));
 }
+
+/** funnel_events has 11 columns; D1 allows 100 bound variables per statement. */
+export const FUNNEL_ROWS_PER_INSERT = 9;
 
 /**
  * Server funnel events (purchase, renewal, refund) for a user, joined to their device's anonId,
