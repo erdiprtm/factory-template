@@ -73,3 +73,6 @@ AI_MODEL=
 # Unset = no alerts. Local dev and tests never send, even with these set.
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
+# Two-way bot (`notifications.telegram.commands`, D-114): any random 1-256 chars of A-Z a-z 0-9 _ -.
+# Telegram sends it back on every webhook call; anything without it is refused.
+TELEGRAM_WEBHOOK_SECRET=

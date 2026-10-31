@@ -55,6 +55,7 @@ import { afterPaymentSettled } from "./core/payment-events";
 import { configuredProvider, fakePakasirServer, fakeProvider, type PaymentEnv } from "./core/payments";
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
+import { answerUpdate, type BotEnv, botReady, verifiedWebhook } from "./core/telegram-bot";
 import { apiBodyLimit } from "./core/uploads";
 import { exampleFeature } from "./features/example";
 import { uploadLimits } from "./features/uploads";
@@ -68,6 +69,7 @@ export type Bindings = AuthEnv &
   AnalyticsEnv &
   MarketingEnv &
   NotifyEnv &
+  BotEnv &
   RateLimitEnv & {
     COMMIT_SHA: string;
     /** Extra admins on top of product.config.ts admin.emails (comma-separated). */
@@ -146,6 +148,25 @@ app.post("/api/webhooks/:provider", rateLimit("WEBHOOK_LIMITER", clientIp), asyn
   if (outcome.kind === "retry") return c.json({ error: "not_confirmed_yet" as const }, 503);
   if (outcome.kind === "processed") await afterPaymentSettled(c.env, outcome, (work) => background(c, work));
   return provider.webhookAck();
+});
+
+// The owner's Telegram bot (D-114). Telegram sends our secret in X-Telegram-Bot-Api-Secret-Token;
+// anything else is refused. The answer rides in the response (a sendMessage call), so the reply
+// costs no second request. Off (404) unless the product turned commands on and the secrets exist.
+app.post("/api/telegram/webhook", async (c) => {
+  if (!botReady(c.env)) return c.notFound();
+  if (!verifiedWebhook(c.env, c.req.header("x-telegram-bot-api-secret-token")))
+    return c.json({ error: "invalid_secret" as const }, 401);
+  const update = await c.req.json().catch(() => null);
+  const text = update && typeof update === "object" ? await answerUpdate(c.env, update) : null;
+  // Another chat, or not a command: 200 and silence, so nobody learns the bot answers anyone.
+  if (!text) return c.body(null, 200);
+  return c.json({
+    method: "sendMessage",
+    chat_id: c.env.TELEGRAM_CHAT_ID,
+    text: text.slice(0, 4096),
+    link_preview_options: { is_disabled: true },
+  });
 });
 
 // First-party funnel events from the site and the app (sell engine, D-033). No session: the

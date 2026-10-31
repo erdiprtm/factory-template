@@ -479,6 +479,9 @@ export const productSchema = z.object({
             .default(["purchase", "renewal", "refund"]),
           email: z.enum(["masked", "omit"]).default("masked"),
           dailySummaryHourWib: z.int().min(0).max(23).nullable().default(null),
+          // Two-way bot (D-114): read-only commands (/hari_ini, /minggu, /bulan, /funnel, /sumber,
+          // /terakhir, /bantuan) answered for TELEGRAM_CHAT_ID only. Needs TELEGRAM_WEBHOOK_SECRET.
+          commands: z.boolean().default(false),
         })
         .nullable()
         .default(null),

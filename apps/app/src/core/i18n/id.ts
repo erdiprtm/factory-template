@@ -163,6 +163,13 @@ export const id = {
   "admin.grantButton": "Beri akses",
   "admin.grantDone": "Akses diberikan sampai",
   "admin.grantNotFound": "Pengguna tidak ditemukan.",
+  "admin.telegram": "Bot Telegram",
+  "admin.telegramHint":
+    "Sambungkan bot sekali setelah ketiga secret Telegram tersimpan. Perintah (/hari_ini, /minggu, /funnel, …) hanya dijawab di chat pemilik.",
+  "admin.telegramConnect": "Sambungkan bot",
+  "admin.telegramDone": "Bot tersambung. Coba kirim /bantuan ke bot-mu.",
+  "admin.telegramMissing": "Secret belum lengkap:",
+  "admin.telegramRefused": "Telegram menolak:",
   "admin.deleteUser": "Hapus akun pengguna",
   "admin.deleteUserHint":
     "Untuk permintaan penghapusan data (UU PDP) atau akun uji. Semua data akun itu dihapus permanen, sama seperti Hapus akun di menu Akun.",

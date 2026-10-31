@@ -23,6 +23,7 @@ import { experiment, serverAnalytics } from "./analytics";
 import { eraseAccount } from "./erase-account";
 import { ownerAlert } from "./notify";
 import { type SessionVariables, sessionMiddleware } from "./session";
+import { botReady, connectBot } from "./telegram-bot";
 
 /** 401 signed out, 403 not on the allowlist (product.config.ts admin.emails ∪ ADMIN_EMAILS var). */
 export const requireAdmin = createMiddleware<{ Bindings: Bindings; Variables: SessionVariables }>(async (c, next) => {
@@ -66,6 +67,17 @@ export const adminRoutes = new Hono<{ Bindings: Bindings; Variables: SessionVari
     return c.json(await loadDashboard(db(c.env), q.data.range));
   })
   .get("/feed", async (c) => c.json({ items: await loadFeed(db(c.env)) }))
+  // D-114: point Telegram at this Worker and set the owner's command menu, from Worker secrets.
+  .post("/telegram/connect", async (c) => {
+    if (!botReady(c.env)) {
+      const missing = (["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "TELEGRAM_WEBHOOK_SECRET"] as const).filter(
+        (k) => !c.env[k],
+      );
+      return c.json({ error: "not_configured" as const, missing }, 409);
+    }
+    const r = await connectBot(c.env, new URL(c.req.url).origin);
+    return r.ok ? c.json({ ok: true as const }) : c.json({ error: "telegram_refused" as const, ...r }, 502);
+  })
   .get("/payments", async (c) => c.json({ payments: await recentPayments(db(c.env)) }))
   .get("/webhooks", async (c) => c.json({ events: await recentWebhookEvents(db(c.env)) }))
   // Unit economics (D-038): CAC, ROAS d7/d30, AOV, renewal rate, LTV per campaign, and the funnel.

@@ -92,3 +92,28 @@ export async function sendTelegram(
     return false;
   }
 }
+
+/**
+ * Any Bot API method (D-114: setWebhook, setMyCommands). Never throws; `description` carries
+ * Telegram's reason on failure, for /admin to show.
+ */
+export async function telegramCall(
+  token: string,
+  method: string,
+  body: unknown,
+  opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+): Promise<{ ok: boolean; description?: string }> {
+  const send = opts.fetchImpl ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
+  try {
+    const res = await send(`https://api.telegram.org/bot${token}/${method}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 5000),
+    });
+    const json = (await res.json().catch(() => null)) as { ok?: boolean; description?: string } | null;
+    return { ok: res.ok && json?.ok === true, description: json?.description };
+  } catch (err) {
+    return { ok: false, description: err instanceof Error ? err.message : "request failed" };
+  }
+}
