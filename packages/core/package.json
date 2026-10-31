@@ -19,6 +19,7 @@
     "./account": "./src/account/index.ts",
     "./analytics": "./src/analytics/index.ts",
     "./admin": "./src/admin/index.ts",
+    "./admin/dashboard": "./src/admin/dashboard.ts",
     "./attribution": "./src/attribution/index.ts",
     "./attribution/touch": "./src/attribution/touch.ts",
     "./monitoring": "./src/monitoring/index.ts",

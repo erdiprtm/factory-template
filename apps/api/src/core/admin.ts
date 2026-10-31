@@ -1,5 +1,6 @@
 import { config } from "@factory/config/product";
 import { adminStats, findUserByEmail, isAdminEmail, recentPayments, recentWebhookEvents } from "@factory/core/admin";
+import { loadDashboard, loadFeed } from "@factory/core/admin/dashboard";
 import { FUNNEL_STEPS } from "@factory/core/analytics";
 import {
   deleteSpend,
@@ -41,6 +42,7 @@ const spendBody = z.object({
   campaign: z.string().trim().min(1).max(200),
   amountIdr: z.int().min(0).max(10_000_000_000),
 });
+const dashboardQuery = z.object({ range: z.enum(["today", "7d", "30d"]).default("7d") });
 const economicsQuery = z.object({ from: day.optional(), to: day.optional(), campaign: z.string().max(200).optional() });
 const refundBody = z.object({ paymentId: z.string().regex(/^pay_[0-9a-f]{32}$/) });
 
@@ -55,6 +57,13 @@ const db = (env: Bindings) => drizzle(env.DB, { schema });
 export const adminRoutes = new Hono<{ Bindings: Bindings; Variables: SessionVariables }>()
   .use("*", sessionMiddleware, requireAdmin)
   .get("/stats", async (c) => c.json(await adminStats(db(c.env))))
+  // The monitoring dashboard (D-113): KPIs with trends, per-day series, sources; and the live feed.
+  .get("/dashboard", async (c) => {
+    const q = dashboardQuery.safeParse(c.req.query());
+    if (!q.success) return c.json({ error: "invalid_query" as const }, 400);
+    return c.json(await loadDashboard(db(c.env), q.data.range));
+  })
+  .get("/feed", async (c) => c.json({ items: await loadFeed(db(c.env)) }))
   .get("/payments", async (c) => c.json({ payments: await recentPayments(db(c.env)) }))
   .get("/webhooks", async (c) => c.json({ events: await recentWebhookEvents(db(c.env)) }))
   // Unit economics (D-038): CAC, ROAS d7/d30, AOV, renewal rate, LTV per campaign, and the funnel.

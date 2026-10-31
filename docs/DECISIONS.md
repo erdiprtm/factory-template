@@ -2255,3 +2255,30 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - `admin.spec.ts` (E2E) opens /admin through the tab or, with the tab off, through Akun's "Admin" row.
   - With the template set to `adminTab: false` temporarily, all 83 app tests and the admin E2E passed. They passed again with the setting restored.
   - The slot's JSDoc now says to import native-only modules (expo-router, expo-image-picker, expo-haptics) inside a `centerAction` component, not at the top of the file, since template tests import `features/slots` unmocked.
+
+## D-113: /admin opens on a monitoring dashboard (2026-10-31)
+
+- **Problem (Myna Fit, from Erdi: "gas", to monitor the business from /admin).** /admin felt rigid: static totals, lists and tables, with no trend, no per-day view and nothing live.
+- **Decision: a dashboard at the top of /admin** (`core/admin/dashboard.tsx`), with the existing details and tools below it: unit economics, funnel, consent, CAC calculator, spend, grants, deletion, payments, webhooks, and the product's `adminPanel`. It uses first-party data only (funnel events, payments, entitlements, ad spend), so there's no tracker and no consent dependency (D-033, D-034).
+  - **Range:** today, 7 days or 30 days, in whole Jakarta days with today included (`rangeWindow`).
+  - **KPI cards:** each shows ▲/▼ % against the previous equal period (`trend`; none when there was nothing before):
+    - net revenue (purchases + renewals − refunds);
+    - new buyers;
+    - renewals;
+    - visitors (distinct `lp_view` devices);
+    - visit → purchase;
+    - active subscribers (users with a running paid entitlement).
+
+    The cards are one column at 375 px, two from `sm`, three from `lg`.
+  - **Revenue per day and visitors per day:** bars made of plain Views, so they work on native with no chart library. Each chart's numbers are in its accessibility label.
+  - **Traffic sources:** each utm_source / utm_campaign, or "Langsung (tanpa UTM)", with visitors, first results, buyers and revenue. CAC and ROAS are shown where ad spend exists for the campaign. The table sorts by revenue, buyers, visitors or ROAS.
+  - **Latest activity:** the newest payments (any status, the plan, the amount) and sign-ups, newest first, refreshed every 30 s while /admin is open. Emails are masked (`er***@gmail.com`, the same `maskEmail` as D-112).
+- **The funnel** (D-038) keeps its campaign and A/B arm filters (D-094). It now also marks its biggest drop (`biggestDrop`), the step losing the most visitors relative to the one before, even when every step meets its benchmark. The consent card (D-107) stays.
+- **API:** `GET /api/admin/dashboard?range=today|7d|30d` and `GET /api/admin/feed`, behind `requireAdmin`. The dashboard reads funnel events once for the range and the period before, through the `(event, created_at)` index.
+- **New expand-only migration** `20261031040128_admin_dashboard_indexes`, so the feed and the active count don't scan whole tables:
+  - `payments(created_at)` for the feed;
+  - `entitlements(source, expires_at)` for active subscribers.
+- **Tests:**
+  - core: whole Jakarta days and the previous period; `trend`, including nothing before; `biggestDrop`;
+  - API (D1): KPIs, trends, the per-day series, and sources with CAC and ROAS on seeded events; an empty range (zeros, no invented trend, no sources); a feed with masked emails, newest first; the routes refuse members and a bad range;
+  - app render: ▲ and ▼, the bars, sorting by visitors, and feed items; with no data, the "no data" text for sources and the feed.

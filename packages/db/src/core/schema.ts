@@ -45,6 +45,8 @@ export const payments = sqliteTable(
     index("payments_user_idx").on(t.userId),
     index("payments_status_expires_idx").on(t.status, t.expiresAt),
     index("payments_utm_campaign_idx").on(t.utmCampaign),
+    // /admin's live feed, newest first (D-113).
+    index("payments_created_idx").on(t.createdAt),
   ],
 );
 
@@ -63,6 +65,8 @@ export const entitlements = sqliteTable(
   },
   (t) => [
     index("entitlements_user_expires_idx").on(t.userId, t.expiresAt),
+    // /admin's active paid users (D-113).
+    index("entitlements_source_expires_idx").on(t.source, t.expiresAt),
     // A payment grants at most one entitlement (webhook replays can't double-grant).
     uniqueIndex("entitlements_payment_unique").on(t.paymentId),
     // A trial is granted at most once per user, even under concurrent requests.

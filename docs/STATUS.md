@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-31: /admin monitoring dashboard (D-113), Myna Fit
+
+- Range toggle, KPI cards with trends, revenue and visitors per day, sortable traffic sources, a live feed (masked emails), the funnel's biggest drop. First-party data only; two new indexes.
+
+---
+
 ## 2026-10-26: Center action in the bottom bar; `nav.adminTab` (D-111), Myna Fit camera button
 
 - `slots.centerAction` sits between the halves of the bottom tabs (and after the top bar's links). `nav.adminTab: false` moves Admin into Akun.

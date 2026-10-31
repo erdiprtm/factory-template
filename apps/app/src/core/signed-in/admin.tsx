@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { View } from "react-native";
 import { slots } from "../../features/slots";
+import { DashboardSection } from "../admin/dashboard";
 import { EconomicsSection } from "../admin/economics";
 import { api } from "../api";
 import { useMe } from "../auth/use-me";
@@ -42,6 +43,8 @@ export function Admin() {
   return (
     <Screen className="max-w-3xl">
       <Text variant="h1">{t("admin.title")}</Text>
+      {/* The monitoring dashboard first (D-113); the details and tools below. */}
+      <DashboardSection />
       {s ? (
         <View className="flex-row flex-wrap gap-3">
           <Metric label={t("admin.users")} value={s.users} />
