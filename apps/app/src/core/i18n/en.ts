@@ -153,6 +153,13 @@ export const en: Messages = {
   "admin.noRevenue": "No revenue yet.",
   "admin.payments": "Recent payments",
   "admin.webhooks": "Webhook log",
+  "admin.telegram": "Telegram bot",
+  "admin.telegramHint":
+    "Connect the bot once, after all three Telegram secrets are set. Commands (/hari_ini, /minggu, /funnel, …) are answered in the owner's chat only.",
+  "admin.telegramConnect": "Connect bot",
+  "admin.telegramDone": "Bot connected. Try sending /bantuan to your bot.",
+  "admin.telegramMissing": "Secrets missing:",
+  "admin.telegramRefused": "Telegram refused:",
   "admin.deleteUser": "Delete a user's account",
   "admin.deleteUserHint":
     "For data deletion requests (UU PDP) or test accounts. Everything in that account is deleted for good, like Delete account in Account.",

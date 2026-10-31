@@ -2306,3 +2306,29 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - core: whole Jakarta days and the previous period; `trend`, including nothing before; `biggestDrop`;
   - API (D1): KPIs, trends, the per-day series, and sources with CAC and ROAS on seeded events; an empty range (zeros, no invented trend, no sources); a feed with masked emails, newest first; the routes refuse members and a bad range;
   - app render: ▲ and ▼, the bars, sorting by visitors, and feed items; with no data, the "no data" text for sources and the feed.
+
+## D-114: The owner's bot answers read-only commands (2026-10-31)
+
+- **Problem (Myna Fit, from Erdi).** The D-112 bot only talked. Erdi wants to ask it for numbers from his phone.
+- **Decision: config and secrets.** `notifications.telegram.commands` (default `false`) and a third Worker secret, `TELEGRAM_WEBHOOK_SECRET`.
+  - The secret is random, 1–256 characters of `A-Z a-z 0-9 _ -`, Telegram's own limits for `secret_token` (core.telegram.org/bots/api, read 2026-10-31).
+  - Without all three secrets and the switch, `POST /api/telegram/webhook` answers 404, as if it weren't there.
+- **Decision: the webhook.**
+  - Telegram sends our secret in `X-Telegram-Bot-Api-Secret-Token`. It's compared in constant time, and anything else gets 401.
+  - **Only the owner's chat gets answers.** An update from any other chat, or plain text, gets 200 with an empty body: no reply, nothing that shows the bot answers anyone.
+  - The owner's answer rides in the webhook response as a `sendMessage` call (the Bot API allows this), so a reply costs no second request.
+- **Decision: the commands.** They're read-only, from the D-113 queries, in Indonesian:
+  - `/hari_ini`, `/minggu`, `/bulan`: the dashboard's KPIs with ▲/▼ against the previous period;
+  - `/funnel`: 7 days, each step's visitors and rate, and the biggest drop;
+  - `/sumber`: the top 5 sources and campaigns over 7 days;
+  - `/terakhir`: the last 5 payments in Jakarta time, emails masked;
+  - `/bantuan`, and any unknown command: the list.
+
+  None can grant, refund or delete.
+- **Decision: connecting without curl.** /admin's "Bot Telegram" card (shown with `commands` on) calls `POST /api/admin/telegram/connect`. That runs `setWebhook` (this Worker's URL, the secret, `allowed_updates: ["message"]`, pending updates dropped), then `setMyCommands` scoped to the owner's chat, so only he sees the menu.
+  - The token never leaves the Worker. Erdi doesn't run a curl with it, and it never appears in chat.
+  - A missing secret is named (by name only); a Telegram refusal shows Telegram's reason.
+  - SETUP_HUMAN §14b covers making and saving the webhook secret, the config, and the button.
+- **Tests:**
+  - core: `parseCommand` (`/x`, `/x@Bot words`, plain text); the commands meet Telegram's limits; the texts (▲/▼, the biggest drop, Jakarta times, masked emails, empty states); `sameSecret`;
+  - API, with mocked config: 404 without the secrets; 401 for a wrong or missing secret; another chat or plain text gets 200 with an empty body; the owner gets every command as a `sendMessage` to his chat; `/terakhir` never shows a full email; connect names the missing secrets, then sets the webhook (URL, secret, updates) and the chat-scoped menu.

@@ -630,6 +630,27 @@ Kamu dapat pesan di Telegram setiap ada pembelian, perpanjangan atau refund, dan
 
 Tanpa kedua secret, tidak ada pesan yang dikirim dan semuanya tetap berjalan seperti biasa.
 
+### 14b. Perintah di bot (opsional, D-114)
+
+Bot bisa menjawab perintah dari chat-mu saja: `/hari_ini`, `/minggu`, `/bulan`, `/funnel`, `/sumber`, `/terakhir`, `/bantuan`. Isinya hanya baca: angka yang sama dengan dashboard /admin, dengan email disamarkan. Chat lain tidak dijawab sama sekali.
+
+1. **Buat secret webhook** (acak, cukup sekali). Perintah ini menyalin 64 karakter acak ke clipboard:
+
+   ```bash
+   openssl rand -hex 32 | tr -d '\n' | pbcopy
+   ```
+
+2. **Simpan ke Worker produksi** (clipboard masih berisi secret tadi):
+
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put TELEGRAM_WEBHOOK_SECRET --env=""
+   ```
+
+3. **Nyalakan di `product.config.ts`**: tambahkan `commands: true` di `notifications.telegram` (lewat PR, biasanya dikerjakan Claude).
+4. **Sambungkan:** setelah deploy, buka **/admin → Bot Telegram → Sambungkan bot**. Worker mendaftarkan webhook dan menu perintah ke Telegram memakai secret yang sudah tersimpan, jadi token tidak pernah keluar dari Worker.
+5. Coba kirim `/bantuan` ke bot-mu.
+
+
 ## Ringkasan: yang perlu disimpan di password manager
 
 | Dari | Nilai | Dipakai di fase |

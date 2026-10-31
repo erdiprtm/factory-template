@@ -31,7 +31,8 @@
     "./meta/events": "./src/meta/events.ts",
     "./nutrition": "./src/nutrition/index.ts",
     "./notify": "./src/notify/index.ts",
-    "./notify/summary": "./src/notify/summary.ts"
+    "./notify/summary": "./src/notify/summary.ts",
+    "./notify/commands": "./src/notify/commands.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",

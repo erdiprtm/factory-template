@@ -2,6 +2,7 @@ import { Button, Card, CardContent, CardTitle, ErrorText, Input, Loading, Screen
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { View } from "react-native";
+import product from "../../../../../product.config";
 import { slots } from "../../features/slots";
 import { DashboardSection } from "../admin/dashboard";
 import { EconomicsSection } from "../admin/economics";
@@ -75,6 +76,7 @@ export function Admin() {
 
       <GrantForm />
       <DeleteUserForm />
+      {product.notifications.telegram?.commands ? <TelegramCard /> : null}
 
       <Card>
         <CardTitle>{t("admin.payments")}</CardTitle>
@@ -128,6 +130,35 @@ function Row({ left, right, sub }: { left: string; right: string; sub?: string }
       </View>
       <Text className="text-right">{right}</Text>
     </View>
+  );
+}
+
+/** D-114: connect the owner's Telegram bot (webhook + command menu) from the Worker's own secrets. */
+function TelegramCard() {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  async function connect() {
+    setBusy(true);
+    const res = await api.api.admin.telegram.connect.$post();
+    setBusy(false);
+    const body = (await res.json().catch(() => ({}))) as { missing?: string[]; description?: string | null };
+    if (res.ok) return setMessage({ ok: true, text: t("admin.telegramDone") });
+    if (body.missing)
+      return setMessage({ ok: false, text: `${t("admin.telegramMissing")} ${body.missing.join(", ")}` });
+    setMessage({ ok: false, text: `${t("admin.telegramRefused")} ${body.description ?? t("common.error")}` });
+  }
+  return (
+    <Card>
+      <CardTitle>{t("admin.telegram")}</CardTitle>
+      <CardContent>
+        <Text variant="muted">{t("admin.telegramHint")}</Text>
+        <Button variant="outline" onPress={connect} disabled={busy} testID="admin-telegram-connect">
+          <Text>{t("admin.telegramConnect")}</Text>
+        </Button>
+        {message ? message.ok ? <Text>{message.text}</Text> : <ErrorText>{message.text}</ErrorText> : null}
+      </CardContent>
+    </Card>
   );
 }
 
