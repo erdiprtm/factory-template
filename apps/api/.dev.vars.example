@@ -68,3 +68,8 @@ GEMINI_API_KEY=
 # Optional: try another model without a code change (an OpenAI id or Gemini id with a known price in
 # @factory/core/ai, or an OpenRouter slug, whose cost OpenRouter reports).
 AI_MODEL=
+
+# Owner alerts on Telegram (product.config.ts `notifications.telegram`, D-112, SETUP_HUMAN step 14).
+# Unset = no alerts. Local dev and tests never send, even with these set.
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=

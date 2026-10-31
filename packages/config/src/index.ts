@@ -466,6 +466,24 @@ export const productSchema = z.object({
         purchase: 0.5,
       },
     }),
+  // Owner alerts on Telegram (D-112). null = off. The bot token and chat id are Worker secrets
+  // (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID); without them nothing is sent. events: what pings the
+  // owner; email: the buyer's email masked ("er***@gmail.com") or left out; dailySummaryHourWib:
+  // yesterday's numbers at that Jakarta hour (null = none).
+  notifications: z
+    .object({
+      telegram: z
+        .object({
+          events: z
+            .array(z.enum(["purchase", "renewal", "refund", "webhook_rejected"]))
+            .default(["purchase", "renewal", "refund"]),
+          email: z.enum(["masked", "omit"]).default("masked"),
+          dailySummaryHourWib: z.int().min(0).max(23).nullable().default(null),
+        })
+        .nullable()
+        .default(null),
+    })
+    .default({ telegram: null }),
   // Navigation (D-111). adminTab: admins get an "Admin" tab (today's default); false puts an "Admin"
   // row in Akun instead, for a bar that's full (4 product tabs, or a center action).
   nav: z.object({ adminTab: z.boolean().default(true) }).default({ adminTab: true }),

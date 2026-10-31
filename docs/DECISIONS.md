@@ -2255,3 +2255,26 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - `admin.spec.ts` (E2E) opens /admin through the tab or, with the tab off, through Akun's "Admin" row.
   - With the template set to `adminTab: false` temporarily, all 83 app tests and the admin E2E passed. They passed again with the setting restored.
   - The slot's JSDoc now says to import native-only modules (expo-router, expo-image-picker, expo-haptics) inside a `centerAction` component, not at the top of the file, since template tests import `features/slots` unmocked.
+
+## D-112: Owner alerts on Telegram: purchases, renewals, refunds, rejected webhooks, a daily summary (2026-10-31)
+
+- **Problem (Myna Fit, from Erdi).** Erdi wants a ping on his phone when someone pays. Only the buyer got a receipt; the owner got nothing.
+- **Decision: config.** `notifications.telegram` in `product.config.ts` (default `null`, off):
+  - `events`: any of `purchase`, `renewal`, `refund`, `webhook_rejected`; the default is the first three;
+  - `email`: `masked` (`er***@gmail.com`, the default) or `omit`;
+  - `dailySummaryHourWib`: a Jakarta hour for yesterday's numbers, or `null`.
+  - The bot token and chat id are Worker secrets, `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`, documented in `.dev.vars.example` and SETUP_HUMAN step 14 (BotFather, `getUpdates` for the chat id, `pbpaste` lines).
+  - Without either secret nothing is sent. Local dev and tests never send.
+- **Decision: where alerts come from.** They're server-side only, from the places that change access, never from a browser:
+  - **Purchase and renewal:** from `afterPaymentSettled`, after the provider confirmed and only for the caller that granted access (D-092), so a webhook and poll race pings once. The message has the plan, amount, provider, the ad source and campaign, the masked email (or none) and the payment id.
+  - **Refund:** from `/admin`'s refund.
+  - **Rejected webhooks:** from the webhook route on a bad signature, at most once per 10 minutes per isolate, so a flood of forged calls can't flood the phone.
+  - **Daily summary:** from the 30-minute cron, on the first tick of the chosen Jakarta hour. It covers yesterday's purchases, renewals, revenue, refunds, and quiz starts → first results, all from first-party funnel events.
+- **Never in the way.**
+  - `sendTelegram` (`@factory/core/notify`) posts plain text to the Bot API's `sendMessage` (`chat_id`, `text` up to 4096 characters, link previews off; core.telegram.org/bots/api, read 2026-10-31).
+  - It never throws and gives up after 3 s.
+  - Payment alerts go through the webhook's `waitUntil`, so a Telegram outage neither fails nor slows a webhook.
+- **Not done.** The production deploy's rollback and incident aren't sent to Telegram: GitHub already notifies the repo owner of a new incident issue. It can be added to `deploy.yml` later with the same bot.
+- **Tests:**
+  - core: `maskEmail`; the message texts (masked email, `omit`, no campaign); the request shape (URL, `chat_id`, text, previews off); `false` on an HTTP error, a thrown fetch or Telegram's `ok: false`; the summary hour; yesterday's day; the summary counts from D1;
+  - API, with mocked config: a confirmed purchase pings once with a masked email; no secrets or no config pings nothing; a rejected webhook pings once in 10 minutes; the cron sends the summary at the hour only.

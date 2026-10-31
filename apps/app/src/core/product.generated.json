@@ -153,6 +153,9 @@
       "purchase": 0.5
     }
   },
+  "notifications": {
+    "telegram": null
+  },
   "nav": {
     "adminTab": true
   },
