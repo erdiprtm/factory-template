@@ -10,6 +10,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-10-31: Owner alerts on Telegram (D-112), Myna Fit
+
+- `notifications.telegram`: purchase, renewal, refund (and optionally rejected webhooks) ping the owner, with a masked email or none; optional daily summary at a Jakarta hour. Secrets TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID (SETUP_HUMAN 14).
+
+---
+
 ## 2026-10-26: Center action in the bottom bar; `nav.adminTab` (D-111), Myna Fit camera button
 
 - `slots.centerAction` sits between the halves of the bottom tabs (and after the top bar's links). `nav.adminTab: false` moves Admin into Akun.

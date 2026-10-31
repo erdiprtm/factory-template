@@ -600,6 +600,36 @@ Tidak perlu akun atau kunci apa pun. Coba di URL preview PR atau di produksi (ha
 
 ---
 
+## 14. Notifikasi Telegram untuk pemilik (per produk, opsional, D-112)
+
+Kamu dapat pesan di Telegram setiap ada pembelian, perpanjangan atau refund, dan kalau mau, ringkasan harian. Email pembeli disamarkan (`er***@gmail.com`) atau tidak ditampilkan sama sekali. Data kesehatan tidak pernah dikirim.
+
+1. **Buat bot.** Di Telegram, buka **@BotFather** → kirim `/newbot` → beri nama (misalnya "Myna Fit Alerts") dan username yang berakhiran `bot`. BotFather membalas dengan **token** (bentuknya `123456789:AA...`). Simpan di password manager.
+2. **Sapa bot-mu.** Buka bot itu (tautan dari BotFather) dan tekan **Start** atau kirim pesan apa saja. Tanpa ini bot tidak boleh mengirimimu pesan.
+3. **Ambil chat id.** Buka di browser (ganti `<TOKEN>`): `https://api.telegram.org/bot<TOKEN>/getUpdates`. Cari `"chat":{"id":123456789,...}`: angka itu chat id-mu.
+4. **Simpan ke Worker produksi.** Salin token ke clipboard, lalu jalankan dari mana saja di repo produk:
+
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put TELEGRAM_BOT_TOKEN --env=""
+   ```
+
+   Lalu salin chat id ke clipboard:
+
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put TELEGRAM_CHAT_ID --env=""
+   ```
+
+   (Opsional, untuk mencoba di preview dengan pembayaran sandbox: ulangi dengan `--env preview`.)
+5. **Nyalakan di `product.config.ts`** (lewat PR, biasanya dikerjakan Claude):
+
+   ```ts
+   notifications: { telegram: { events: ["purchase", "renewal", "refund"], email: "masked", dailySummaryHourWib: 8 } },
+   ```
+
+   `email: "omit"` kalau tidak mau email sama sekali. `dailySummaryHourWib: null` kalau tidak perlu ringkasan harian. Tambahkan `"webhook_rejected"` ke `events` kalau mau diberi tahu saat ada webhook palsu (paling sering 1× per 10 menit).
+
+Tanpa kedua secret, tidak ada pesan yang dikirim dan semuanya tetap berjalan seperti biasa.
+
 ## Ringkasan: yang perlu disimpan di password manager
 
 | Dari | Nilai | Dipakai di fase |
