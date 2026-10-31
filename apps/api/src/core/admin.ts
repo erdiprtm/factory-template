@@ -11,6 +11,7 @@ import {
   upsertSpend,
 } from "@factory/core/economics";
 import { grantAdminDays } from "@factory/core/entitlements";
+import { refundText } from "@factory/core/notify";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
@@ -19,6 +20,7 @@ import { z } from "zod";
 import type { Bindings } from "../index";
 import { experiment, serverAnalytics } from "./analytics";
 import { eraseAccount } from "./erase-account";
+import { ownerAlert } from "./notify";
 import { type SessionVariables, sessionMiddleware } from "./session";
 
 /** 401 signed out, 403 not on the allowlist (product.config.ts admin.emails ∪ ADMIN_EMAILS var). */
@@ -105,6 +107,8 @@ export const adminRoutes = new Hono<{ Bindings: Bindings; Variables: SessionVari
     if (r.kind === "refunded") {
       const { userId, planId, amountIdr } = r.payment;
       await serverAnalytics(c.env).track("refund", { plan: planId, amount_idr: amountIdr, ...r.tag }, userId);
+      const plan = config.plans.find((p) => p.id === planId)?.label ?? planId;
+      await ownerAlert(c.env, "refund", refundText({ product: config.name, plan, amountIdr, paymentId: r.payment.id }));
     }
     return c.json({ ok: true as const });
   })

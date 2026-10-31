@@ -3,12 +3,14 @@ import { paidEventKind, recordServerEvent } from "@factory/core/attribution";
 import type { SettleOutcome } from "@factory/core/billing";
 import { emailProvider } from "@factory/core/email";
 import { receiptEmail } from "@factory/core/email/templates";
+import { paidText } from "@factory/core/notify";
 import { schema } from "@factory/db";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import type { Bindings } from "../index";
 import { experiment, serverAnalytics } from "./analytics";
 import { capiOptions, sendPaymentConversion } from "./marketing";
+import { ownerAlert } from "./notify";
 
 /**
  * What happens once the provider confirmed a payment (D-017, D-030, D-034): the server-side
@@ -36,6 +38,27 @@ export async function afterPaymentSettled(
   const props = { plan: planId, amount_idr: amountIdr, utm_campaign: utmCampaign, ...tag };
   await defer(serverAnalytics(env).track(event, props, userId));
   const owner = await db.select({ email: schema.user.email }).from(schema.user).where(eq(schema.user.id, userId)).get();
+  // The owner's ping (D-112), only once the provider confirmed: same place as the access grant.
+  const tg = config.notifications.telegram;
+  if (tg)
+    await defer(
+      ownerAlert(
+        env,
+        event,
+        paidText({
+          event,
+          product: config.name,
+          plan: config.plans.find((p) => p.id === planId)?.label ?? planId,
+          amountIdr,
+          provider: outcome.payment.provider,
+          paymentId: id,
+          email: owner?.email,
+          emailMode: tg.email,
+          campaign: utmCampaign,
+          source: utmSource,
+        }),
+      ),
+    );
   // Meta CAPI (D-034): only after the provider confirmed, only with marketing consent.
   const capi = capiOptions(env);
   if (capi && owner)

@@ -13,6 +13,8 @@ import { emailProvider } from "@factory/core/email";
 import { reminderEmail } from "@factory/core/email/templates";
 import { purgeAnonymousFiles } from "@factory/core/files";
 import { purgeCheckoutContexts } from "@factory/core/meta";
+import { sendTelegram } from "@factory/core/notify";
+import { dailySummaryText, loadDailySummary, summaryDue, yesterdayWib } from "@factory/core/notify/summary";
 import { purgeIpUsage } from "@factory/core/quota";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
@@ -20,6 +22,7 @@ import { runProductScheduled } from "../features/scheduled";
 import type { Bindings } from "../index";
 import { serverAnalytics } from "./analytics";
 import { captureError } from "./monitoring";
+import { ownerTelegram } from "./notify";
 import { afterPaymentSettled } from "./payment-events";
 import { configuredProvider } from "./payments";
 
@@ -45,6 +48,11 @@ export async function runScheduled(env: Bindings, now = new Date()) {
       }
     }
   }
+  // The owner's daily summary on Telegram (D-112), at the product's Jakarta hour.
+  const hour = config.notifications.telegram?.dailySummaryHourWib;
+  const tg = ownerTelegram(env);
+  if (tg && hour !== null && hour !== undefined && summaryDue(now, hour))
+    await sendTelegram(tg, dailySummaryText(config.name, await loadDailySummary(db, yesterdayWib(now))));
   const expired = await expirePendingPayments(db, now);
   const purged = await purgeFunnelEvents(db, now);
   await purgeCheckoutContexts(db, now);

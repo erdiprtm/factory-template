@@ -28,7 +28,9 @@
     "./quiz/store": "./src/quiz/store.ts",
     "./meta": "./src/meta/index.ts",
     "./meta/events": "./src/meta/events.ts",
-    "./nutrition": "./src/nutrition/index.ts"
+    "./nutrition": "./src/nutrition/index.ts",
+    "./notify": "./src/notify/index.ts",
+    "./notify/summary": "./src/notify/summary.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",

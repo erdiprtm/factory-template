@@ -29,6 +29,7 @@ import { capturedDevEmails } from "@factory/core/email";
 import { grantTrial, hasAccess, latestExpiry } from "@factory/core/entitlements";
 import { claimAnonymousFiles, type FileBucket, fileKey, fileRow } from "@factory/core/files";
 import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
+import { webhookRejectedText } from "@factory/core/notify";
 import { QUIZ_MAX_STEPS } from "@factory/core/quiz";
 import { quizResponsesFor, saveQuizResponse } from "@factory/core/quiz/store";
 import { anonKey, claimAnonymousUses, freeUsesUsed } from "@factory/core/quota";
@@ -49,6 +50,7 @@ import { runScheduled } from "./core/cron";
 import { eraseAccount } from "./core/erase-account";
 import { hasMarketingConsent, type MarketingEnv, marketingTrackingOn } from "./core/marketing";
 import { captureError, withMonitoring } from "./core/monitoring";
+import { type NotifyEnv, ownerAlert } from "./core/notify";
 import { afterPaymentSettled } from "./core/payment-events";
 import { configuredProvider, fakePakasirServer, fakeProvider, type PaymentEnv } from "./core/payments";
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
@@ -65,6 +67,7 @@ export type Bindings = AuthEnv &
   PaymentEnv &
   AnalyticsEnv &
   MarketingEnv &
+  NotifyEnv &
   RateLimitEnv & {
     COMMIT_SHA: string;
     /** Extra admins on top of product.config.ts admin.emails (comma-separated). */
@@ -132,7 +135,14 @@ app.post("/api/webhooks/:provider", rateLimit("WEBHOOK_LIMITER", clientIp), asyn
   const provider = configuredProvider(c.env);
   if (!provider || c.req.param("provider") !== provider.name) return c.notFound();
   const outcome = await handleWebhook(db(c.env), provider, c.req.raw, config.plans);
-  if (outcome.kind === "unauthorized") return c.json({ error: "invalid_signature" as const }, 401);
+  if (outcome.kind === "unauthorized") {
+    // A forged or misconfigured webhook (D-112): the owner hears about it, at most every 10 minutes.
+    await background(
+      c,
+      ownerAlert(c.env, "webhook_rejected", webhookRejectedText({ product: config.name, provider: provider.name })),
+    );
+    return c.json({ error: "invalid_signature" as const }, 401);
+  }
   if (outcome.kind === "retry") return c.json({ error: "not_confirmed_yet" as const }, 503);
   if (outcome.kind === "processed") await afterPaymentSettled(c.env, outcome, (work) => background(c, work));
   return provider.webhookAck();
