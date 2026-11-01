@@ -278,7 +278,7 @@ export const en: Messages = {
   "econ.imported": "Rows imported:",
   "econ.importFailed": "Import failed.",
   "econ.delete": "Delete",
-  "funnel.lp_view": "Landing page view",
+  "funnel.lp_view": "Visit (site or lander)",
   "funnel.cta_tap": "CTA tap",
   "funnel.quiz_start": "Quiz start",
   "funnel.quiz_complete": "Quiz complete",

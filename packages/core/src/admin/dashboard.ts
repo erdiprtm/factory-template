@@ -39,12 +39,16 @@ type Row = {
 };
 
 const MONEY = ["purchase", "renewal", "refund"] as const;
-const COUNTED = ["lp_view", "first_result", ...MONEY] as const;
+/** A visit (D-117): an ad lander's lp_view or any other site page's site_view. */
+export const VISIT_EVENTS = ["lp_view", "site_view"] as const;
+const isVisit = (event: string) => (VISIT_EVENTS as readonly string[]).includes(event);
+const COUNTED = [...VISIT_EVENTS, "first_result", ...MONEY] as const;
 
 function kpis(rows: Row[]) {
   const sum = (e: string) => rows.filter((r) => r.event === e).reduce((s, r) => s + r.value, 0);
   const count = (e: string) => rows.filter((r) => r.event === e).length;
-  const visitors = new Set(rows.filter((r) => r.event === "lp_view").map((r) => r.visitor)).size;
+  // Distinct devices over both kinds of visit: a device that saw the home page and a lander counts once.
+  const visitors = new Set(rows.filter((r) => isVisit(r.event)).map((r) => r.visitor)).size;
   const buyers = count("purchase");
   return {
     revenueIdr: sum("purchase") + sum("renewal") - sum("refund"),

@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-01: Organic site visits count as visitors (D-117), Myna Fit
+
+- The site stores `site_view` first-party on every non-lander page; visitors (KPIs, per day, sources, bot) and the funnel's first step count `lp_view` ∪ `site_view` per device. No Meta event, no migration.
+
+---
+
 ## 2026-11-01: E2E quiz check waits for the client redirect (test fix), from cektelur
 
 - `quiz.spec.ts` and `experiment.spec.ts` read the URL right after `goto("/quiz")`, before a product without a quiz had redirected, so they failed with `quiz = null`. `hasQuiz(page)` in `e2e/tests/support.ts` waits for a quiz step, the consent screen, or leaving /quiz.

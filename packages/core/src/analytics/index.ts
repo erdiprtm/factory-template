@@ -7,6 +7,9 @@
  * purchase, renewal and refund come from the server only (webhook / admin), never the browser.
  */
 export const FUNNEL_EVENTS = [
+  // A visit (D-117): any site page that isn't an ad lander (home, /harga, articles). Organic visitors
+  // (a bio link) count as visitors next to lp_view, first-party only; it maps to no Meta event.
+  "site_view",
   "lp_view",
   "cta_tap",
   "quiz_start",
@@ -28,6 +31,7 @@ export type FunnelEvent = (typeof FUNNEL_EVENTS)[number];
 
 /** Funnel events a browser may report (first-party POST /api/events). */
 export const CLIENT_FUNNEL_EVENTS = [
+  "site_view",
   "lp_view",
   "cta_tap",
   "quiz_start",
@@ -59,7 +63,6 @@ export const isClientFunnelEvent = (event: string): event is ClientFunnelEvent =
 
 export const STANDARD_EVENTS = [
   ...FUNNEL_EVENTS,
-  "site_view",
   "pricing_view",
   "signup_started",
   "signup_completed",

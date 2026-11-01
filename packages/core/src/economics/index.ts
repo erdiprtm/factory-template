@@ -147,7 +147,11 @@ export async function loadEconomics(db: Db, o: EconomicsOptions) {
         o.campaign ? eq(funnelEvents.utmCampaign, o.campaign) : undefined,
       ),
     );
-  const visits = events.map((e) => ({ ...e, visitor: e.anonId ?? e.userId ?? "" })).filter((e) => e.visitor);
+  // The funnel's first step is a visit of either kind (D-117): an organic home page view counts as the
+  // step before cta_tap, like a lander view.
+  const visits = events
+    .map((e) => ({ ...e, event: e.event === "site_view" ? "lp_view" : e.event, visitor: e.anonId ?? e.userId ?? "" }))
+    .filter((e) => e.visitor);
   const funnel = computeFunnel(visits, o.steps, o.benchmarks);
   return {
     range: { from: o.from, to: o.to, campaign: o.campaign ?? null },

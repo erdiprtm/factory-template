@@ -62,6 +62,14 @@ describe("POST /api/events", () => {
     expect(await db.select().from(funnelEvents).where(eq(funnelEvents.anonId, anonId))).toHaveLength(20);
   });
 
+  it("accepts the site's site_view (D-117)", async () => {
+    const anonId = anon();
+    expect((await beacon({ anonId, utm_source: "instagram", events: [{ event: "site_view" }] })).status).toBe(204);
+    expect(await db.select().from(funnelEvents).where(eq(funnelEvents.anonId, anonId))).toMatchObject([
+      { event: "site_view", utmSource: "instagram" },
+    ]);
+  });
+
   it("rejects money events, bad ids and oversized batches", async () => {
     const anonId = anon();
     expect((await beacon({ anonId, events: [{ event: "purchase" }] })).status).toBe(400);

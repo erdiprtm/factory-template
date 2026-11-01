@@ -2360,3 +2360,22 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - App strings: `pricing.bonus`, `pricing.founder`, `pricing.founderLeft`, `pricing.normalPrice` (id + en). The planCard slot gets optional `bonus`, `founder`, `normalPrice`, and `plan.bonusMonths` / `plan.tier`.
   - The site's /harga (static, Indonesian like the rest of its copy) shows the same, with "Harga founder untuk N pembeli pertama" instead of a live count: turn `founderPrice` off when the slots are gone.
 - **Tests:** schema (defaults, bonus bounds, founder price below the normal one, tier labels); grant length with and without a bonus; founder off, on, a pending checkout not counting, the limit reached, normal-price payments not counted (real D1); the API with a mocked config (`/api/pricing`, a client amount ignored, the slot used, then the normal price); grouping, same-tier savings and the bonus line; the app's plan cards; the site build per config.
+
+## D-117: Organic site visits count as visitors (2026-11-01)
+
+- **Problem (Myna Fit, asked by Erdi on 2026-11-01).** "Pengunjung" in /admin and in the bot was the distinct devices with `lp_view`, which only ad landers (`/l/<slug>`) send.
+  - The home page and every other site page sent `site_view` to OpenPanel only. It wasn't a client funnel event, so it was never stored first-party.
+  - Organic traffic, e.g. an Instagram or TikTok bio link to the home page, showed 0 visitors in /admin and in `/hari_ini`, `/minggu` and `/bulan`, while OpenPanel saw real visitors.
+  - The funnel's first step undercounted too, so `cta_tap` and conversion had no organic denominator.
+- **Decision.**
+  - **`site_view` is a funnel event the browser may send** (`FUNNEL_EVENTS`, `CLIENT_FUNNEL_EVENTS`).
+  - **The site sends it on every page that isn't an ad lander.** That includes /harga, whose page event is `pricing_view`, so the site sends a first-party `site_view` beside it. Landers keep `lp_view`.
+  - **It maps to no Meta event,** so nothing new reaches the Pixel, before or after "Izinkan" (D-034, D-107). It carries the device's UTM tags, so `utm_source=instagram&utm_campaign=bio` shows as its own row in the sources table.
+  - **Visitors** = distinct devices over `lp_view` ∪ `site_view` (`VISIT_EVENTS`). A device that saw both the home page and a lander counts once. This applies to the KPI, visitors per day and the sources table, and so to the Telegram commands that read them (D-114).
+  - **The funnel's first step** counts a visit of either kind: `loadEconomics` reads `site_view` as that step. It's now labelled "Kunjungan (situs atau lander)", in the app and in `/funnel`.
+  - **No migration:** the query already filters by event through the `(event, created_at)` index.
+- **Organic vs ads.** The sources table already splits them by UTM: the bio link's `instagram / bio` against an ad's campaign. To compare with Meta's link clicks, filter /admin by the ad's campaign (`/funnel-diagnose` says so now).
+- **Not counted:** app screens (the app sends no `site_view`). Nothing changes before this deploy: older days have no `site_view`, so their visitor counts stay lander-only.
+- **Tests:**
+  - core: `site_view` is a client funnel event, standard exactly once, and no Meta event; the old assertion that it wasn't first-party became money events only;
+  - API: the beacon stores `site_view` with its UTM; the dashboard counts home and lander views as distinct devices (3, one device with both counted once), per day and per source; the funnel's first step counts both, so `cta_tap` gets a 50% rate.

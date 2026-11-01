@@ -53,7 +53,7 @@ describe("answers", () => {
       ],
       "purchase",
     );
-    expect(f).toContain("Lihat landing page: 100\n");
+    expect(f).toContain("Kunjungan (situs atau lander): 100\n");
     expect(f).toContain("Beli: 2 (2%) ← penurunan terbesar");
     expect(sourcesText("P", [])).toContain("Belum ada data.");
     expect(
