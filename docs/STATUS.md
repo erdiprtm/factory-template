@@ -10,6 +10,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-01: App headers from config: camera, microphone, WebAssembly (D-115), for cektelur
+
+- `app.permissions.camera` / `.microphone` and `app.wasm` (all off by default). `pnpm theme` now writes `apps/app/public/_headers`: `camera=(self)`, `'wasm-unsafe-eval'` + `worker-src 'self' blob:` when turned on.
+
+---
+
 ## 2026-10-31: Two-way owner bot on Telegram (D-114), Myna Fit
 
 - `notifications.telegram.commands`: /hari_ini, /minggu, /bulan, /funnel, /sumber, /terakhir, /bantuan, answered for the owner's chat only, read-only. Webhook secret TELEGRAM_WEBHOOK_SECRET; /admin → Bot Telegram → Sambungkan bot (SETUP_HUMAN 14b).
