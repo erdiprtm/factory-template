@@ -43,6 +43,8 @@ describe("e2e-state (a fresh local D1 per E2E run, D-064)", () => {
     } catch {}
     // Another run's shell: a live process that isn't this script's parent.
     const other = spawn("sleep", ["30"]);
+    // A fresh checkout has no apps/api/.wrangler yet (tests run before E2E creates it).
+    mkdirSync(join(lock, ".."), { recursive: true });
     writeFileSync(lock, `${other.pid}\n`);
     try {
       const r = spawnSync(process.execPath, [join(import.meta.dirname, "e2e-state.mjs")], { encoding: "utf8" });

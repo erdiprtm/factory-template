@@ -30,7 +30,7 @@ test("admin sees metrics and grants access", async ({ page, request }) => {
   await page.getByLabel("Nama kampanye (utm_campaign)").fill(campaign);
   await page.getByLabel("Jumlah (Rp, sebelum pajak)").fill("150000");
   await page.getByRole("button", { name: "Simpan biaya" }).click();
-  await expect(page.getByText("Tersimpan.")).toBeVisible();
+  await expect(page.getByText("Tersimpan.", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: campaign })).toBeVisible();
   await expect(page.getByText("Target CAC", { exact: false }).first()).toBeVisible();
 
@@ -38,9 +38,9 @@ test("admin sees metrics and grants access", async ({ page, request }) => {
   await page.getByLabel("Email akun yang dihapus").fill(member);
   await page.getByLabel("Ketik ulang email untuk konfirmasi").fill(member);
   await page.getByRole("button", { name: "Hapus akun permanen" }).click();
-  await expect(page.getByText("Akun dihapus.")).toBeVisible();
+  await expect(page.getByText("Akun dihapus.", { exact: true })).toBeVisible();
   await page.getByLabel("Email pengguna").fill(member);
   await page.getByLabel("Jumlah hari").fill("7");
   await page.getByRole("button", { name: "Beri akses" }).click();
-  await expect(page.getByText("Pengguna tidak ditemukan.")).toBeVisible();
+  await expect(page.getByText("Pengguna tidak ditemukan.", { exact: true })).toBeVisible();
 });
