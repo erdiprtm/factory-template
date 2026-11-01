@@ -1,17 +1,27 @@
 import { describe, expect, it, vi } from "vitest";
-import { type AiProvider, type AiResult, costMicroUsd, geminiProvider, listPrice, withFallback } from "./index";
+import {
+  type AiFailure,
+  type AiProvider,
+  type AiResult,
+  costMicroUsd,
+  geminiProvider,
+  listPrice,
+  withFallback,
+} from "./index";
+import { AI_DETAIL_MAX, detailOf } from "./usage";
 
 // D-091: a cross-provider fallback, and prices for gemini-3.1-flash-lite and from config.
 const req = { system: "s", text: "t", schema: { name: "x", schema: { type: "object" } } };
 const usage = { inputTokens: 1000, cachedInputTokens: 0, outputTokens: 100 };
 const ok = (model: string): AiResult => ({ ok: true, output: {}, model, tier: "default", usage, latencyMs: 1 });
-const fail = (model: string, error: "unavailable" | "quota" | "rate_limited" | "bad_output" | "refused"): AiResult => ({
+const fail = (model: string, error: AiFailure, detail?: string): AiResult => ({
   ok: false,
   error,
   model,
   tier: "default",
   usage: null,
   latencyMs: 1,
+  ...(detail ? { detail } : {}),
 });
 const provider = (answer: AiResult): AiProvider & { calls: number } => {
   const p = { name: "gemini" as const, calls: 0, json: async () => (p.calls++, answer) };
@@ -26,8 +36,8 @@ describe("withFallback", () => {
     expect(backup.calls).toBe(0);
   });
 
-  it("primary unavailable, out of credit or rate limited: the fallback answers, marked as such", async () => {
-    for (const error of ["unavailable", "quota", "rate_limited"] as const) {
+  it("primary unavailable, out of credit, rate limited or rejecting the request: the fallback answers, marked as such", async () => {
+    for (const error of ["unavailable", "quota", "rate_limited", "bad_request"] as const) {
       const r = await withFallback(
         provider(fail("gemini-3.1-flash-lite", error)),
         provider(ok("bytedance-seed/seed-2.0-lite")),
@@ -38,6 +48,27 @@ describe("withFallback", () => {
         fallbackFrom: { model: "gemini-3.1-flash-lite", error },
       });
     }
+  });
+
+  it("D-118: the primary's reason travels with the fallback's answer", async () => {
+    const r = await withFallback(
+      provider(fail("gemini-3.1-flash-lite", "bad_request", "invalid_argument: Unable to process input image.")),
+      provider(ok("bytedance-seed/seed-2.0-lite")),
+    ).json(req);
+    expect(r.fallbackFrom).toEqual({
+      model: "gemini-3.1-flash-lite",
+      error: "bad_request",
+      detail: "invalid_argument: Unable to process input image.",
+    });
+    expect(detailOf(r)).toBe("primary bad_request: invalid_argument: Unable to process input image.");
+    // Both failing: the fallback's own reason first, then the primary's.
+    const both = await withFallback(
+      provider(fail("gemini-3.1-flash-lite", "bad_request", "400")),
+      provider(fail("bytedance-seed/seed-2.0-lite", "unavailable", "no_choices")),
+    ).json(req);
+    expect(detailOf(both)).toBe("no_choices | primary bad_request: 400");
+    expect(detailOf(fail("m", "bad_request", "x".repeat(500)))).toHaveLength(AI_DETAIL_MAX);
+    expect(detailOf(ok("m"))).toBeNull();
   });
 
   it("bad output or a refusal is never retried elsewhere", async () => {

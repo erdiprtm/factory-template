@@ -558,7 +558,7 @@ Kode mengirim `store: false`, jadi Google tidak menyimpan percakapan (tanpa itu 
 
 ---
 
-**Cadangan otomatis (opsional, D-091).** Kalau Gemini sedang tidak bisa dihubungi, produk bisa otomatis memakai penyedia lain lewat `ai.fallback` di `product.config.ts`, misalnya OpenRouter. Cadangan hanya dipakai saat penyedia utama gagal total (gangguan, kuota habis, terlalu banyak permintaan), tidak pernah saat jawabannya salah format. Key cadangan disimpan dengan cara yang sama (langkah 11c untuk OpenRouter). Tanpa key itu, tidak ada cadangan. Halaman privasi otomatis menyebut kedua penyedia.
+**Cadangan otomatis (opsional, D-091).** Kalau Gemini sedang tidak bisa dihubungi, produk bisa otomatis memakai penyedia lain lewat `ai.fallback` di `product.config.ts`, misalnya OpenRouter. Cadangan dipakai saat penyedia utama gagal (gangguan, kuota habis, terlalu banyak permintaan, atau menolak permintaannya, misalnya foto yang tidak bisa dibacanya, D-118), tidak pernah saat jawabannya salah format atau ditolak karena isinya. Alasan kegagalan tersimpan di log AI. Key cadangan disimpan dengan cara yang sama (langkah 11c untuk OpenRouter). Tanpa key itu, tidak ada cadangan. Halaman privasi otomatis menyebut kedua penyedia.
 
 ## 12. Satu domain — app dan situs di satu alamat (per produk, opsional)
 

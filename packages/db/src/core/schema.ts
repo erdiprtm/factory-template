@@ -295,6 +295,11 @@ export const aiUsage = sqliteTable(
     outputTokens: integer("output_tokens").notNull().default(0),
     // Micro-USD (1e-6 USD) from the provider's list prices; null for a model without a known price.
     costMicroUsd: integer("cost_micro_usd"),
+    // The provider's reason for a failure, or for the primary's failure when a fallback answered
+    // (D-118). Short, never the request's content.
+    detail: text("detail"),
+    // The primary's model when a fallback provider answered (D-091, D-118).
+    fallbackFrom: text("fallback_from"),
     createdAt: timestamp("created_at").notNull(),
   },
   (t) => [index("ai_usage_user_time_idx").on(t.userId, t.createdAt), index("ai_usage_time_idx").on(t.createdAt)],

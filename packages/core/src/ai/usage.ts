@@ -36,8 +36,25 @@ export async function recordAiUsage(
         : result.usage
           ? costMicroUsd(result.model, result.tier, usage, now)
           : null,
+    detail: detailOf(result),
+    fallbackFrom: result.fallbackFrom?.model ?? null,
     createdAt: now,
   });
+}
+
+/** Longest reason kept in ai_usage.detail (D-118). */
+export const AI_DETAIL_MAX = 300;
+
+/**
+ * Why a call failed, and why the primary failed when a fallback answered ("primary bad_request:
+ * 400: …"), cut to AI_DETAIL_MAX. Null for a plain success.
+ */
+export function detailOf(result: AiResult): string | null {
+  const own = result.ok ? undefined : result.detail;
+  const from = result.fallbackFrom;
+  const primary = from ? `primary ${from.error}${from.detail ? `: ${from.detail}` : ""}` : undefined;
+  const text = [own, primary].filter(Boolean).join(" | ");
+  return text ? text.slice(0, AI_DETAIL_MAX) : null;
 }
 
 /** AI calls by one account or visitor since a time: all features, or only `feature` (D-050). */

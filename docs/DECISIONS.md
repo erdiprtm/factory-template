@@ -2379,3 +2379,23 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Tests:**
   - core: `site_view` is a client funnel event, standard exactly once, and no Meta event; the old assertion that it wasn't first-party became money events only;
   - API: the beacon stores `site_view` with its UTM; the dashboard counts home and lander views as distinct devices (3, one device with both counted once), per day and per source; the funnel's first step counts both, so `cta_tap` gets a 50% rate.
+
+## D-118: AI fallback on a rejected request, the provider's reason kept (2026-11-01)
+
+- **Problem (Myna Fit, first organic day, asked by Agent Fit with Erdi's OK).** About half the first photo scans failed: 15 × `502 scan_failed` against 12 successes, all from Instagram's in-app browser on Android and iOS.
+  - Gemini answered 4xx, which maps to `bad_request`. `withFallback` (D-091) fell back only on `unavailable`, `quota` and `rate_limited`, so the configured fallback (OpenRouter) was never tried and the visitor saw an error 2–5 times.
+  - `ai_usage` kept only `error`. Gemini's own message was in `result.detail` but never stored or logged, so the cause was unknown.
+- **Decision: fall back on `bad_request` too** (`FALLBACK_ON`), for every request, not only image ones.
+  - A 4xx means this provider refused the input or the call (an image it won't read, a setting it doesn't support, a revoked key), not that the content is unusable. Another provider can answer, and a user-facing error is worse than the fallback's cost (for Myna Fit about Rp45 against Rp13 per scan, accepted by Erdi).
+  - Still never on `bad_output` or `refused`: those are about the content (D-091).
+  - The price of a misconfigured primary is now higher cost instead of errors. It stays visible: every fallback row names the primary and its reason (below), and Workers logs warn.
+- **Decision: keep the reason.**
+  - `fallbackFrom` carries the primary's `detail` too.
+  - `ai_usage` gets two nullable columns (expand-only migration `20261101144018_ai_usage_detail`): `detail`, the failure's reason (plus `primary <error>: <reason>` when a fallback answered), cut to 300 characters by `detailOf`; and `fallback_from`, the primary's model.
+  - `runAi` `console.warn`s failed and fallen-back calls with the feature, model and reason. No user id in the log line.
+  - The reason is the provider's error code and message (already cut to 200 characters by each provider), never the request's text or image. It is part of the account's AI log, so export and deletion cover it as before.
+- **Not the image type.** Uploads already reach the provider with the type sniffed from their bytes (`readImageUpload`, never the client's claim), so a wrong `mime_type` isn't the cause. The kept reason will name the real one.
+- **Tests:**
+  - core: the fallback answers `bad_request` and carries the primary's reason; `detailOf` for a fallback, both failing, a long reason and a success;
+  - API (real D1): a Gemini 400 falls back to OpenRouter, and `ai_usage` stores `fallback_from` and the reason for 503 and 400.
+

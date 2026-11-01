@@ -10,7 +10,7 @@ import {
   openRouterProvider,
   withFallback,
 } from "@factory/core/ai";
-import { aiCallsSince, anonymousAiCallsSince, recordAiUsage } from "@factory/core/ai/usage";
+import { aiCallsSince, anonymousAiCallsSince, detailOf, recordAiUsage } from "@factory/core/ai/usage";
 import { anonKey } from "@factory/core/quota";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
@@ -166,6 +166,9 @@ export async function runAi(
   req: AiJsonRequest,
 ): Promise<AiResult> {
   const result = await provider.json(req);
+  // Why it failed or fell back, in the Workers log too (D-118): the feature and the provider's reason, no user id.
+  if (!result.ok || result.fallbackFrom)
+    console.warn("ai call", { feature, model: result.model, ok: result.ok, detail: detailOf(result) });
   const user = c.get("user");
   const anonId = anonIdOf(c);
   const userId = user ? user.id : anonId ? anonKey(anonId) : "anon:unknown";
