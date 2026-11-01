@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { activeExperiment, anonIdIn } from "../../packages/core/src/experiments";
 import product from "../../product.config";
-import { signIn } from "./support";
+import { hasQuiz, signIn } from "./support";
 
 // A/B experiments (D-094). Holds in every product repo: skipped unless product.config.ts runs one.
 // Each arm is reached through the real assignment path: a fresh device opening the app with an
@@ -26,7 +26,7 @@ test("each arm's quiz start is counted in its own arm on /admin", async ({ brows
       }),
     });
     await visitor.goto(`/quiz?aid=${aid}&utm_campaign=${campaign}`);
-    if (visitor.url().endsWith("/sign-in")) {
+    if (!(await hasQuiz(visitor))) {
       await device.close();
       return test.skip(true, "this product has no quiz");
     }

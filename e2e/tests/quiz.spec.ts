@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import product from "../../product.config";
-import { me, signIn } from "./support";
+import { hasQuiz, me, signIn } from "./support";
 
 // "Pay for proof" products (D-042/D-043) ask for consent before the quiz and lead to their public
 // entry screen instead of sign-in.
@@ -12,7 +12,7 @@ const inlineConsent = anonymousEntry !== null && product.legal.consentPlacement 
 // (first option / lowest number), so it holds in every product repo.
 test("quiz: lander CTA → steps with back → summary → sign-in → answers attached", async ({ page, request }) => {
   await page.goto("/quiz");
-  if (page.url().endsWith("/sign-in")) return test.skip(true, "this product has no quiz");
+  if (!(await hasQuiz(page))) return test.skip(true, "this product has no quiz");
   if (anonymousEntry && !inlineConsent) {
     await expect(page.getByTestId("anon-consent-continue")).toBeVisible();
     for (const box of await page.getByRole("checkbox").all()) await box.click();
