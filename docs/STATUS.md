@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-01: Organic site visits count as visitors (D-117), Myna Fit
+
+- The site stores `site_view` first-party on every non-lander page; visitors (KPIs, per day, sources, bot) and the funnel's first step count `lp_view` ∪ `site_view` per device. No Meta event, no migration.
+
+---
+
 ## 2026-10-31: Two-way owner bot on Telegram (D-114), Myna Fit
 
 - `notifications.telegram.commands`: /hari_ini, /minggu, /bulan, /funnel, /sumber, /terakhir, /bantuan, answered for the owner's chat only, read-only. Webhook secret TELEGRAM_WEBHOOK_SECRET; /admin → Bot Telegram → Sambungkan bot (SETUP_HUMAN 14b).

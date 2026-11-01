@@ -49,7 +49,7 @@ export function kpiText(product: string, title: string, k: KpiSet): string {
 }
 
 const STEP_LABELS: Record<string, string> = {
-  lp_view: "Lihat landing page",
+  lp_view: "Kunjungan (situs atau lander)",
   cta_tap: "Klik tombol",
   quiz_start: "Mulai kuis",
   quiz_complete: "Selesai kuis",

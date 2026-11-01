@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { loadDashboard, loadFeed } from "@factory/core/admin/dashboard";
+import { loadEconomics } from "@factory/core/economics";
 import { adSpend, funnelEvents, schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
@@ -67,6 +68,39 @@ describe("loadDashboard", () => {
     expect(metaRow).toMatchObject({ source: "meta", visitors: 2, firstResults: 1, buyers: 1, revenueIdr: 249000 });
     expect(metaRow).toMatchObject({ cacIdr: 100000, roas: 2.49 });
     expect(d.sources.find((s) => s.source === null && s.campaign === null)?.visitors).toBe(1);
+  });
+
+  it("organic home views count as visitors next to lander views, once per device (D-117)", async () => {
+    const now = new Date("2025-05-20T05:00:00Z");
+    const day = new Date("2025-05-20T03:00:00Z");
+    const bio = { utmSource: "instagram", utmCampaign: "bio" };
+    const seed = [
+      row("site_view", "o1", day, bio),
+      row("site_view", "o1", day, bio),
+      row("site_view", "o2", day, bio),
+      row("lp_view", "o2", day, bio), // the same device also opened a lander: still one visitor
+      row("cta_tap", "o1", day, bio),
+      row("lp_view", "a1", day, { utmSource: "meta", utmCampaign: "c-ads" }),
+    ];
+    await db.insert(funnelEvents).values(seed);
+    const d = await loadDashboard(db, "today", now);
+    expect(d.kpis.visitors.value).toBe(3);
+    expect(d.series[0]?.visitors).toBe(3);
+    expect(d.sources.find((s) => s.source === "instagram")?.visitors).toBe(2);
+    const e = await loadEconomics(db, {
+      from: "2025-05-20",
+      to: "2025-05-20",
+      campaign: "bio",
+      plans: [],
+      steps: ["lp_view", "cta_tap"],
+      benchmarks: {},
+      now,
+    });
+    // The first step counts home and lander visits; cta_tap now has an organic denominator.
+    expect(e.funnel.map((s) => [s.step, s.visitors, s.rate])).toEqual([
+      ["lp_view", 2, null],
+      ["cta_tap", 1, 0.5],
+    ]);
   });
 
   it("an empty range: zeros, no trends to invent, no sources", async () => {

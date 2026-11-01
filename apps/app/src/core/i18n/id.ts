@@ -279,7 +279,7 @@ export const id = {
   "econ.imported": "Baris diimpor:",
   "econ.importFailed": "Gagal impor.",
   "econ.delete": "Hapus",
-  "funnel.lp_view": "Lihat landing page",
+  "funnel.lp_view": "Kunjungan (situs atau lander)",
   "funnel.cta_tap": "Klik tombol",
   "funnel.quiz_start": "Mulai kuis",
   "funnel.quiz_complete": "Selesai kuis",
