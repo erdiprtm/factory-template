@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  bonusLine,
   cheapestPerWeekIdr,
   comparedPlan,
   highlightedPlan,
   methodChips,
   methodLabel,
   perWeekIdr,
+  planGroups,
   savingVs,
 } from "./index";
 
@@ -38,5 +40,37 @@ describe("pricing framing", () => {
     expect(methodChips(["bri_va", "qris", "cimb_niaga_va"])).toEqual(["VA BRI · CIMB Niaga", "QRIS"]);
     expect(methodChips(["QRIS", "SHOPEEPAY", "VIRTUAL_ACCOUNT"])).toEqual(["QRIS", "ShopeePay", "Virtual Account"]);
     expect(methodChips([])).toEqual([]);
+  });
+});
+
+describe("tiers and bonus (D-116)", () => {
+  const a6 = { id: "a6", months: 6, priceIdr: 99_000, tier: "peternak" };
+  const a12 = { id: "a12", months: 12, priceIdr: 179_000, tier: "peternak" };
+  const b6 = { id: "b6", months: 6, priceIdr: 199_000, tier: "juragan" };
+  const b12 = { id: "b12", months: 12, priceIdr: 349_000, tier: "juragan" };
+
+  it("flat plans: one group without a heading, as before", () => {
+    expect(planGroups([six, twelve], {})).toEqual([{ tier: null, label: null, plans: [six, twelve] }]);
+  });
+
+  it("groups by tier in pricing.tiers order, untiered first", () => {
+    const groups = planGroups([b6, a6, six, b12, a12], { peternak: "Peternak", juragan: "Juragan" });
+    expect(groups.map((g) => [g.tier, g.label, g.plans.map((p) => p.id)])).toEqual([
+      [null, null, ["6m"]],
+      ["peternak", "Peternak", ["a6", "a12"]],
+      ["juragan", "Juragan", ["b6", "b12"]],
+    ]);
+  });
+
+  it("a saving compares within the same tier only", () => {
+    expect(comparedPlan([a6, b6, b12, a12], b12)?.id).toBe("b6");
+    expect(comparedPlan([a6, b12], b12)).toBeUndefined();
+  });
+
+  it("bonus line only with bonus months", () => {
+    const words = { bonus: "+ bonus", months: "bulan" };
+    expect(bonusLine(2, words)).toBe("+ bonus 2 bulan");
+    expect(bonusLine(0, words)).toBeNull();
+    expect(bonusLine(undefined, words)).toBeNull();
   });
 });

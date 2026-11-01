@@ -219,7 +219,11 @@ const logo = show === "name" ? null : logoSize(pathToFileURL(`${process.cwd()}/p
         pixelTrack(event); // no-op unless the Pixel loaded (consent)
       };
 
-      track(document.body.dataset.pageEvent ?? "site_view");
+      const pageEvent = document.body.dataset.pageEvent ?? "site_view";
+      track(pageEvent);
+      // Every page but an ad lander is also a first-party visit (D-117), e.g. /harga's pricing_view
+      // page, so organic visitors count. D1 only: no OpenPanel duplicate, no Meta event.
+      if (pageEvent !== "lp_view" && pageEvent !== "site_view") funnel("site_view");
       // Counted once per device (first-party, D-107); the app shares the key on one domain.
       try {
         if (asking && !window.localStorage.getItem("factory.consent.shown")) {

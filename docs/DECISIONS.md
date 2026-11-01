@@ -2332,3 +2332,50 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Tests:**
   - core: `parseCommand` (`/x`, `/x@Bot words`, plain text); the commands meet Telegram's limits; the texts (▲/▼, the biggest drop, Jakarta times, masked emails, empty states); `sameSecret`;
   - API, with mocked config: 404 without the secrets; 401 for a wrong or missing secret; another chat or plain text gets 200 with an empty body; the owner gets every command as a `sendMessage` to his chat; `/terakhir` never shows a full email; connect names the missing secrets, then sets the webhook (URL, secret, updates) and the chat-scoped menu.
+
+## D-115: The app's security headers come from `product.config.ts` `app` (2026-11-01)
+
+- **Problem (cektelur).** An offline PWA that grades eggs from the rear camera with onnxruntime-web in a Web Worker, plus a service worker that caches the model. The static `apps/app/public/_headers` blocked all three: `Permissions-Policy: camera=()` stops `getUserMedia`, a `script-src` without `'wasm-unsafe-eval'` stops WebAssembly from compiling, and no `worker-src` means it falls back to `script-src 'self'`, which refuses `blob:` workers. Products may not edit that file.
+- **Decision: config.** `app: { permissions: { camera, microphone }, wasm }`, all `false` by default.
+  - `permissions.camera` / `.microphone`: `camera=(self)` / `microphone=(self)` instead of `()`. Only the app's own origin, never embeds. Geolocation and payment stay `()`.
+  - `wasm`: `'wasm-unsafe-eval'` in `script-src` and `worker-src 'self' blob:`. `'wasm-unsafe-eval'` allows WebAssembly compile and instantiate only, not JS `eval` (MDN, `script-src`, read 2026-11-01); `'unsafe-eval'` is never added. One switch covers both because WebAssembly products run their models in workers.
+  - The rest of the CSP and every other header stay byte-for-byte the same.
+- **Decision: generated.** `pnpm theme` (`scripts/gen-theme.mjs` `renderAppHeaders`) writes `apps/app/public/_headers`, with its explanatory comments, and `--check` (in `pnpm verify`) fails when it's stale. With everything off it's the old file plus a "GENERATED" line. `docs/TEMPLATE_SYNC.md` lists it under "Regenerate".
+- **Tests:** config defaults and partial objects; headers per option (off = old values, camera only, both, wasm leaves the rest of the CSP identical and never `'unsafe-eval'`); the checked-in file matches the repo's config; the e2e security test also checks the Permissions-Policy header.
+
+## D-116: Plan tiers, bonus months and a founder price (2026-11-01)
+
+- **Problem (cektelur).** Two tiers of plans ("peternak", "juragan"), launch plans that add free months, and a lower price for the first buyers. Plans had only `months` and `priceIdr`, and products may not touch billing.
+- **Decision: config.**
+  - Per plan, all optional: `tier` (an id, `^[a-z][a-z0-9-]{0,30}$`), `bonusMonths` (int 0–24, default 0), `founder: { priceIdr, limit }` (`priceIdr` lower than the plan's, `limit` 1–100000).
+  - Product level: `pricing: { founderPrice: false, tiers: {} }`. `founderPrice` is the switch, off by default, so a plan's `founder` does nothing until it's on. `tiers` maps each tier id to its heading ("Juragan"), in display order; `defineProduct` fails when a plan names a tier without a label. No tiers = one flat list, exactly as before.
+- **Decision: billing.**
+  - Access lasts `months + bonusMonths` (`grantMonths`, used by `settlePayment`). /admin's economics uses the same length for when a renewal is due.
+  - The amount is decided only in `startCheckout`: `currentPrice` charges `founder.priceIdr` while fewer than `limit` payments for that plan were **paid** at exactly that amount, else `priceIdr`. The browser never sends a price; the provider and the payment row get the server's amount.
+  - Pending checkouts don't hold a slot. Checkouts started while the last slot is open may all get it, so a few more than `limit` can pay the founder price; nobody is charged more than offered. The alternative, reserving slots on pending payments, would let abandoned checkouts block real buyers for an hour.
+  - Webhook verification, the provider's status confirmation and `requireAccess` are unchanged.
+- **Decision: what buyers see.**
+  - `GET /api/pricing` (public, `no-store`): each plan's price now and, while it lasts, `founder: { priceIdr, left }`. The app's /pricing asks only when `founderPrice` is on, shows the founder price with the normal one struck through and "Harga founder · N slot tersisa", and falls back to normal prices if the call fails (checkout decides anyway).
+  - "+ bonus N bulan" under the price; tier headings above each group; a saving compares plans within the same tier only (`comparedPlan`, `planGroups`, `bonusLine` in `@factory/core/pricing`).
+  - App strings: `pricing.bonus`, `pricing.founder`, `pricing.founderLeft`, `pricing.normalPrice` (id + en). The planCard slot gets optional `bonus`, `founder`, `normalPrice`, and `plan.bonusMonths` / `plan.tier`.
+  - The site's /harga (static, Indonesian like the rest of its copy) shows the same, with "Harga founder untuk N pembeli pertama" instead of a live count: turn `founderPrice` off when the slots are gone.
+- **Tests:** schema (defaults, bonus bounds, founder price below the normal one, tier labels); grant length with and without a bonus; founder off, on, a pending checkout not counting, the limit reached, normal-price payments not counted (real D1); the API with a mocked config (`/api/pricing`, a client amount ignored, the slot used, then the normal price); grouping, same-tier savings and the bonus line; the app's plan cards; the site build per config.
+
+## D-117: Organic site visits count as visitors (2026-11-01)
+
+- **Problem (Myna Fit, asked by Erdi on 2026-11-01).** "Pengunjung" in /admin and in the bot was the distinct devices with `lp_view`, which only ad landers (`/l/<slug>`) send.
+  - The home page and every other site page sent `site_view` to OpenPanel only. It wasn't a client funnel event, so it was never stored first-party.
+  - Organic traffic, e.g. an Instagram or TikTok bio link to the home page, showed 0 visitors in /admin and in `/hari_ini`, `/minggu` and `/bulan`, while OpenPanel saw real visitors.
+  - The funnel's first step undercounted too, so `cta_tap` and conversion had no organic denominator.
+- **Decision.**
+  - **`site_view` is a funnel event the browser may send** (`FUNNEL_EVENTS`, `CLIENT_FUNNEL_EVENTS`).
+  - **The site sends it on every page that isn't an ad lander.** That includes /harga, whose page event is `pricing_view`, so the site sends a first-party `site_view` beside it. Landers keep `lp_view`.
+  - **It maps to no Meta event,** so nothing new reaches the Pixel, before or after "Izinkan" (D-034, D-107). It carries the device's UTM tags, so `utm_source=instagram&utm_campaign=bio` shows as its own row in the sources table.
+  - **Visitors** = distinct devices over `lp_view` ∪ `site_view` (`VISIT_EVENTS`). A device that saw both the home page and a lander counts once. This applies to the KPI, visitors per day and the sources table, and so to the Telegram commands that read them (D-114).
+  - **The funnel's first step** counts a visit of either kind: `loadEconomics` reads `site_view` as that step. It's now labelled "Kunjungan (situs atau lander)", in the app and in `/funnel`.
+  - **No migration:** the query already filters by event through the `(event, created_at)` index.
+- **Organic vs ads.** The sources table already splits them by UTM: the bio link's `instagram / bio` against an ad's campaign. To compare with Meta's link clicks, filter /admin by the ad's campaign (`/funnel-diagnose` says so now).
+- **Not counted:** app screens (the app sends no `site_view`). Nothing changes before this deploy: older days have no `site_view`, so their visitor counts stay lander-only.
+- **Tests:**
+  - core: `site_view` is a client funnel event, standard exactly once, and no Meta event; the old assertion that it wasn't first-party became money events only;
+  - API: the beacon stores `site_view` with its UTM; the dashboard counts home and lander views as distinct devices (3, one device with both counted once), per day and per source; the funnel's first step counts both, so `cta_tap` gets a 50% rate.

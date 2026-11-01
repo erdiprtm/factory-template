@@ -10,13 +10,29 @@ const hostname = z
 
 const locale = z.enum(["id", "en"]);
 
-const planSchema = z.object({
-  id: z.string().regex(/^[a-z0-9-]+$/),
-  label: z.string().min(1),
-  months: z.int().positive(),
-  priceIdr: z.int().positive(),
-  highlight: z.boolean().optional(),
-});
+const tierId = z.string().regex(/^[a-z][a-z0-9-]{0,30}$/, 'a tier id like "juragan"');
+
+const planSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9-]+$/),
+    label: z.string().min(1),
+    months: z.int().positive(),
+    priceIdr: z.int().positive(),
+    highlight: z.boolean().optional(),
+    /** Groups plans under a heading on /pricing and /harga (D-116); its label is in pricing.tiers. */
+    tier: tierId.optional(),
+    /** Free months on top of `months` (D-116): access lasts months + bonusMonths. */
+    bonusMonths: z.int().min(0).max(24).default(0),
+    /**
+     * A lower price for the first `limit` buyers of this plan (D-116), charged only while
+     * pricing.founderPrice is true and fewer than `limit` payments were paid at this price.
+     */
+    founder: z.object({ priceIdr: z.int().positive(), limit: z.int().min(1).max(100000) }).optional(),
+  })
+  .refine((p) => !p.founder || p.founder.priceIdr < p.priceIdr, {
+    message: "founder.priceIdr must be lower than priceIdr",
+    path: ["founder", "priceIdr"],
+  });
 
 // A CSS length for radii: "12px", "0.75rem", "0", or "9999px" for a pill.
 const cssLength = z.string().regex(/^(0|\d+(\.\d+)?(px|rem))$/, "a CSS length like 12px or 0.75rem");
@@ -323,6 +339,16 @@ export const productSchema = z.object({
       if (plans.filter((p) => p.highlight).length > 1)
         ctx.addIssue({ code: "custom", message: "at most one plan can be highlighted" });
     }),
+  // Pricing extras (D-116). founderPrice: plans with `founder` charge the founder price until its
+  // limit of paid buyers is reached (off by default: every plan charges priceIdr). tiers: the
+  // heading shown above each group of plans with that `tier`, in this order; every tier a plan
+  // names needs a label here. No tiers = one flat list, as before.
+  pricing: z
+    .object({
+      founderPrice: z.boolean().default(false),
+      tiers: z.record(tierId, z.string().min(1).max(40)).default({}),
+    })
+    .default({ founderPrice: false, tiers: {} }),
   // Duitku and DOKU show their hosted page; methods there only document intent (D-017). Pakasir
   // (D-092) uses the app's own checkout: methods are Pakasir codes, QRIS shown first.
   // showTerms (D-109): the "Bayar sekali · tanpa perpanjangan otomatis" line under the site's plans
@@ -490,6 +516,20 @@ export const productSchema = z.object({
   // Navigation (D-111). adminTab: admins get an "Admin" tab (today's default); false puts an "Admin"
   // row in Akun instead, for a bar that's full (4 product tabs, or a center action).
   nav: z.object({ adminTab: z.boolean().default(true) }).default({ adminTab: true }),
+  // What the app's web export may use (D-115): `pnpm theme` writes apps/app/public/_headers from it.
+  // permissions.camera / .microphone: Permissions-Policy `camera=(self)` / `microphone=(self)` so
+  // getUserMedia works on the app's own origin (false = `camera=()`, blocked). wasm: WebAssembly
+  // (e.g. onnxruntime-web) and workers: `'wasm-unsafe-eval'` in script-src and
+  // `worker-src 'self' blob:` (Web Workers and a service worker from the app's origin). All off by
+  // default: today's headers exactly. Geolocation and payment stay blocked.
+  app: z
+    .object({
+      permissions: z
+        .object({ camera: z.boolean().default(false), microphone: z.boolean().default(false) })
+        .default({ camera: false, microphone: false }),
+      wasm: z.boolean().default(false),
+    })
+    .default({ permissions: { camera: false, microphone: false }, wasm: false }),
   // A/B experiment (D-094): { <name>: { variants: { <arm>: <weight %> } } }, weights summing to 100.
   // At most one at a time (one test per funnel stays readable at Rp100K/day). A device's arm comes
   // from its anonId, so changing the weights or their order mid-test moves devices between arms:
@@ -594,5 +634,8 @@ export function defineProduct(config: ProductConfigInput): ProductConfig {
     throw new Error(`Invalid product.config.ts:\n${z.prettifyError(result.error)}`);
   }
   const c = result.data;
+  const unlabelled = [...new Set(c.plans.flatMap((p) => (p.tier && !(p.tier in c.pricing.tiers) ? [p.tier] : [])))];
+  if (unlabelled.length > 0)
+    throw new Error(`Invalid product.config.ts:\nplan tier ${unlabelled.join(", ")} has no label in pricing.tiers`);
   return { ...c, ai: c.ai ? resolveAi(c.ai, c.legal) : null };
 }

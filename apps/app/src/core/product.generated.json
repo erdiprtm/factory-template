@@ -88,16 +88,22 @@
       "id": "6m",
       "label": "6 bulan",
       "months": 6,
-      "priceIdr": 149000
+      "priceIdr": 149000,
+      "bonusMonths": 0
     },
     {
       "id": "12m",
       "label": "12 bulan",
       "months": 12,
       "priceIdr": 249000,
-      "highlight": true
+      "highlight": true,
+      "bonusMonths": 0
     }
   ],
+  "pricing": {
+    "founderPrice": false,
+    "tiers": {}
+  },
   "payments": {
     "provider": "duitku",
     "methods": [
@@ -158,6 +164,13 @@
   },
   "nav": {
     "adminTab": true
+  },
+  "app": {
+    "permissions": {
+      "camera": false,
+      "microphone": false
+    },
+    "wasm": false
   },
   "experiments": {},
   "ai": null,

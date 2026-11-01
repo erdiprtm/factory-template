@@ -13,7 +13,7 @@ Get the numbers from `/admin` → "Unit economics iklan" (funnel, per campaign, 
 
 ## Method
 
-1. **Is tracking alive?** Compare Meta link clicks with `lp_view`, and payments in `/admin` with `purchase`. A big gap (lp_view under ~60% of link clicks, or a paid payment with no purchase event) means **fix tracking first** and stop. Check: consent banner, the UTM tags in the ad URL, the Pixel ID and CAPI token, Events Manager test events.
+1. **Is tracking alive?** Compare Meta link clicks with `lp_view` (filter `/admin` by the ad's campaign: its first step also counts organic site visits, D-117), and payments in `/admin` with `purchase`. A big gap (lp_view under ~60% of link clicks, or a paid payment with no purchase event) means **fix tracking first** and stop. Check: consent banner, the UTM tags in the ad URL, the Pixel ID and CAPI token, Events Manager test events.
 2. **Walk the funnel top-down** and stop at the **first** step below its benchmark. `/admin` already marks it red. Later steps are noise until it's fixed, because their sample is too small and their visitors are the wrong ones.
 3. **Sample size:** say so when the step has fewer than ~100 visitors, and give the read date instead of a verdict.
 

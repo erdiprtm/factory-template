@@ -39,7 +39,8 @@ describe("funnel events", () => {
   it("are standard events; browsers can't report money events", () => {
     for (const e of FUNNEL_EVENTS) expect(isValidEvent(e)).toBe(true);
     expect(isClientFunnelEvent("paywall_view")).toBe(true);
-    for (const e of ["purchase", "renewal", "refund", "site_view"]) expect(isClientFunnelEvent(e)).toBe(false);
+    // Money events stay server-only. site_view is a browser visit since D-117.
+    for (const e of ["purchase", "renewal", "refund"]) expect(isClientFunnelEvent(e)).toBe(false);
     expect(CLIENT_FUNNEL_EVENTS.every((e) => (FUNNEL_EVENTS as readonly string[]).includes(e))).toBe(true);
   });
 
@@ -91,5 +92,16 @@ describe("openPanelServer", () => {
       },
     });
     await expect(op.track("purchase")).resolves.toBeUndefined();
+  });
+});
+
+describe("site_view (D-117)", () => {
+  it("is a first-party funnel event the site may send, and no Meta event", async () => {
+    const { isClientFunnelEvent, FUNNEL_EVENTS, STANDARD_EVENTS } = await import("./index");
+    const { isMetaEvent } = await import("../meta/events");
+    expect(isClientFunnelEvent("site_view")).toBe(true);
+    expect(FUNNEL_EVENTS).toContain("site_view");
+    expect(STANDARD_EVENTS.filter((e) => e === "site_view")).toHaveLength(1);
+    expect(isMetaEvent("site_view")).toBe(false);
   });
 });

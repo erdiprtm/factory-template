@@ -13,6 +13,7 @@ import {
   PWA_FILES,
   PWA_START_URL,
   renderAppFonts,
+  renderAppHeaders,
   renderFavicons,
   renderFontFaces,
   renderIcons,
@@ -257,5 +258,45 @@ describe("installable web app (D-080)", () => {
     expect(source.width).toBe(source.height);
     expect(source.width).toBeGreaterThanOrEqual(512);
     expect(readFileSync(new URL("index.html", pub), "utf8")).toBe(renderIndexHtml(product));
+  });
+
+  describe("app headers (D-115)", () => {
+    const off = { app: { permissions: { camera: false, microphone: false }, wasm: false } };
+    const csp = (h) => h.match(/^ {2}Content-Security-Policy: (.*)$/m)[1];
+    const perms = (h) => h.match(/^ {2}Permissions-Policy: (.*)$/m)[1];
+
+    it("off by default: camera and microphone blocked, no wasm, no worker-src", () => {
+      for (const h of [renderAppHeaders(off), renderAppHeaders({})]) {
+        expect(perms(h)).toBe("camera=(), microphone=(), geolocation=(), payment=()");
+        expect(csp(h)).toContain("script-src 'self' https://connect.facebook.net;");
+        expect(csp(h)).not.toContain("wasm-unsafe-eval");
+        expect(csp(h)).not.toContain("worker-src");
+        expect(h).toContain("frame-ancestors 'none'");
+        expect(h).toContain("X-Frame-Options: DENY");
+      }
+    });
+
+    it("camera and microphone: allowed for the app's own origin only", () => {
+      const cam = renderAppHeaders({ app: { ...off.app, permissions: { camera: true, microphone: false } } });
+      expect(perms(cam)).toBe("camera=(self), microphone=(), geolocation=(), payment=()");
+      const both = renderAppHeaders({ app: { ...off.app, permissions: { camera: true, microphone: true } } });
+      expect(perms(both)).toBe("camera=(self), microphone=(self), geolocation=(), payment=()");
+      expect(csp(cam)).toBe(csp(renderAppHeaders(off)));
+    });
+
+    it("wasm: wasm-unsafe-eval (never unsafe-eval) and worker-src; the rest of the CSP unchanged", () => {
+      const on = csp(renderAppHeaders({ app: { ...off.app, wasm: true } }));
+      expect(on).toContain("script-src 'self' 'wasm-unsafe-eval' https://connect.facebook.net;");
+      expect(on).not.toMatch(/'unsafe-eval'/);
+      expect(on.endsWith("; worker-src 'self' blob:")).toBe(true);
+      const base = csp(renderAppHeaders(off));
+      expect(on.replace(" 'wasm-unsafe-eval'", "").replace("; worker-src 'self' blob:", "")).toBe(base);
+    });
+
+    it("the checked-in _headers matches this repo's config", () => {
+      expect(readFileSync(new URL("../apps/app/public/_headers", import.meta.url), "utf8")).toBe(
+        renderAppHeaders(product),
+      );
+    });
   });
 });
