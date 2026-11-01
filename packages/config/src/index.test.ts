@@ -27,6 +27,36 @@ describe("defineProduct", () => {
     expect(() => defineProduct({ ...base, experiments: { "Quiz Length": { variants: { a: 50, b: 50 } } } })).toThrow();
   });
 
+  it("plans: tier, bonus months and founder price (D-116)", () => {
+    const plan = { id: "12m", label: "12 bulan", months: 12, priceIdr: 249000 };
+    const parsed = defineProduct({ ...base, plans: [plan], pricing: undefined });
+    expect(parsed.pricing).toEqual({ founderPrice: false, tiers: {} });
+    expect(parsed.plans[0]).toEqual({ ...plan, bonusMonths: 0 });
+    const full = {
+      ...plan,
+      tier: "juragan",
+      bonusMonths: 2,
+      founder: { priceIdr: 149000, limit: 50 },
+    };
+    const on = defineProduct({
+      ...base,
+      plans: [full],
+      pricing: { founderPrice: true, tiers: { juragan: "Juragan" } },
+    });
+    expect(on.plans[0]).toEqual(full);
+    expect(on.pricing.founderPrice).toBe(true);
+    expect(() => defineProduct({ ...base, plans: [{ ...plan, bonusMonths: -1 }] })).toThrow();
+    expect(() => defineProduct({ ...base, plans: [{ ...plan, bonusMonths: 1.5 }] })).toThrow();
+    expect(() => defineProduct({ ...base, plans: [{ ...plan, founder: { priceIdr: 249000, limit: 5 } }] })).toThrow(
+      /lower than priceIdr/,
+    );
+    expect(() => defineProduct({ ...base, plans: [{ ...plan, founder: { priceIdr: 1000, limit: 0 } }] })).toThrow();
+    expect(() => defineProduct({ ...base, plans: [{ ...plan, tier: "Juragan" }] })).toThrow();
+    expect(() => defineProduct({ ...base, plans: [{ ...plan, tier: "juragan" }], pricing: { tiers: {} } })).toThrow(
+      /tier juragan has no label/,
+    );
+  });
+
   it("app web capabilities: camera, microphone and wasm off by default (D-115)", () => {
     expect(defineProduct({ ...base, app: undefined }).app).toEqual({
       permissions: { camera: false, microphone: false },

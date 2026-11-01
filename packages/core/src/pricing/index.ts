@@ -34,9 +34,35 @@ export function highlightedPlan<P extends PricedPlan & { highlight?: boolean }>(
   return plans.find((p) => p.highlight) ?? [...plans].sort((a, b) => b.months - a.months)[0];
 }
 
-/** The plan a longer one is compared with for its saving: the next shorter one. */
-export function comparedPlan<P extends PricedPlan>(plans: readonly P[], plan: P): P | undefined {
-  return [...plans].filter((p) => p.months < plan.months).sort((a, b) => b.months - a.months)[0];
+/** The plan a longer one is compared with for its saving: the next shorter one in the same tier (D-116). */
+export function comparedPlan<P extends PricedPlan & { tier?: string }>(plans: readonly P[], plan: P): P | undefined {
+  return [...plans]
+    .filter((p) => p.months < plan.months && p.tier === plan.tier)
+    .sort((a, b) => b.months - a.months)[0];
+}
+
+/**
+ * Plans grouped by tier for /pricing and /harga (D-116): untiered plans first (no heading), then
+ * one group per tier in pricing.tiers order, each with its label. Flat plans: one group, as before.
+ */
+export function planGroups<P extends { id: string; tier?: string }>(
+  plans: readonly P[],
+  tiers: Readonly<Record<string, string>>,
+): { tier: string | null; label: string | null; plans: P[] }[] {
+  const groups: { tier: string | null; label: string | null; plans: P[] }[] = [];
+  const flat = plans.filter((p) => !p.tier);
+  if (flat.length > 0) groups.push({ tier: null, label: null, plans: flat });
+  const named = [...Object.keys(tiers), ...plans.flatMap((p) => (p.tier ? [p.tier] : []))];
+  for (const tier of [...new Set(named)]) {
+    const inTier = plans.filter((p) => p.tier === tier);
+    if (inTier.length > 0) groups.push({ tier, label: tiers[tier] ?? null, plans: inTier });
+  }
+  return groups;
+}
+
+/** "+ bonus 2 bulan" from its words (i18n in the app, Indonesian on the site); null without a bonus. */
+export function bonusLine(bonusMonths: number | undefined, words: { bonus: string; months: string }): string | null {
+  return bonusMonths && bonusMonths > 0 ? `${words.bonus} ${bonusMonths} ${words.months}` : null;
 }
 
 const METHOD_LABELS: Record<string, string> = {

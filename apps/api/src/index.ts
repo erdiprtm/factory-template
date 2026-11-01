@@ -13,6 +13,7 @@ import {
 import {
   cancelPayment,
   confirmPayment,
+  currentPrice,
   handleWebhook,
   paymentCharge,
   paymentStatus,
@@ -410,6 +411,21 @@ const routes = app
     return c.json({ ok: true as const });
   })
   .get("/quiz", async (c) => c.json({ responses: await quizResponsesFor(db(c.env), c.get("user").id) }))
+  // Each plan's price right now (D-116): the founder price and slots left while it lasts. Public:
+  // /pricing shows it before checkout. Checkout decides the amount again itself.
+  .get("/pricing", async (c) => {
+    const plans = await Promise.all(
+      config.plans.map(async (plan) => {
+        const now = await currentPrice(db(c.env), plan, config.pricing.founderPrice);
+        return {
+          id: plan.id,
+          priceIdr: now.priceIdr,
+          founder: now.founder && plan.founder ? { priceIdr: plan.founder.priceIdr, left: now.founder.left } : null,
+        };
+      }),
+    );
+    return c.json({ plans }, 200, { "Cache-Control": "no-store" });
+  })
   .use("/billing/*", sessionMiddleware, requireSession)
   .use(
     "/billing/checkout",
@@ -444,6 +460,7 @@ const routes = app
       methods: config.payments.methods,
       method: provider.needsMethod ? method : undefined,
       origin,
+      founderPrice: config.pricing.founderPrice,
       attribution: paymentAttribution(await attributionFor(db(c.env), user.id)),
     }).catch((err: unknown) => {
       // The payment row is marked failed; the buyer sees "try again".
