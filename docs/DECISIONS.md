@@ -2332,3 +2332,13 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Tests:**
   - core: `parseCommand` (`/x`, `/x@Bot words`, plain text); the commands meet Telegram's limits; the texts (▲/▼, the biggest drop, Jakarta times, masked emails, empty states); `sameSecret`;
   - API, with mocked config: 404 without the secrets; 401 for a wrong or missing secret; another chat or plain text gets 200 with an empty body; the owner gets every command as a `sendMessage` to his chat; `/terakhir` never shows a full email; connect names the missing secrets, then sets the webhook (URL, secret, updates) and the chat-scoped menu.
+
+## D-115: The app's security headers come from `product.config.ts` `app` (2026-11-01)
+
+- **Problem (cektelur).** An offline PWA that grades eggs from the rear camera with onnxruntime-web in a Web Worker, plus a service worker that caches the model. The static `apps/app/public/_headers` blocked all three: `Permissions-Policy: camera=()` stops `getUserMedia`, a `script-src` without `'wasm-unsafe-eval'` stops WebAssembly from compiling, and no `worker-src` means it falls back to `script-src 'self'`, which refuses `blob:` workers. Products may not edit that file.
+- **Decision: config.** `app: { permissions: { camera, microphone }, wasm }`, all `false` by default.
+  - `permissions.camera` / `.microphone`: `camera=(self)` / `microphone=(self)` instead of `()`. Only the app's own origin, never embeds. Geolocation and payment stay `()`.
+  - `wasm`: `'wasm-unsafe-eval'` in `script-src` and `worker-src 'self' blob:`. `'wasm-unsafe-eval'` allows WebAssembly compile and instantiate only, not JS `eval` (MDN, `script-src`, read 2026-11-01); `'unsafe-eval'` is never added. One switch covers both because WebAssembly products run their models in workers.
+  - The rest of the CSP and every other header stay byte-for-byte the same.
+- **Decision: generated.** `pnpm theme` (`scripts/gen-theme.mjs` `renderAppHeaders`) writes `apps/app/public/_headers`, with its explanatory comments, and `--check` (in `pnpm verify`) fails when it's stale. With everything off it's the old file plus a "GENERATED" line. `docs/TEMPLATE_SYNC.md` lists it under "Regenerate".
+- **Tests:** config defaults and partial objects; headers per option (off = old values, camera only, both, wasm leaves the rest of the CSP identical and never `'unsafe-eval'`); the checked-in file matches the repo's config; the e2e security test also checks the Permissions-Policy header.
