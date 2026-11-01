@@ -3,7 +3,7 @@
 > Full build detail (pipeline, data model, ML workstream, acceptance criteria): `specs/cektelur/build-spec.md`. Where this page and the build spec differ, this page wins for plan names.
 
 ## One-liner
-Aplikasi kamera untuk peternak ayam petelur mandiri: arahkan HP ke tray telur, setiap telur langsung tergrade (kecil/sedang/besar) dan telur retak ditandai, lalu hasilnya otomatis tercatat ke catatan produksi harian. "Scan otomatis, langsung tercatat."
+Aplikasi kamera untuk peternak ayam petelur mandiri: arahkan HP ke tray telur, setiap telur langsung tergrade (kecil/sedang/besar) dan telur retak ditandai, lalu hasilnya otomatis tercatat ke catatan produksi harian. “Scan otomatis, langsung tercatat.”
 
 ## Target user & problem
 Peternak ayam petelur mandiri skala UMKM yang panen setiap hari dan memakai HP Android kelas Rp1–2 jt. Sekarang mereka mengelap telur, mengecek retak, dan memilah ukuran dengan mata atau timbangan satu per satu, lalu mencatat produksi di buku atau tidak sama sekali. Memilah lambat, catatan tercecer, dan nilai produksi harian tidak terlihat.
