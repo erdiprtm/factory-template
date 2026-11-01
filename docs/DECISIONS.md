@@ -2342,3 +2342,21 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - The rest of the CSP and every other header stay byte-for-byte the same.
 - **Decision: generated.** `pnpm theme` (`scripts/gen-theme.mjs` `renderAppHeaders`) writes `apps/app/public/_headers`, with its explanatory comments, and `--check` (in `pnpm verify`) fails when it's stale. With everything off it's the old file plus a "GENERATED" line. `docs/TEMPLATE_SYNC.md` lists it under "Regenerate".
 - **Tests:** config defaults and partial objects; headers per option (off = old values, camera only, both, wasm leaves the rest of the CSP identical and never `'unsafe-eval'`); the checked-in file matches the repo's config; the e2e security test also checks the Permissions-Policy header.
+
+## D-116: Plan tiers, bonus months and a founder price (2026-11-01)
+
+- **Problem (cektelur).** Two tiers of plans ("peternak", "juragan"), launch plans that add free months, and a lower price for the first buyers. Plans had only `months` and `priceIdr`, and products may not touch billing.
+- **Decision: config.**
+  - Per plan, all optional: `tier` (an id, `^[a-z][a-z0-9-]{0,30}$`), `bonusMonths` (int 0–24, default 0), `founder: { priceIdr, limit }` (`priceIdr` lower than the plan's, `limit` 1–100000).
+  - Product level: `pricing: { founderPrice: false, tiers: {} }`. `founderPrice` is the switch, off by default, so a plan's `founder` does nothing until it's on. `tiers` maps each tier id to its heading ("Juragan"), in display order; `defineProduct` fails when a plan names a tier without a label. No tiers = one flat list, exactly as before.
+- **Decision: billing.**
+  - Access lasts `months + bonusMonths` (`grantMonths`, used by `settlePayment`). /admin's economics uses the same length for when a renewal is due.
+  - The amount is decided only in `startCheckout`: `currentPrice` charges `founder.priceIdr` while fewer than `limit` payments for that plan were **paid** at exactly that amount, else `priceIdr`. The browser never sends a price; the provider and the payment row get the server's amount.
+  - Pending checkouts don't hold a slot. Checkouts started while the last slot is open may all get it, so a few more than `limit` can pay the founder price; nobody is charged more than offered. The alternative, reserving slots on pending payments, would let abandoned checkouts block real buyers for an hour.
+  - Webhook verification, the provider's status confirmation and `requireAccess` are unchanged.
+- **Decision: what buyers see.**
+  - `GET /api/pricing` (public, `no-store`): each plan's price now and, while it lasts, `founder: { priceIdr, left }`. The app's /pricing asks only when `founderPrice` is on, shows the founder price with the normal one struck through and "Harga founder · N slot tersisa", and falls back to normal prices if the call fails (checkout decides anyway).
+  - "+ bonus N bulan" under the price; tier headings above each group; a saving compares plans within the same tier only (`comparedPlan`, `planGroups`, `bonusLine` in `@factory/core/pricing`).
+  - App strings: `pricing.bonus`, `pricing.founder`, `pricing.founderLeft`, `pricing.normalPrice` (id + en). The planCard slot gets optional `bonus`, `founder`, `normalPrice`, and `plan.bonusMonths` / `plan.tier`.
+  - The site's /harga (static, Indonesian like the rest of its copy) shows the same, with "Harga founder untuk N pembeli pertama" instead of a live count: turn `founderPrice` off when the slots are gone.
+- **Tests:** schema (defaults, bonus bounds, founder price below the normal one, tier labels); grant length with and without a bonus; founder off, on, a pending checkout not counting, the limit reached, normal-price payments not counted (real D1); the API with a mocked config (`/api/pricing`, a client amount ignored, the slot used, then the normal price); grouping, same-tier savings and the bonus line; the app's plan cards; the site build per config.

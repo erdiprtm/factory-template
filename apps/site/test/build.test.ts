@@ -75,6 +75,18 @@ describe("built site", () => {
     expect(html.includes('data-testid="plan-terms"')).toBe(on);
   });
 
+  it("tiers, bonus months and the founder price follow product.config.ts (D-116)", () => {
+    const html = page("harga/index.html");
+    const bonuses = product.plans.filter((p) => p.bonusMonths > 0);
+    expect(html.match(/data-testid="plan-bonus"/g) ?? []).toHaveLength(bonuses.length);
+    for (const p of bonuses) expect(html).toContain(`+ bonus ${p.bonusMonths} bulan`);
+    const founders = product.pricing.founderPrice ? product.plans.filter((p) => p.founder) : [];
+    expect(html.match(/data-testid="founder-price"/g) ?? []).toHaveLength(founders.length);
+    for (const p of founders) expect(html).toContain(idr(p.founder?.priceIdr ?? 0));
+    for (const tier of new Set(product.plans.flatMap((p) => (p.tier ? [p.tier] : []))))
+      expect(html).toContain(`data-tier="${tier}"`);
+  });
+
   it("payment methods are compact chips from config, and the FAQ lists the same ones (D-098)", () => {
     const html = page("harga/index.html");
     const chips = methodChips(product.payments.methods);
