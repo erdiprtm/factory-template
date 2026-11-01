@@ -64,3 +64,20 @@ export async function buyPlan(page: Page, priceIdr: number): Promise<void> {
   const paid = await page.request.post(`/api/dev/pakasir-pay?paymentId=${paymentId}&webhook=1`);
   expect(await paid.json()).toEqual({ ok: true, webhook: 200 });
 }
+
+/**
+ * After opening /quiz: whether the product has a quiz. Without one, app/quiz.tsx redirects on the
+ * client after hydration (to sign-in, or anonymousEntry), so the URL right after goto still says
+ * /quiz. Waits until the page shows a quiz step or the consent screen before it, or has left /quiz.
+ */
+export async function hasQuiz(page: Page): Promise<boolean> {
+  await page.waitForFunction(
+    () =>
+      !location.pathname.startsWith("/quiz") ||
+      /Langkah \d+ dari \d+/.test(document.body.innerText) ||
+      document.querySelector('[data-testid="anon-consent-continue"]') !== null,
+    undefined,
+    { timeout: 15_000 },
+  );
+  return new URL(page.url()).pathname.startsWith("/quiz");
+}
