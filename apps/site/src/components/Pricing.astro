@@ -1,5 +1,5 @@
 ---
-import { comparedPlan, highlightedPlan, methodChips, perWeekIdr, savingVs } from "@factory/core/pricing";
+import { bonusLine, comparedPlan, highlightedPlan, methodChips, perWeekIdr, planGroups, savingVs } from "@factory/core/pricing";
 import { appUrl, formatIdr, product } from "../lib/site";
 // Plans come straight from product.config.ts: changing prices needs no code edits. Same framing
 // as the app's paywall (D-037): per week, and the highlighted plan's saving.
@@ -9,41 +9,68 @@ const saving = (plan: (typeof product.plans)[number]) => {
   const s = base ? savingVs(plan, base) : null;
   return s && base ? `Hemat ${formatIdr(s.idr)} (${s.percent}%) dibanding ${base.label}` : null;
 };
+// D-116: tiers as headed groups (flat plans: one group, no heading), "+ bonus N bulan", and the
+// founder price while pricing.founderPrice is on. The site is static, so it names the limit ("untuk
+// N pembeli pertama"); the app's /pricing shows the slots left and checkout charges what the server
+// decides. Turn founderPrice off once the slots are gone.
+const groups = planGroups(product.plans, product.pricing.tiers);
+const founder = (plan: (typeof product.plans)[number]) => (product.pricing.founderPrice ? (plan.founder ?? null) : null);
+const bonus = (plan: (typeof product.plans)[number]) => bonusLine(plan.bonusMonths, { bonus: "+ bonus", months: "bulan" });
 ---
 
-<div class="grid gap-5 sm:grid-cols-2">
-  {
-    product.plans.map((plan) => (
-      <article
-        class:list={[
-          "flex flex-col gap-4 rounded-lg border bg-card p-6 text-card-foreground",
-          plan.id === best?.id ? "border-2 border-primary" : "border-border",
-        ]}
-      >
-        {plan.id === best?.id && (
-          <p class="self-start rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
-            Paling hemat
-          </p>
-        )}
-        {saving(plan) && <p class="text-sm font-semibold text-primary">{saving(plan)}</p>}
-        <h3 class="text-lg font-semibold">{plan.label}</h3>
-        <p class="text-4xl font-extrabold">{formatIdr(plan.priceIdr)}</p>
-        <p class="text-sm text-muted-foreground">≈ {formatIdr(perWeekIdr(plan))}/minggu</p>
-        <a
-          href={`${appUrl}/sign-in`}
-          data-event="cta_tap"
-          data-plan={plan.id}
-          class:list={[
-            "mt-auto rounded-lg px-5 py-3 text-center font-semibold",
-            plan.id === best?.id ? "bg-primary text-primary-foreground hover:opacity-90" : "border border-input hover:bg-accent",
-          ]}
-        >
-          Pilih {plan.label}
-        </a>
-      </article>
-    ))
-  }
-</div>
+{
+  groups.map((group) => (
+    <section class="mb-8 last:mb-0" data-tier={group.tier ?? undefined}>
+      {group.label && <h3 class="mb-4 text-xl font-bold">{group.label}</h3>}
+      <div class="grid gap-5 sm:grid-cols-2">
+        {group.plans.map((plan) => (
+          <article
+            class:list={[
+              "flex flex-col gap-4 rounded-lg border bg-card p-6 text-card-foreground",
+              plan.id === best?.id ? "border-2 border-primary" : "border-border",
+            ]}
+          >
+            {plan.id === best?.id && (
+              <p class="self-start rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
+                Paling hemat
+              </p>
+            )}
+            {founder(plan) && (
+              <p class="self-start rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground" data-testid="founder-price">
+                Harga founder untuk {founder(plan)?.limit} pembeli pertama
+              </p>
+            )}
+            {saving(plan) && <p class="text-sm font-semibold text-primary">{saving(plan)}</p>}
+            {group.label ? <h4 class="text-lg font-semibold">{plan.label}</h4> : <h3 class="text-lg font-semibold">{plan.label}</h3>}
+            {founder(plan) ? (
+              <p class="flex flex-wrap items-baseline gap-3">
+                <span class="text-4xl font-extrabold">{formatIdr(founder(plan)?.priceIdr ?? plan.priceIdr)}</span>
+                <s class="text-lg text-muted-foreground"><span class="sr-only">Harga normal </span>{formatIdr(plan.priceIdr)}</s>
+              </p>
+            ) : (
+              <p class="text-4xl font-extrabold">{formatIdr(plan.priceIdr)}</p>
+            )}
+            {bonus(plan) && <p class="font-semibold text-primary" data-testid="plan-bonus">{bonus(plan)}</p>}
+            <p class="text-sm text-muted-foreground">
+              ≈ {formatIdr(perWeekIdr({ ...plan, priceIdr: founder(plan)?.priceIdr ?? plan.priceIdr }))}/minggu
+            </p>
+            <a
+              href={`${appUrl}/sign-in`}
+              data-event="cta_tap"
+              data-plan={plan.id}
+              class:list={[
+                "mt-auto rounded-lg px-5 py-3 text-center font-semibold",
+                plan.id === best?.id ? "bg-primary text-primary-foreground hover:opacity-90" : "border border-input hover:bg-accent",
+              ]}
+            >
+              Pilih {plan.label}
+            </a>
+          </article>
+        ))}
+      </div>
+    </section>
+  ))
+}
 {/* The terms once, under the cards (D-099), unless the product turns them off (D-109). */}
 {product.payments.showTerms && <p class="mt-5 text-center text-sm text-muted-foreground" data-testid="plan-terms">Bayar sekali · tanpa perpanjangan otomatis</p>}
 {/* Compact chips (D-098): bank virtual accounts share one, "VA BRI · BNI · BSI". */}

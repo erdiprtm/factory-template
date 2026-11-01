@@ -1,13 +1,15 @@
 import {
+  bonusLine,
   comparedPlan,
   highlightedPlan,
   methodChips,
   pakasirMethodsFor,
   perWeekIdr,
+  planGroups,
   savingVs,
 } from "@factory/core/pricing";
 import { Badge, Button, Card, CardDescription, CardHeader, CardTitle, ErrorText, Text } from "@factory/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Platform, View } from "react-native";
 import product from "../../../../../product.config";
 import { slots } from "../../features/slots";
@@ -22,6 +24,32 @@ import { showsWebPrices } from "./web-prices";
 // Pakasir has no hosted page in the template: the app shows the method choice and the QR / VA.
 const ownCheckout = product.payments.provider === "pakasir";
 
+type LivePrice = { priceIdr: number; founder: { priceIdr: number; left: number } | null };
+
+/**
+ * Each plan's price right now (D-116). Only with pricing.founderPrice on: the founder price and its
+ * slots left come from the server (GET /api/pricing), which also decides the amount at checkout.
+ * Until it answers, or when it fails, the normal prices show.
+ */
+function useLivePrices(): Record<string, LivePrice> {
+  const [live, setLive] = useState<Record<string, LivePrice>>({});
+  useEffect(() => {
+    if (!product.pricing.founderPrice) return;
+    let alive = true;
+    api.api.pricing
+      .$get()
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (alive && body) setLive(Object.fromEntries(body.plans.map((p) => [p.id, p])));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return live;
+}
+
 /**
  * The plans from product.config.ts with small-unit framing (D-037): price, "≈ Rp…/minggu", the
  * highlighted plan (configured, else the longest) with its saving against the next shorter one,
@@ -33,7 +61,10 @@ export function PlanCards() {
   const [message, setMessage] = useState<string | null>(null);
   // Pakasir (D-092): the buyer picks the method here, then pays on our own /billing/pay screen.
   const [picking, setPicking] = useState<string | null>(null);
-  const best = highlightedPlan(product.plans);
+  const live = useLivePrices();
+  // The price shown and charged now: the founder price while the server says it lasts.
+  const plans = product.plans.map((p) => ({ ...p, priceIdr: live[p.id]?.priceIdr ?? p.priceIdr }));
+  const best = highlightedPlan(plans);
   // Store rules (Section 6b), enforced here too, whatever a product's planCard slot renders.
   if (!showsWebPrices(Platform.OS)) return null;
   const PlanSlot = slots.planCard;
@@ -54,7 +85,7 @@ export function PlanCards() {
     openCheckout((await res.json()).redirectUrl);
   }
 
-  const pickedPlan = picking ? product.plans.find((p) => p.id === picking) : undefined;
+  const pickedPlan = picking ? plans.find((p) => p.id === picking) : undefined;
   if (pickedPlan) {
     return (
       <View className="gap-4">
@@ -87,51 +118,90 @@ export function PlanCards() {
 
   return (
     <View className="gap-4">
-      {product.plans.map((plan) => {
-        const highlighted = plan.id === best?.id;
-        const base = highlighted ? comparedPlan(product.plans, plan) : undefined;
-        const saving = base ? savingVs(plan, base) : null;
-        if (PlanSlot) {
-          return (
-            <PlanSlot
-              key={plan.id}
-              plan={{ id: plan.id, label: plan.label, months: plan.months }}
-              price={formatIdr(plan.priceIdr)}
-              perWeek={`≈ ${formatIdr(perWeekIdr(plan))}${t("pricing.perWeek")}`}
-              highlighted={highlighted}
-              saving={
-                saving && base
-                  ? `${t("pricing.save")} ${formatIdr(saving.idr)} (${saving.percent}%) ${t("pricing.vs")} ${base.label}`
-                  : null
-              }
-              bestLabel={t("pricing.best")}
-              buyLabel={`${t("pricing.buy")} ${formatIdr(plan.priceIdr)}`}
-              onBuy={() => void buy(plan.id)}
-              busy={busy}
-            />
-          );
-        }
-        return (
-          <Card key={plan.id} className={highlighted ? "border-2 border-primary" : undefined}>
-            <CardHeader>
-              <View className="flex-row flex-wrap gap-2">
-                {highlighted ? <Badge>{t("pricing.best")}</Badge> : null}
-                {saving && base ? (
-                  <Badge className="bg-secondary text-secondary-foreground">
-                    {`${t("pricing.save")} ${formatIdr(saving.idr)} (${saving.percent}%) ${t("pricing.vs")} ${base.label}`}
-                  </Badge>
-                ) : null}
-              </View>
-              <CardTitle>{plan.label}</CardTitle>
-              <Text className="text-3xl font-extrabold text-foreground">{formatIdr(plan.priceIdr)}</Text>
-              <CardDescription>{`≈ ${formatIdr(perWeekIdr(plan))}${t("pricing.perWeek")}`}</CardDescription>
-            </CardHeader>
-            <Button variant={highlighted ? "default" : "outline"} onPress={() => buy(plan.id)} disabled={busy}>
-              <Text>{`${t("pricing.buy")} ${formatIdr(plan.priceIdr)}`}</Text>
-            </Button>
-          </Card>
-        );
-      })}
+      {planGroups(plans, product.pricing.tiers).map((group) => (
+        <View key={group.tier ?? "plans"} className="gap-4">
+          {group.label ? (
+            <Text variant="h3" testID={`tier-${group.tier}`}>
+              {group.label}
+            </Text>
+          ) : null}
+          {group.plans.map((plan) => {
+            const highlighted = plan.id === best?.id;
+            const base = highlighted ? comparedPlan(plans, plan) : undefined;
+            const saving = base ? savingVs(plan, base) : null;
+            const founder = live[plan.id]?.founder ?? null;
+            const bonus = bonusLine(plan.bonusMonths, { bonus: t("pricing.bonus"), months: t("pricing.months") });
+            const founderLabel = founder
+              ? `${t("pricing.founder")} · ${founder.left} ${t("pricing.founderLeft")}`
+              : null;
+            const normalPrice = founder ? formatIdr(product.plans.find((p) => p.id === plan.id)?.priceIdr ?? 0) : null;
+            if (PlanSlot) {
+              return (
+                <PlanSlot
+                  key={plan.id}
+                  plan={{
+                    id: plan.id,
+                    label: plan.label,
+                    months: plan.months,
+                    bonusMonths: plan.bonusMonths,
+                    tier: plan.tier,
+                  }}
+                  price={formatIdr(plan.priceIdr)}
+                  perWeek={`≈ ${formatIdr(perWeekIdr(plan))}${t("pricing.perWeek")}`}
+                  highlighted={highlighted}
+                  saving={
+                    saving && base
+                      ? `${t("pricing.save")} ${formatIdr(saving.idr)} (${saving.percent}%) ${t("pricing.vs")} ${base.label}`
+                      : null
+                  }
+                  bonus={bonus}
+                  founder={founderLabel}
+                  normalPrice={normalPrice}
+                  bestLabel={t("pricing.best")}
+                  buyLabel={`${t("pricing.buy")} ${formatIdr(plan.priceIdr)}`}
+                  onBuy={() => void buy(plan.id)}
+                  busy={busy}
+                />
+              );
+            }
+            return (
+              <Card key={plan.id} className={highlighted ? "border-2 border-primary" : undefined}>
+                <CardHeader>
+                  <View className="flex-row flex-wrap gap-2">
+                    {highlighted ? <Badge>{t("pricing.best")}</Badge> : null}
+                    {founderLabel ? <Badge testID={`founder-${plan.id}`}>{founderLabel}</Badge> : null}
+                    {saving && base ? (
+                      <Badge className="bg-secondary text-secondary-foreground">
+                        {`${t("pricing.save")} ${formatIdr(saving.idr)} (${saving.percent}%) ${t("pricing.vs")} ${base.label}`}
+                      </Badge>
+                    ) : null}
+                  </View>
+                  <CardTitle>{plan.label}</CardTitle>
+                  {normalPrice ? (
+                    <Text
+                      variant="muted"
+                      className="line-through"
+                      accessibilityLabel={`${t("pricing.normalPrice")} ${normalPrice}`}
+                    >
+                      {normalPrice}
+                    </Text>
+                  ) : null}
+                  <Text className="text-3xl font-extrabold text-foreground">{formatIdr(plan.priceIdr)}</Text>
+                  {bonus ? (
+                    <Text className="font-semibold text-primary" testID={`bonus-${plan.id}`}>
+                      {bonus}
+                    </Text>
+                  ) : null}
+                  <CardDescription>{`≈ ${formatIdr(perWeekIdr(plan))}${t("pricing.perWeek")}`}</CardDescription>
+                </CardHeader>
+                <Button variant={highlighted ? "default" : "outline"} onPress={() => buy(plan.id)} disabled={busy}>
+                  <Text>{`${t("pricing.buy")} ${formatIdr(plan.priceIdr)}`}</Text>
+                </Button>
+              </Card>
+            );
+          })}
+        </View>
+      ))}
       <View className="gap-1">
         <Text variant="muted">{t("pricing.methods")}</Text>
         <View className="flex-row flex-wrap gap-2">

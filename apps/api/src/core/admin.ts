@@ -2,6 +2,7 @@ import { config } from "@factory/config/product";
 import { adminStats, findUserByEmail, isAdminEmail, recentPayments, recentWebhookEvents } from "@factory/core/admin";
 import { loadDashboard, loadFeed } from "@factory/core/admin/dashboard";
 import { FUNNEL_STEPS } from "@factory/core/analytics";
+import { grantMonths } from "@factory/core/billing";
 import {
   deleteSpend,
   jakartaDay,
@@ -92,7 +93,8 @@ export const adminRoutes = new Hono<{ Bindings: Bindings; Variables: SessionVari
       from,
       to,
       campaign: q.data.campaign,
-      plans: config.plans,
+      // Access length, bonus included (D-116): renewals are due when access ends.
+      plans: config.plans.map((p) => ({ id: p.id, months: grantMonths(p) })),
       steps: funnelSteps(),
       benchmarks: config.economics.benchmarks,
       experiment,

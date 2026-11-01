@@ -1,9 +1,54 @@
 import { paymentCharges, payments, webhookEvents } from "@factory/db";
-import { and, eq, isNull, lt, lte, ne, or } from "drizzle-orm";
+import { and, count, eq, isNull, lt, lte, ne, or } from "drizzle-orm";
 import { type Db, type Entitlement, grantFromPayment } from "../entitlements";
 import type { PaymentProvider, ProviderStatus } from "./provider";
 
-export type Plan = { id: string; label: string; months: number; priceIdr: number };
+export type Plan = {
+  id: string;
+  label: string;
+  months: number;
+  priceIdr: number;
+  /** Extra months granted on top of `months`, free (D-116). */
+  bonusMonths?: number;
+  /** A lower price for the first `limit` paid buyers of this plan, when the product turns it on (D-116). */
+  founder?: { priceIdr: number; limit: number };
+};
+
+/** How many months a paid plan grants: what was paid for plus the bonus (D-116). */
+export function grantMonths(plan: Pick<Plan, "months" | "bonusMonths">): number {
+  return plan.months + (plan.bonusMonths ?? 0);
+}
+
+/**
+ * Founder slots left for a plan (D-116): its limit minus the payments already paid for it at the
+ * founder price. Null when the plan has no founder price or the product hasn't turned it on.
+ */
+export async function founderSlotsLeft(db: Db, plan: Plan, founderPrice: boolean): Promise<number | null> {
+  if (!founderPrice || !plan.founder) return null;
+  const row = await db
+    .select({ n: count() })
+    .from(payments)
+    .where(
+      and(eq(payments.planId, plan.id), eq(payments.status, "paid"), eq(payments.amountIdr, plan.founder.priceIdr)),
+    )
+    .get();
+  return Math.max(0, plan.founder.limit - (row?.n ?? 0));
+}
+
+/**
+ * What a plan costs right now, decided on the server only (D-116): the founder price while slots
+ * are left, else the normal price. Checkouts started while one slot is left may all get it: a
+ * payment keeps the price it was offered (a few over `limit` at most, never a higher charge).
+ */
+export async function currentPrice(
+  db: Db,
+  plan: Plan,
+  founderPrice: boolean,
+): Promise<{ priceIdr: number; founder: { left: number } | null }> {
+  const left = await founderSlotsLeft(db, plan, founderPrice);
+  if (left === null || left === 0 || !plan.founder) return { priceIdr: plan.priceIdr, founder: null };
+  return { priceIdr: plan.founder.priceIdr, founder: { left } };
+}
 export type Payment = typeof payments.$inferSelect;
 
 const PENDING_MINUTES = 60;
@@ -24,10 +69,14 @@ export async function startCheckout(
     origin: string;
     /** The buyer's first-touch ad attribution (@factory/core/attribution paymentAttribution). */
     attribution?: Partial<Pick<Payment, "utmSource" | "utmMedium" | "utmCampaign" | "utmContent" | "fbclid">>;
+    /** product.config.ts pricing.founderPrice (D-116): charge plan.founder.priceIdr while slots are left. */
+    founderPrice?: boolean;
     now?: Date;
   },
-): Promise<{ paymentId: string; redirectUrl: string }> {
+): Promise<{ paymentId: string; redirectUrl: string; amountIdr: number }> {
   const now = input.now ?? new Date();
+  // The amount is decided here, from the config and the database: never from the browser.
+  const { priceIdr: amountIdr } = await currentPrice(db, input.plan, input.founderPrice ?? false);
   const paymentId = `pay_${crypto.randomUUID().replaceAll("-", "")}`;
   await db.insert(payments).values({
     id: paymentId,
@@ -35,7 +84,7 @@ export async function startCheckout(
     provider: provider.name,
     providerRef: null,
     planId: input.plan.id,
-    amountIdr: input.plan.priceIdr,
+    amountIdr,
     status: "pending",
     createdAt: now,
     expiresAt: new Date(now.getTime() + PENDING_MINUTES * 60_000),
@@ -46,7 +95,7 @@ export async function startCheckout(
   try {
     const { redirectUrl, providerRef, charge } = await provider.createCheckout({
       paymentId,
-      amountIdr: input.plan.priceIdr,
+      amountIdr,
       planId: input.plan.id,
       customer: { name: input.user.name || input.user.email, email: input.user.email },
       methods: input.methods,
@@ -77,7 +126,7 @@ export async function startCheckout(
     } else {
       await db.update(payments).set({ providerRef }).where(eq(payments.id, paymentId));
     }
-    return { paymentId, redirectUrl };
+    return { paymentId, redirectUrl, amountIdr };
   } catch (err) {
     await db.update(payments).set({ status: "failed" }).where(eq(payments.id, paymentId));
     throw err;
@@ -189,7 +238,7 @@ export async function settlePayment(
   if (!plan) return { kind: "ignored", reason: `unknown_plan ${payment.planId}` };
   const entitlement = await grantFromPayment(
     db,
-    { userId: payment.userId, paymentId: payment.id, planId: plan.id, months: plan.months },
+    { userId: payment.userId, paymentId: payment.id, planId: plan.id, months: grantMonths(plan) },
     now,
   );
   const providerRef = opts.providerRef ?? payment.providerRef;

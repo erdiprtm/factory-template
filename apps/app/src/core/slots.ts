@@ -26,9 +26,15 @@ export type QuizStepSlotProps = {
 export type HeaderSlotProps = { title: string; subtitle: string };
 
 export type PlanCardSlotProps = {
-  plan: { id: string; label: string; months: number };
-  /** Formatted by core from product.config.ts, e.g. "Rp249.000". */
+  plan: { id: string; label: string; months: number; bonusMonths?: number; tier?: string };
+  /** Formatted by core, e.g. "Rp249.000": the price charged now (the founder price while it lasts, D-116). */
   price: string;
+  /** "+ bonus 2 bulan" when the plan has bonusMonths (D-116), else null. */
+  bonus?: string | null;
+  /** "Harga founder · 37 slot tersisa" while the founder price lasts (D-116), else null. */
+  founder?: string | null;
+  /** The normal price, to strike through, while the founder price lasts (D-116), else null. */
+  normalPrice?: string | null;
   perWeek: string;
   highlighted: boolean;
   /** e.g. "Hemat Rp49.000 (16%) dibanding 6 bulan", for the highlighted plan only. */

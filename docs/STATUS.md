@@ -10,6 +10,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-01: Plan tiers, bonus months, founder price (D-116), for cektelur
+
+- Plans may set `tier`, `bonusMonths` and `founder: { priceIdr, limit }`; `pricing.founderPrice` (off by default) and `pricing.tiers` labels. Access = months + bonus; the founder price is charged server-side until `limit` paid buyers. `GET /api/pricing` feeds the app's /pricing; /harga shows bonus, tiers and the founder price.
+
+---
+
 ## 2026-11-01: App headers from config: camera, microphone, WebAssembly (D-115), for cektelur
 
 - `app.permissions.camera` / `.microphone` and `app.wasm` (all off by default). `pnpm theme` now writes `apps/app/public/_headers`: `camera=(self)`, `'wasm-unsafe-eval'` + `worker-src 'self' blob:` when turned on.

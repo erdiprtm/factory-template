@@ -14,6 +14,7 @@ Requested change: $ARGUMENTS
    - Integer IDR, at least Rp10.000 (Duitku's minimum).
    - At most one `highlight`.
    - Keep existing plan **ids** unchanged so old payments still resolve. Use new ids only for genuinely new plans.
+   - Optional, per plan (D-116): `tier` (groups plans under a heading; its label goes in `pricing.tiers`), `bonusMonths` (free months on top, shown as "+ bonus N bulan"), `founder: { priceIdr, limit }` (a lower price for the first `limit` paid buyers, charged only while `pricing.founderPrice` is `true`). With tiers, two durations per tier. Turn `pricing.founderPrice` off once the slots are gone: the static site names the limit but can't count.
 2. Update the spec's "Plans & prices" section to match.
 3. `pnpm verify`. The site build test checks that `/harga/` shows every plan from config, and E2E covers checkout.
 4. Open a PR with auto-merge. On the preview, check that the app pricing screen and `/harga/` on the site show the new prices.
