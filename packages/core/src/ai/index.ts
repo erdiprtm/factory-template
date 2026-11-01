@@ -47,6 +47,9 @@ export type AiUsage = { inputTokens: number; cachedInputTokens: number; outputTo
 /** Why a call gave no answer. quota = the provider account is out of credit (a human tops it up). */
 export type AiFailure = "quota" | "rate_limited" | "unavailable" | "bad_request" | "bad_output" | "refused";
 
+/** The primary's model, failure and reason when a fallback provider answered (D-091, D-118). */
+export type AiFallbackFrom = { model: string; error: AiFailure; detail?: string };
+
 /**
  * costMicroUsd: the call's cost as the provider reported it (OpenRouter, D-083), in micro-USD, or
  * null when it reported none and no price is known. Absent = priced from the tables below.
@@ -61,7 +64,7 @@ export type AiResult =
       latencyMs: number;
       costMicroUsd?: number | null;
       /** Set when a fallback provider answered (D-091): the primary's model and why it didn't. */
-      fallbackFrom?: { model: string; error: AiFailure };
+      fallbackFrom?: AiFallbackFrom;
     }
   | {
       ok: false;
@@ -70,9 +73,10 @@ export type AiResult =
       tier: AiTier;
       usage: AiUsage | null;
       latencyMs: number;
+      /** The provider's reason, short and without the request's content (logged, D-118). */
       detail?: string;
       costMicroUsd?: number | null;
-      fallbackFrom?: { model: string; error: AiFailure };
+      fallbackFrom?: AiFallbackFrom;
     };
 
 export type AiProviderName = "openai" | "openrouter" | "gemini" | "mock";

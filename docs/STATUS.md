@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-01: AI fallback on a rejected request, reasons kept (D-118), Myna Fit
+
+- `ai.fallback` now also answers when the primary rejects the request (`bad_request`, e.g. Gemini 4xx on a photo). Never on bad output or a refusal.
+- `ai_usage.detail` and `ai_usage.fallback_from` (expand-only migration) keep the provider's reason and who fell back; `runAi` warns them in the Workers log, without user ids.
+
+---
+
 ## 2026-11-01: Organic site visits count as visitors (D-117), Myna Fit
 
 - The site stores `site_view` first-party on every non-lander page; visitors (KPIs, per day, sources, bot) and the funnel's first step count `lp_view` ∪ `site_view` per device. No Meta event, no migration.

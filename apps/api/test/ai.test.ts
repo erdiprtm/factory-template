@@ -176,7 +176,33 @@ describe("AI provider choice", () => {
     const user = `user-${crypto.randomUUID()}`;
     await recordAiUsage(db, { userId: user, feature: "fb_test", result });
     const rows = await db.select().from(schema.aiUsage).where(eq(schema.aiUsage.userId, user));
-    expect(rows.map((r) => [r.model, r.ok])).toEqual([["bytedance-seed/seed-2.0-lite", true]]);
+    expect(rows.map((r) => [r.model, r.ok, r.fallbackFrom, r.detail])).toEqual([
+      ["bytedance-seed/seed-2.0-lite", true, "gemini-3.8-flash", "primary unavailable: 503"],
+    ]);
+
+    // D-118: Gemini rejecting the request (4xx) falls back too; its reason is kept.
+    const rejects = (async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (String(url).includes("googleapis"))
+        return Response.json(
+          { error: { code: "invalid_argument", message: "Unable to process input image." } },
+          { status: 400 },
+        );
+      return down(url, init);
+    }) as typeof globalThis.fetch;
+    const rejected = await (aiProvider(both, mock, withBackup, { fetch: rejects }) as AiProvider).json(req);
+    expect(rejected).toMatchObject({
+      ok: true,
+      fallbackFrom: {
+        model: "gemini-3.8-flash",
+        error: "bad_request",
+        detail: "invalid_argument: Unable to process input image.",
+      },
+    });
+    await recordAiUsage(db, { userId: user, feature: "fb_test", result: rejected });
+    const again = await db.select().from(schema.aiUsage).where(eq(schema.aiUsage.userId, user));
+    expect(again.map((r) => r.detail)).toContain(
+      "primary bad_request: invalid_argument: Unable to process input image.",
+    );
 
     // Without the fallback's key: the primary's error, as before. Without the primary's: the fallback.
     calls.length = 0;

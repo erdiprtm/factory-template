@@ -85,6 +85,13 @@
       "when": 1793419288360,
       "tag": "20261031040128_admin_dashboard_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1793544018989,
+      "tag": "20261101144018_ai_usage_detail",
+      "breakpoints": true
     }
   ]
 }
