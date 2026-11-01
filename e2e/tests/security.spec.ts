@@ -13,6 +13,9 @@ test("app HTML has security headers and no CSP violations", async ({ page }) => 
   expect(headers["content-security-policy"]).toContain("script-src 'self'");
   expect(headers["x-content-type-options"]).toBe("nosniff");
   expect(headers["x-frame-options"]).toBe("DENY");
+  // Generated from product.config.ts `app` (D-115): whatever a product allows, these stay blocked.
+  expect(headers["permissions-policy"]).toContain("geolocation=(), payment=()");
+  expect(headers["content-security-policy"]).not.toContain("'unsafe-eval'");
 
   // The app rendered (styles injected at runtime were allowed).
   await expect(page.getByRole("button", { name: "Kirim tautan masuk" })).toBeVisible();

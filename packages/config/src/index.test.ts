@@ -27,6 +27,20 @@ describe("defineProduct", () => {
     expect(() => defineProduct({ ...base, experiments: { "Quiz Length": { variants: { a: 50, b: 50 } } } })).toThrow();
   });
 
+  it("app web capabilities: camera, microphone and wasm off by default (D-115)", () => {
+    expect(defineProduct({ ...base, app: undefined }).app).toEqual({
+      permissions: { camera: false, microphone: false },
+      wasm: false,
+    });
+    expect(defineProduct({ ...base, app: { permissions: { camera: true } } }).app).toEqual({
+      permissions: { camera: true, microphone: false },
+      wasm: false,
+    });
+    expect(defineProduct({ ...base, app: { wasm: true } }).app.wasm).toBe(true);
+    // @ts-expect-error: a string is not a switch
+    expect(() => defineProduct({ ...base, app: { wasm: "yes" } })).toThrow();
+  });
+
   it("site header and PNG favicons: today's look by default; logo height and file paths checked (D-096)", () => {
     const brand = { ...base.brand, header: undefined, faviconPng: undefined };
     const parsed = defineProduct({ ...base, brand }).brand;

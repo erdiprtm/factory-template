@@ -490,6 +490,20 @@ export const productSchema = z.object({
   // Navigation (D-111). adminTab: admins get an "Admin" tab (today's default); false puts an "Admin"
   // row in Akun instead, for a bar that's full (4 product tabs, or a center action).
   nav: z.object({ adminTab: z.boolean().default(true) }).default({ adminTab: true }),
+  // What the app's web export may use (D-115): `pnpm theme` writes apps/app/public/_headers from it.
+  // permissions.camera / .microphone: Permissions-Policy `camera=(self)` / `microphone=(self)` so
+  // getUserMedia works on the app's own origin (false = `camera=()`, blocked). wasm: WebAssembly
+  // (e.g. onnxruntime-web) and workers: `'wasm-unsafe-eval'` in script-src and
+  // `worker-src 'self' blob:` (Web Workers and a service worker from the app's origin). All off by
+  // default: today's headers exactly. Geolocation and payment stay blocked.
+  app: z
+    .object({
+      permissions: z
+        .object({ camera: z.boolean().default(false), microphone: z.boolean().default(false) })
+        .default({ camera: false, microphone: false }),
+      wasm: z.boolean().default(false),
+    })
+    .default({ permissions: { camera: false, microphone: false }, wasm: false }),
   // A/B experiment (D-094): { <name>: { variants: { <arm>: <weight %> } } }, weights summing to 100.
   // At most one at a time (one test per funnel stays readable at Rp100K/day). A device's arm comes
   // from its anonId, so changing the weights or their order mid-test moves devices between arms:
