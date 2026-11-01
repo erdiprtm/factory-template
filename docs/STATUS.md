@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-02: E2E admin confirmations matched exactly (test fix), from Myna Fit
+
+- `admin.spec.ts` looked for "Tersimpan." as a case-insensitive substring, which also matched the Telegram card's hint ("…secret Telegram tersimpan.") when `notifications.telegram.commands` is on (D-114), so strict mode failed intermittently. The admin confirmations are now matched with `exact: true`.
+- `scripts/e2e-state.test.mjs` wrote its test lock into `apps/api/.wrangler/` without creating it, so it failed in a fresh checkout or worktree; it creates the folder first.
+
+---
+
 ## 2026-11-01: AI fallback on a rejected request, reasons kept (D-118), Myna Fit
 
 - `ai.fallback` now also answers when the primary rejects the request (`bad_request`, e.g. Gemini 4xx on a photo). Never on bad output or a refusal.
