@@ -52,6 +52,21 @@
         "app": "https://myna-flow.erdiprtm.workers.dev",
         "site": "https://myna-flow-site.erdiprtm.workers.dev"
       }
+    },
+    {
+      "slug": "cektelur",
+      "name": "cektelur",
+      "repo": "erdiprtm/cektelur",
+      "status": "building",
+      "spec": "specs/cektelur.md",
+      "launchDate": null,
+      "reviewDate": null,
+      "metricTargets": {},
+      "killCriteria": "kurang dari 10 kandang berbayar 60 hari setelah peluncuran → hentikan akuisisi berbayar dan rework bersama Erdi.",
+      "urls": {
+        "app": "https://cektelur.erdiprtm.workers.dev",
+        "site": "https://cektelur-site.erdiprtm.workers.dev"
+      }
     }
   ]
 }
