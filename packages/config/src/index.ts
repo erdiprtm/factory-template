@@ -78,6 +78,10 @@ const openRouterSlug = z
     'an OpenRouter model slug like "google/gemini-3.8-flash"',
   )
   .refine((s) => !s.endsWith(":free"), { message: "free OpenRouter models may train on prompts: use a paid one" });
+/** A store id like id.mynahealth.fit: lowercase segments (letters, digits, _), three or more. */
+const reverseDomain = z
+  .string()
+  .regex(/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){2,}$/, "a reverse-domain id like id.mynahealth.fit");
 const providerSlug = z.string().regex(/^[a-z0-9][a-z0-9._/-]{0,60}$/, "an OpenRouter provider slug");
 const geminiModel = z.string().regex(/^gemini-[a-z0-9][a-z0-9.-]{0,60}$/, 'a Gemini model id like "gemini-3.8-flash"');
 /** USD per 1M tokens. */
@@ -588,6 +592,39 @@ export const productSchema = z.object({
       promptAfter: z.enum(["payment", "first_result", "never"]).default("never"),
     })
     .default({ enabled: true, icon: "assets/icon.png", maskableIcon: null, shortName: null, promptAfter: "never" }),
+  // Native apps (Phase 10, D-119). apps/app/app.config.ts reads these; nothing here is secret.
+  // androidPackage / iosBundleId: the store ids, reverse-domain, never changed after the first store
+  // upload (null = no native build yet). easProjectId: from `eas init` (public). version: the store
+  // version users see; build numbers come from EAS (remote, auto-increment). permissions: the texts
+  // iOS shows before the camera or photo library opens (null = the app never asks), in the
+  // product's own words; Android needs no text. stores: the listing URLs once they exist.
+  native: z
+    .object({
+      androidPackage: reverseDomain.nullable().default(null),
+      iosBundleId: reverseDomain.nullable().default(null),
+      easProjectId: z.uuid().nullable().default(null),
+      version: z
+        .string()
+        .regex(/^\d+\.\d+\.\d+$/, "a version like 1.0.0")
+        .default("1.0.0"),
+      permissions: z
+        .object({
+          camera: z.string().min(20).max(200).nullable().default(null),
+          photos: z.string().min(20).max(200).nullable().default(null),
+        })
+        .default({ camera: null, photos: null }),
+      stores: z
+        .object({ play: z.url().nullable().default(null), appStore: z.url().nullable().default(null) })
+        .default({ play: null, appStore: null }),
+    })
+    .default({
+      androidPackage: null,
+      iosBundleId: null,
+      easProjectId: null,
+      version: "1.0.0",
+      permissions: { camera: null, photos: null },
+      stores: { play: null, appStore: null },
+    }),
   // Meta Pixel ID (public: browsers carry it). Unset = no Pixel, no Conversions API, no marketing
   // consent banner. The CAPI access token is a Worker secret (META_CAPI_TOKEN), never here. D-034.
   marketing: z

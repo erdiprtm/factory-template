@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-04: Phase 10 starts: plan accepted, Expo SDK 58, native config (D-119)
+
+- `docs/PHASE_10_PLAN.md` accepted by Erdi: Android + iOS together, organization store accounts under the PT, RevenueCat for iOS IAP, Google + Apple sign-in, push later. Myna Fit is the first native product; Myna Run's health data (Part C) waits for its spec.
+- Expo SDK 58 (RN 0.88, React 19.3); `asyncRoutes` kept off on web; web and native JS bundles build.
+- `product.config.ts` `native` block (store ids, EAS project, version, iOS permission texts, store URLs) → `apps/app/native-config.ts` → `app.config.ts`; `apps/app/eas.json`; native API base from `domain.app`.
+
+---
+
 ## 2026-11-02: E2E admin confirmations matched exactly (test fix), from Myna Fit
 
 - `admin.spec.ts` looked for "Tersimpan." as a case-insensitive substring, which also matched the Telegram card's hint ("…secret Telegram tersimpan.") when `notifications.telegram.commands` is on (D-114), so strict mode failed intermittently. The admin confirmations are now matched with `exact: true`.

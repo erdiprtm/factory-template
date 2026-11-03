@@ -2399,3 +2399,37 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - core: the fallback answers `bad_request` and carries the primary's reason; `detailOf` for a fallback, both failing, a long reason and a success;
   - API (real D1): a Gemini 400 falls back to OpenRouter, and `ai_usage` stores `fallback_from` and the reason for 503 and 400.
 
+## D-119: Phase 10 starts: Expo SDK 58, native config from product.config.ts (2026-11-04)
+
+- **Context.** Erdi accepted the Phase 10 plan (`docs/PHASE_10_PLAN.md`) on 2026-11-04, with Myna Fit as the first native product.
+  - Decisions: Android and iOS together; Play and Apple organization accounts under PT Myna Bio Teknologi (Erdi creates them); RevenueCat for iOS IAP; Google sign-in on native, hence Sign in with Apple; push later.
+  - Research (sources in the plan, read 2026-11-04):
+    - Strava's API Policy §5.3 bans Strava data in "operation of any AI Application".
+    - Samsung writes no HRV or resting HR to Health Connect.
+    - iOS guideline 3.1.3(b) wants web-bought plans also sold as IAP.
+    - Google Play allows consumption-only apps.
+- **A1: Expo SDK 58** (RN 0.88, React 19.3). Versions are the SDK's, except where its expected patch is younger than 14 days (D-002 rule, pnpm `minimumReleaseAge`):
+  - `react-native` 0.88.0 (0.88.1 expected), `react-native-safe-area-context` 5.10.1 (~5.11.1), `react-native-screens` 4.30.0 (~4.30.1), `expo-status-bar` 58.0.3 (~58.0.4), `expo` 58.0.16 (~58.0.23).
+  - Bump these at the next dependency round, once they're 14 days old. The web export and the Android and iOS JS bundles build.
+  - `tsconfig` extends `expo/tsconfig.base.json`: SDK 58's `exports` no longer map the extensionless path, which vitest's transformer needs.
+  - SDK 58's expo-router turns `asyncRoutes` on for web by default. It stays off, as before (D-013): set explicitly in the plugin options. The web entry is now 1.4 MB.
+- **A2: native config.** `product.config.ts` gets a `native` block:
+  - `androidPackage`, `iosBundleId` (reverse-domain, null = no native build yet);
+  - `easProjectId` (public);
+  - `version`;
+  - iOS `permissions` texts for camera and photos (null = never asked);
+  - `stores` URLs.
+  - `apps/app/native-config.ts` (`expoConfig`, pure and tested) builds the Expo config from it. `app.config.ts` only passes the product's config in.
+  - Fields: `runtimeVersion` = fingerprint; light-only UI when `brand.darkMode` is false; the icon from `pwa.icon`, with the Android adaptive icon from `pwa.maskableIcon` on the light background colour; `ios.config.usesNonExemptEncryption: false`.
+  - `apps/app/eas.json`:
+    - profiles `development` (dev client, internal), `preview` (internal APK) and `production`;
+    - remote build numbers, auto-increment;
+    - Node and pnpm pinned as in the repo;
+    - `submit.production.android` goes to the **internal** track as a draft. A store release stays a human click (CI uploads, the human releases).
+  - Native API base: `EXPO_PUBLIC_API_URL`, else `https://<domain.app>`, so a store build needs no per-build setting.
+- **Not yet** (next steps in the plan):
+  - `expo-dev-client` and a dev build, which need Erdi's Expo account;
+  - native sign-in (`@better-auth/expo`) and the web→app hand-off, which need a device to test on;
+  - Sign in with Apple, RevenueCat and CI builds, which need the store accounts.
+- **Tests:** `expoConfig` without and with native ids (store ids, permission texts only when set, the EAS project, router options); the schema's reverse-domain check and defaults; all app tests on SDK 58.
+
