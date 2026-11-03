@@ -90,6 +90,17 @@ export default defineProduct({
   // promptAfter: "payment" (the card on the payment success screen), "first_result" (under
   // UpgradePrompt) or "never" (only the "Pasang di HP" link in Akun). Run `pnpm theme` after changing it.
   pwa: { enabled: true, icon: "assets/icon.png", promptAfter: "never" },
+  // Native apps (Phase 10, D-119). Store ids are reverse-domain and never change after the first
+  // store upload; null = no native build yet. permissions: iOS texts before the camera / photo library
+  // opens (null = never asked). easProjectId: from `eas init`. stores: the listing URLs once live.
+  native: {
+    androidPackage: null,
+    iosBundleId: null,
+    easProjectId: null,
+    version: "1.0.0",
+    permissions: { camera: null, photos: null },
+    stores: { play: null, appStore: null },
+  },
   // The template's own TEST Pixel (an Events Manager dataset), for the sell-engine acceptance test.
   // /new-product clears it, like the OpenPanel and Sentry IDs: each product gets its own Pixel (D-034).
   marketing: { metaPixelId: "1134506435670666" },

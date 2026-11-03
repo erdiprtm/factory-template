@@ -666,3 +666,24 @@ Bot bisa menjawab perintah dari chat-mu saja: `/hari_ini`, `/minggu`, `/bulan`, 
 | Google AI Studio (per produk) | Gemini API key (project berbayar) | saat `ai.provider` = `"gemini"` |
 
 Nama variabel persisnya akan ada di `.dev.vars.example` saat fasenya tiba.
+
+## 15. App Android dan iOS (per produk, Phase 10, D-119)
+
+Kode app native dibuat lewat Expo (EAS). Build berjalan di server Expo. Saya tidak pernah memegang key atau sertifikat: EAS yang menyimpannya.
+
+**Sekali saja (akun):**
+1. **Expo:** daftar di https://expo.dev/signup. Buat organisasi (misalnya `mynahealth`).
+2. **D-U-N-S untuk PT** (gratis): dibutuhkan oleh akun organisasi Google Play dan Apple. Ajukan lewat https://developer.apple.com/enroll/duns-lookup/. Prosesnya bisa beberapa hari sampai beberapa minggu.
+3. **Google Play Console** (US$25 sekali bayar, akun **organisasi**): https://play.google.com/console/signup
+4. **Apple Developer Program** (US$99 per tahun, **organisasi**): https://developer.apple.com/programs/enroll/. Setelah aktif, di App Store Connect setujui **Paid Apps Agreement**, isi data bank dan pajak, lalu daftar **Small Business Program** (potongan 15%).
+
+**Per produk:**
+5. Isi `native.androidPackage` dan `native.iosBundleId` di `product.config.ts` (agent yang mengerjakan; contoh `id.mynahealth.fit`). Setelah build pertama diunggah ke toko, keduanya tidak bisa diganti.
+6. Token Expo untuk CI. Di expo.dev, buka **Account settings → Access tokens → Create token**, salin tokennya, lalu jalankan dari folder repo:
+
+   ```bash
+   pbpaste | gh secret set EXPO_TOKEN
+   ```
+
+Langkah berikutnya (project EAS, kunci Play untuk `eas submit`, App Store Connect API key, Sign in with Apple, RevenueCat) akan ditambahkan di sini saat bagiannya dibuat.
+

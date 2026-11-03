@@ -17,8 +17,8 @@ allowBuilds:
 # Optional peers that pnpm auto-installs at their newest version drift past Expo SDK 57's
 # bundledNativeModules; pin them to the SDK's versions.
 overrides:
-  "@react-native/metro-config": 0.86.3
-  react-native-worklets: 0.10.1
+  "@react-native/metro-config": 0.88.0
+  react-native-worklets: 0.13.0
   # Security patch for satori's opentype.js (GHSA-px8p-9vwx-vf98), same minor (D-021).
   fflate: 0.7.5
   # Security patch (GHSA-wq5f-xc86-pv6w) for Astro's image build and miniflare, same minor (D-021).

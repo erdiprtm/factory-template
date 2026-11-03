@@ -181,6 +181,20 @@
     "shortName": null,
     "promptAfter": "never"
   },
+  "native": {
+    "androidPackage": null,
+    "iosBundleId": null,
+    "easProjectId": null,
+    "version": "1.0.0",
+    "permissions": {
+      "camera": null,
+      "photos": null
+    },
+    "stores": {
+      "play": null,
+      "appStore": null
+    }
+  },
   "marketing": {
     "metaPixelId": "1134506435670666",
     "consent": {
