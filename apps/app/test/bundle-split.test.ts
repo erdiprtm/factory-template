@@ -61,6 +61,8 @@ const lazyOnly = [
   "core/billing/pakasir-checkout.tsx",
   "core/admin/economics.tsx",
   "core/auth/client.ts",
+  // The web client is the one the web bundle would carry (D-120 split client.ts per platform).
+  "core/auth/client.web.ts",
 ].map((f) => `../src/${f}`);
 
 describe("web bundle split (D-059)", () => {

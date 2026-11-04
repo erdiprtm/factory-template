@@ -3,7 +3,7 @@ import { hc } from "hono/client";
 import { track } from "./analytics";
 import { apiBaseUrl, fetchCredentials } from "./api-base";
 import { currentTouch } from "./attribution";
-import { sessionHeaders } from "./auth/client";
+import { sessionHeaders } from "./auth/session-headers";
 
 // Typed RPC client for apps/api. Same origin on web, domain.app (or EXPO_PUBLIC_API_URL) on native.
 // The session: the browser's cookie on web (credentials include, also Expo :8081 → API :8787 in

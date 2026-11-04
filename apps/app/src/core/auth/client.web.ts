@@ -11,8 +11,3 @@ export const authClient = createAuthClient({
   // emailOTPClient: signing in with the code from the sign-in email (D-079).
   plugins: [magicLinkClient(), emailOTPClient()],
 });
-
-/** Web: the browser sends the session cookie itself. */
-export async function sessionHeaders(): Promise<Record<string, string>> {
-  return {};
-}
