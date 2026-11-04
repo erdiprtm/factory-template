@@ -9,6 +9,8 @@ import { appReturnUrl } from "../api-base";
 import { authClient } from "../auth/client";
 import { CodeForm } from "../auth/code-form";
 import { HandoffForm } from "../auth/handoff-form";
+import { currentInApp } from "../auth/in-app";
+import { InAppEscape } from "../auth/in-app-escape";
 import { useMe, useRefreshMe } from "../auth/use-me";
 import { useI18n } from "../i18n";
 
@@ -20,6 +22,8 @@ export function SignIn() {
   const refreshMe = useRefreshMe();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "invalid" | "error">("idle");
+  // Inside Instagram/TikTok & co. the magic link opens in another browser: offer the real one first (D-121).
+  const [inApp, setInApp] = useState(currentInApp);
 
   // Render the form at once (no spinner while /api/me loads: it was the page's LCP); a signed-in
   // visitor is redirected as soon as the answer arrives.
@@ -112,6 +116,7 @@ export function SignIn() {
               </Button>
             </>
           ) : null}
+          {inApp ? <InAppEscape inApp={inApp} onStay={() => setInApp(null)} /> : null}
           {/* Native: signed in or paid on the web already? The code from Akun signs in here (D-120). */}
           {Platform.OS !== "web" ? <HandoffForm /> : null}
         </View>

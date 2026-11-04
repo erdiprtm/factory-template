@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-04: Sign-in offers the real browser inside Instagram/Facebook/Threads/TikTok (D-121), from Myna Fit
+
+- Inside those apps' browsers, sign-in's email stage shows "Buka di browser" (or "Tetap di sini — pakai kode 6 digit"). One tap opens the default browser on the same page via Android intent / Instagram extbrowser / x-safari; a copy-link fallback shows if nothing opens.
+- The opened browser adopts the in-app anonId and attribution (`hx=1`), and the quiz progress, `afterSignIn` and first result come along in the URL fragment (never sent to the server). `auth.inAppEscape`, on by default.
+- Not yet checked on real phones: the open schemes are undocumented; Myna Fit checks them after its sync.
+
+---
+
 ## 2026-11-04: First web bundle free of better-auth again (D-120 follow-up), from Myna Fit's sync
 
 - D-120 made `core/api.ts` import `sessionHeaders` from `auth/client`, which put better-auth's web client into the entry bundle (D-059): 1.40 → 1.52 MB. `sessionHeaders` now lives in `auth/session-headers(.web).ts` (the web one imports nothing): 1.42 MB. The bundle-split test also guards `auth/client.web.ts`, the file the web bundle would carry; it fails on the old code.

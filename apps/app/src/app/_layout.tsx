@@ -10,6 +10,7 @@ import { View } from "react-native";
 import product from "../../../../product.config";
 import { initAnalytics } from "../core/analytics";
 import { currentTouch } from "../core/attribution";
+import { cleanEscapeUrl, restoreEscape } from "../core/auth/in-app";
 import { uiTokens, useAppFonts } from "../core/design";
 import { I18nProvider } from "../core/i18n";
 import { initMarketing } from "../core/marketing";
@@ -29,6 +30,8 @@ export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient());
   // First-touch attribution from this visit's URL. During the first render, before child
   // layouts (whose effects run first) can redirect and drop the query string.
+  // Opened by sign-in's in-app browser escape (D-121): take over that browser's anonId and quiz first.
+  useState(restoreEscape);
   useState(currentTouch);
   // Installable app (D-080): hold the browser's install event, note opens from the home screen.
   useState(initPwa);
@@ -40,6 +43,10 @@ export default function RootLayout() {
   }, []);
   const { colorScheme } = useThemePreference();
   const fontsReady = useAppFonts();
+  // The router is up once the fonts are: only then does the address bar stay as set (D-121).
+  useEffect(() => {
+    if (fontsReady) setTimeout(cleanEscapeUrl, 0);
+  }, [fontsReady]);
   if (!fontsReady) return <View className="flex-1 bg-background" />;
   return (
     <UiThemeProvider tokens={uiTokens} variants={variants}>
