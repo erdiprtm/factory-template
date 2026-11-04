@@ -14,7 +14,7 @@ Facts were checked against official docs on 2026-11-04 (sources in §10). Items 
 |---|---|---|---|---|
 | **A. Android base** | SDK 58, native config, EAS, native sign-in, web→app hand-off, CI to Play internal testing, (push) | Every product, Myna Fit first | 10–17 h | 2–3 days |
 | **B. iOS** | Sign in with Apple, IAP (non-renewing), iOS config, TestFlight | Every product | 10–14 h | ~2 days + Apple review 1–3 days |
-| **C. Health data** | Health Connect, HealthKit, `health_*` tables, Huawei cloud adapter, (Strava display-only) | Myna Run, later others | 5–8 days | 2–3 weeks; Huawei approval sets the pace |
+| **C. Health data** | Health Connect, HealthKit, `health_*` tables (incl. steps and walks), Huawei cloud adapter, local morning reminders (A6a) | Myna Run, later others | 5–9 days | 2–3 weeks; Huawei approval sets the pace |
 | **D. Store billing extras** | Play prepaid plans + RTDN (optional) | Later, if many installs come straight from Play | 3–4 days | — |
 
 - **Order:** A, then B, then C, then D. A and B unlock Myna Fit. C is planned now but built when the Myna Run spec is final.
@@ -52,6 +52,7 @@ Each step is its own PR, with tests, a DECISIONS entry, STATUS and `pnpm verify`
 | A4 | **Web→app hand-off** (details below), plus `/.well-known/assetlinks.json` and `apple-app-site-association` generated from config and served by the Worker. Also the app funnel events `app_cta_shown`, `app_store_clicked` and `app_signed_in {platform}`, first-party only. | 1–2 h |
 | A5 | **CI** `native.yml`, run manually or on a `native-v*` tag: `eas build` (on Expo's servers, `--no-wait`, so few Actions minutes), then `eas submit` to **Play internal testing** only. The production release stays a human click in the Play Console. No `deploy` script in any `package.json`. | 1–2 h |
 | A6 | *(optional for Myna Fit)* **Push:** `expo-notifications`, `push_tokens` + `notification_prefs` tables, the user's timezone (WIB, WITA or WIT), the existing cron feeding a `JOBS` Queue, a sender with Expo receipts that drops dead tokens, and a product hook in `features/jobs.ts`. No health numbers in push text, and opt-out in Akun. | 2–3 h |
+| A6a | *(Myna Run v1)* **Local scheduled reminders:** `expo-notifications` local notifications only, so no FCM, APNs keys, Expo push service, `push_tokens` table or server sender. A daily reminder at the user's chosen time (default: their usual run or walk time), rescheduled by the app on each open and background sync; the product hook supplies the text. A health number (e.g. "Pemulihanmu 82%") appears only if the user turns that on in Akun (default off: a lock screen shows it to anyone nearby), and only when it is today's; before today's sync the text has no number. Android 13+ asks permission; an approximate time is fine, so no `SCHEDULE_EXACT_ALARM`. Opt-out in Akun. Native only; web has none. | ½–1 day |
 
 **Hand-off without a third-party SDK:**
 
@@ -101,14 +102,14 @@ Each step is its own PR, with tests, a DECISIONS entry, STATUS and `pnpm verify`
 
 ## 5. Part C: health data (template, for Myna Run)
 
-Built after the Myna Run spec is final (`specs/myna-run.md`). Estimates: Health Connect + server tables 5–7 days, HealthKit 2–3 days, Huawei 3–5 days, the Strava write-only adapter 1–2 days.
+Built after the Myna Run spec is final (`specs/myna-run.md`). Estimates: Health Connect + server tables 5–7 days, HealthKit 2–3 days, Huawei 3–5 days, steps and walks ½–1 day, local reminders (A6a) ½–1 day.
 
 **Myna Run spec decisions (Erdi, 2026-11-04):**
 
 - **No generative AI in v1.** Debrief and report text come from Bahasa Indonesia templates in code. The AI adapter stays off, and no health data goes to Gemini or OpenRouter.
-- **Strava is an entry point but never read through its API.** Policy §5.4 bans processing Strava Data for "analytics, analyses, customer insight generation" and combining it with other customer data, even without AI.
-  - Strava runs reach Myna through HealthKit / Health Connect (Athlytic's pattern), so there is no Strava read adapter.
-  - Optional "Hubungkan Strava" is a write-only OAuth, added after Strava's written OK. It writes Myna's own summary, with numbers from HC/HealthKit, into the new activity's description. It uses only the webhook's activity id and start time, with the `activity:write` scope and a deauthorize webhook.
+- **No Strava integration at all:** no OAuth, webhook or Strava subscription, read or write. Runs that Strava (or any app) writes to Health Connect / HealthKit are read like any other source, with `source_app` kept per sample.
+- **Two segments: runners and walkers.** Steps and walking workouts are read too, and each user gets a personal daily step target from their 14-day step average. Steps must work from a phone alone, without a watch.
+- **A morning reminder is part of the core loop**, at the user's usual run or walk time: local scheduled notifications (A6a), no server push.
 - **No aggregator.** The stack is Health Connect + HealthKit + Huawei Health Kit. The Garmin API comes in v1.1, after Garmin's written permission for a paid app. Oura and WHOOP are never integrated.
 
 **What the research found:**
@@ -124,11 +125,15 @@ Built after the Myna Run spec is final (`specs/myna-run.md`). Estimates: Health 
 3. **Huawei, the #1 brand, needs its cloud REST API.**
    - What's known: HUAWEI ID OAuth, test scopes for 100 users, then a verification review.
    - Exact scopes, history depth and Indonesia availability are unverified ⚠. Apply under the PT now.
-4. **Strava's terms** (API Policy effective 2026-06-01) are the reason for the write-only design:
+4. **Strava's terms** (API Policy effective 2026-06-01) are why there is no Strava API use at all:
    - §5.3: no Strava data "in connection with the ... operation of any AI Application".
    - §5.4: no analytics or insight generation.
    - §5.8: no charging for Strava data.
    - §3.3: the Standard tier needs an active Strava subscription.
+5. **Steps without a watch.**
+   - iOS: the iPhone counts steps into HealthKit by itself.
+   - Android 14+ with SDK Extension 20+: Health Connect counts steps on the phone itself, but only once some app holds `READ_STEPS`. There is no history from before that, and since June 2026 these steps are attributed to a synthetic package name.
+   - Older Android phones need an app that writes steps (Samsung Health, Google Fit). With no source, the product shows "belum ada data langkah" and how to fix it, and never shows a guessed target.
 
 **Design:**
 
@@ -138,13 +143,12 @@ Built after the Myna Run spec is final (`specs/myna-run.md`). Estimates: Health 
   - Shows a rationale screen before the OS dialog.
   - Paid features never depend on granting a permission.
 - **Server:**
-  - `POST /api/health/batch` writes `health_samples`: raw, normalised, with `metric`, `value`, `unit`, `method`, local timezone offset, `platform`, `source_app` (e.g. Strava's package, when a run came from Strava through HC/HealthKit), and a unique `external_id` so re-syncs are idempotent.
+  - `POST /api/health/batch` writes `health_samples`: raw, normalised, with `metric`, `value`, `unit`, `method`, local timezone offset, `platform`, `source_app` (e.g. Strava's or Samsung Health's package, or Health Connect's on-device step counter), and a unique `external_id` so re-syncs are idempotent.
   - That rolls up into `health_daily`: per local day, one chosen source per metric, never summed across apps, with the source stored per field.
-  - `health_workouts` holds runs. `health_connections` holds the status and **encrypted** cloud tokens (AES-GCM with a Worker secret).
-  - Core offers baseline helpers; the score formula and the template texts are product-owned.
+  - `health_workouts` holds runs and walks (activity type kept). Steps are a `health_daily` metric, one source per day like the others. `health_connections` holds the status and **encrypted** cloud tokens (AES-GCM with a Worker secret).
+  - Core offers baseline helpers (e.g. a 14-day average with a minimum day count); the score formula, the step target and the template texts are product-owned.
 - **Cloud adapters** share one interface: authorize, callback, refresh, webhook, revoke, plus a backfill through a Queue where the source has history.
   - Huawei reads.
-  - Strava, optional, only writes: no backfill, and it never stores Strava's own activity data beyond the id and start time.
 - **Privacy (UU PDP, specific data):**
   - Explicit consent before the first read.
   - Export and account deletion cover `health_*` and revoke tokens.
@@ -176,7 +180,7 @@ Built after the Myna Run spec is final (`specs/myna-run.md`). Estimates: Health 
 | Personal Play account: 12 testers × 14 days before production | Use an organization account (needs D-U-N-S), or start the closed test the day the account exists |
 | Myna Fit's scan only exists as `upload.web.ts` | A native version with `expo-image-picker` / camera in Myna Fit's features (Agent Fit) |
 | EAS free tier: 15 builds per platform per month, low priority | Starter at US$19/month when builds get frequent |
-| Part C: HRV missing, Huawei approval slow, Strava terms | See §5. The Myna Run spec designs around them (no AI, no Strava read) |
+| Part C: HRV missing, Huawei approval slow, no step source on older Android | See §5. The Myna Run spec designs around them (no AI, no Strava, an honest "no step data" state) |
 
 ---
 
@@ -187,8 +191,8 @@ Built after the Myna Run spec is final (`specs/myna-run.md`). Estimates: Health 
 3. **Apple account:** organization under the PT (Erdi creates it).
 4. **iOS IAP:** RevenueCat, its webhook writing our own entitlements. IAP price: to be set with the products.
 5. **Google sign-in on native:** yes, so Sign in with Apple is built too (4.8).
-6. **Push (A6):** later.
-7. **Myna Run (Part C):** decided in the Myna Run spec (§5): no generative AI, Strava only through HC/HealthKit (plus an optional write-only summary), no aggregator, Garmin in v1.1.
+6. **Push (A6):** server push later. Myna Run v1 uses local scheduled reminders instead (A6a, no FCM).
+7. **Myna Run (Part C):** decided in the Myna Run spec (§5): no generative AI, no Strava integration (its runs only via HC/HealthKit), runners and walkers with steps from the phone, no aggregator, Garmin in v1.1.
 
 ---
 
@@ -200,7 +204,7 @@ Mulai sekarang, karena ini yang paling menentukan jadwal:
 2. **D-U-N-S untuk PT Myna Bio Teknologi**, gratis, butuh beberapa hari sampai minggu. Hanya perlu kalau memilih akun organisasi.
 3. **Google Play Console**: US$25 sekali bayar, verifikasi identitas atau bisnis, lalu buat app Myna Fit. Saya akan menulis langkah membuat service account untuk `eas submit`.
 4. **Apple Developer Program**: US$99 per tahun. Di App Store Connect, setujui Paid Apps Agreement, isi data bank dan pajak, lalu daftar Small Business Program.
-5. **Firebase**: buat project untuk push Android. Hanya perlu kalau A6 jadi.
+5. **Firebase**: buat project untuk push Android. Hanya perlu kalau A6 (push dari server) jadi; pengingat lokal Myna Run (A6a) tidak butuh Firebase.
 6. **Untuk Myna Run (nanti)**: ajukan Huawei Health Kit dengan data PT, tanyakan ke pengacara soal consent data kesehatan dan AI, dan siapkan 5–10 penguji dengan merek jam yang berbeda.
 
 Saya tidak pernah memegang key, sertifikat, atau token. EAS menyimpan keystore dan sertifikat. Semua secret di-set oleh Erdi.
@@ -217,6 +221,7 @@ Saya tidak pernah memegang key, sertifikat, atau token. EAS menyimpan keystore d
   - Submit, Android: https://docs.expo.dev/submit/android/
   - Submit, iOS: https://docs.expo.dev/submit/ios/
   - Push: https://docs.expo.dev/push-notifications/sending-notifications/
+  - Notifications (local scheduling, Android 12+ exact alarms, 13+ permission): https://docs.expo.dev/versions/latest/sdk/notifications/
   - Universal links: https://docs.expo.dev/linking/ios-universal-links/
   - App Links: https://docs.expo.dev/linking/android-app-links/
 - **Better Auth:**
@@ -242,9 +247,9 @@ Saya tidak pernah memegang key, sertifikat, atau token. EAS menyimpan keystore d
   - Queues limits: https://developers.cloudflare.com/queues/platform/limits/
 - **Strava:**
   - API Policy (§3.3, §5.3, §5.4, §5.8 checked directly): https://www.strava.com/legal/api_policy
-  - Webhooks: https://developers.strava.com/docs/webhooks/
-  - Rate limits: https://developers.strava.com/docs/rate-limits/
 - **Health Connect:**
+  - Steps, on-device counting (Android 14, SDK Extension 20): https://developer.android.com/health-and-fitness/guides/health-connect/develop/steps
+  - Phone step tracking (user help): https://support.google.com/android/answer/16786157
   - Data types: https://developer.android.com/health-and-fitness/guides/health-connect/plan/data-types
   - Read data: https://developer.android.com/health-and-fitness/guides/health-connect/develop/read-data
   - Declare access: https://developer.android.com/health-and-fitness/guides/health-connect/publish/declare-access

@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-04: Phase 10 plan Part C follows the updated Myna Run spec
+
+- No Strava integration at all (the optional write-only adapter is gone); runs written to Health Connect / HealthKit are read like any source.
+- Runners and walkers: steps (phone-only: iPhone, Health Connect's on-device counter on Android 14+), walking workouts, a personal step target from the 14-day average.
+- New step A6a: local scheduled morning reminders with `expo-notifications`, no FCM or server push. A health number in the text only if the user turns it on (default off).
+
+---
+
 ## 2026-11-04: Sign-in offers the real browser inside Instagram/Facebook/Threads/TikTok (D-121), from Myna Fit
 
 - Inside those apps' browsers, sign-in's email stage shows "Buka di browser" (or "Tetap di sini — pakai kode 6 digit"). One tap opens the default browser on the same page via Android intent / Instagram extbrowser / x-safari; a copy-link fallback shows if nothing opens.
