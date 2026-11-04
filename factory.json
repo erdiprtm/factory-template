@@ -67,6 +67,21 @@
         "app": "https://cektelur.erdiprtm.workers.dev",
         "site": "https://cektelur-site.erdiprtm.workers.dev"
       }
+    },
+    {
+      "slug": "myna-run",
+      "name": "Myna Run",
+      "repo": "erdiprtm/myna-run",
+      "status": "building",
+      "spec": "specs/myna-run.md",
+      "launchDate": null,
+      "reviewDate": null,
+      "metricTargets": {},
+      "killCriteria": "** fewer than 30 paying users, or blended CAC above Rp240.000 (2× target) after at least Rp3.000.000 of ad spend. Then stop the ads and rework the funnel or positioning with Erdi. Extra signal: fewer than 20% of trials buying means the day-1 report needs work.",
+      "urls": {
+        "app": "https://myna-run.erdiprtm.workers.dev",
+        "site": "https://myna-run-site.erdiprtm.workers.dev"
+      }
     }
   ]
 }
