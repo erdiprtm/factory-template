@@ -1,3 +1,4 @@
+import { expo } from "@better-auth/expo";
 import { emailProvider } from "@factory/core/email";
 import { magicLinkEmail } from "@factory/core/email/templates";
 import { authSchema } from "@factory/db";
@@ -7,6 +8,7 @@ import { emailOTP } from "better-auth/plugins/email-otp";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { drizzle } from "drizzle-orm/d1";
 import product from "../../../../product.config";
+import { appHandoff } from "./app-handoff";
 
 // The D1 binding type, taken from drizzle so this file needs no Worker ambient types (D-013).
 export type D1 = Parameters<typeof drizzle>[0];
@@ -19,6 +21,8 @@ export type AuthEnv = {
   BETTER_AUTH_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  /** Google OAuth client ids of the native apps (Android, iOS), comma-separated: ID tokens they sign in with are accepted (D-120). */
+  GOOGLE_NATIVE_CLIENT_IDS?: string;
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
   /** Reply-To on every email (D-067). Unset = legal.contactEmail from product.config.ts. */
@@ -35,6 +39,22 @@ const DEV_SECRET = "dev-only-secret-not-for-deployed-environments-0123456789";
 export function devTrustedOrigins(env: Pick<AuthEnv, "APP_ENV">): string[] {
   return env.APP_ENV === "development" ? ["http://localhost:8081", "http://127.0.0.1:8081"] : [];
 }
+
+/**
+ * The native app's deep-link scheme (D-120), once the product has a native build (`native` ids
+ * set): requests from the app carry it as their origin (@better-auth/expo). Never `exp://`.
+ */
+export function nativeTrustedOrigins(
+  native: { androidPackage: string | null; iosBundleId: string | null } = product.native,
+): string[] {
+  return native.androidPackage || native.iosBundleId ? [`${product.slug.replaceAll("-", "")}://`] : [];
+}
+
+const splitIds = (ids: string | undefined) =>
+  (ids ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
 // ---- Sign-in code (D-079) ---------------------------------------------------------------------
 // The magic-link email also carries a 6-digit code (Better Auth's email-otp plugin, "sign-in" type),
@@ -98,7 +118,7 @@ function buildAuth(env: AuthEnv) {
       protocol: local ? "http" : "https",
     },
     secret,
-    trustedOrigins: devTrustedOrigins(env),
+    trustedOrigins: [...devTrustedOrigins(env), ...nativeTrustedOrigins()],
     disabledPaths: emailCode ? UNUSED_OTP_PATHS : [],
     database: drizzleAdapter(drizzle(env.DB), { provider: "sqlite", schema: authSchema }),
     advanced: { ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] } },
@@ -113,6 +133,9 @@ function buildAuth(env: AuthEnv) {
         "/sign-in/magic-link": { window: 60, max: 3 },
         "/magic-link/verify": { window: 60, max: 10 },
         "/sign-in/social": { window: 60, max: 10 },
+        // The web→app code (D-120): 8 characters from 31, so 5 tries a minute per IP is plenty.
+        "/app-handoff/redeem": { window: 60, max: 5 },
+        "/app-handoff/create": { window: 60, max: 10 },
         // "/sign-in/email-otp" keeps the email-otp plugin's own rule: 3 per minute per IP (D-079).
       },
     },
@@ -120,7 +143,8 @@ function buildAuth(env: AuthEnv) {
       env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
         ? {
             google: {
-              clientId: env.GOOGLE_CLIENT_ID,
+              // The web client first (redirect sign-in); native ids only widen ID-token audiences (D-120).
+              clientId: [env.GOOGLE_CLIENT_ID, ...splitIds(env.GOOGLE_NATIVE_CLIENT_IDS)],
               clientSecret: env.GOOGLE_CLIENT_SECRET,
               prompt: "select_account",
             },
@@ -144,6 +168,9 @@ function buildAuth(env: AuthEnv) {
       },
     },
     plugins: [
+      // Native clients (D-120): their scheme as origin, cookies handed to the Expo client.
+      expo(),
+      appHandoff(),
       magicLink({
         expiresIn: 15 * 60,
         storeToken: "hashed",

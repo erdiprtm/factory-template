@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { defineProduct, type ProductConfigInput } from "@factory/config";
 import { describe, expect, it } from "vitest";
 import product from "../../../product.config";
-import { aiProcessorLine, fillTemplate, paymentProcessorLine, paymentProcessorName } from "../src/lib/legal";
+import {
+  aiProcessorLine,
+  fillTemplate,
+  paymentProcessorLine,
+  paymentProcessorName,
+  storeProcessorLine,
+} from "../src/lib/legal";
 
 // The privacy policy names the AI processor that product.config.ts `ai` actually uses (D-083, D-084).
 // Holds in every product repo: configs are built from this repo's own, with `ai` swapped.
@@ -81,5 +87,14 @@ describe("legal payment processor", () => {
 
   it("Pakasir needs its own method codes", () => {
     expect(() => withProvider("pakasir", ["QRIS"])).toThrow(/Pakasir method codes/);
+  });
+});
+
+describe("in-app purchase processors (D-120)", () => {
+  it("named only when the product sells in-app", () => {
+    expect(storeProcessorLine({ iap: {} })).toBe("");
+    expect(storeProcessorLine({ iap: { fit_3m: "3m" } })).toMatch(/RevenueCat/);
+    // The empty line is dropped from the policy's list, like the AI line without AI.
+    expect(fillTemplate("a\n{{storeProcessor}}\nb\n", { storeProcessor: "" })).toBe("a\nb\n");
   });
 });

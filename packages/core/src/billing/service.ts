@@ -222,7 +222,14 @@ export async function settlePayment(
   db: Db,
   payment: Payment,
   confirmed: Exclude<ProviderStatus, "pending">,
-  opts: { raw: string; providerRef?: string | null; plans: Plan[]; now?: Date },
+  opts: {
+    raw: string;
+    providerRef?: string | null;
+    plans: Plan[];
+    now?: Date;
+    /** The entitlement's source (D-120): "payment" for web checkout, the store for RevenueCat. */
+    source?: "payment" | "app_store" | "play_store";
+  },
 ): Promise<SettleOutcome> {
   const now = opts.now ?? new Date();
   if (confirmed !== "paid") {
@@ -238,7 +245,7 @@ export async function settlePayment(
   if (!plan) return { kind: "ignored", reason: `unknown_plan ${payment.planId}` };
   const entitlement = await grantFromPayment(
     db,
-    { userId: payment.userId, paymentId: payment.id, planId: plan.id, months: grantMonths(plan) },
+    { userId: payment.userId, paymentId: payment.id, planId: plan.id, months: grantMonths(plan), source: opts.source },
     now,
   );
   const providerRef = opts.providerRef ?? payment.providerRef;

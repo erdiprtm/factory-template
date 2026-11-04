@@ -1,17 +1,19 @@
 import type { AppType } from "@factory/api";
 import { hc } from "hono/client";
 import { track } from "./analytics";
-import { apiBaseUrl } from "./api-base";
+import { apiBaseUrl, fetchCredentials } from "./api-base";
 import { currentTouch } from "./attribution";
+import { sessionHeaders } from "./auth/client";
 
-// Typed RPC client for apps/api. Same origin on web, EXPO_PUBLIC_API_URL on native/dev.
-// credentials: include so the session cookie also flows in local dev (Expo :8081 → API :8787).
+// Typed RPC client for apps/api. Same origin on web, domain.app (or EXPO_PUBLIC_API_URL) on native.
+// The session: the browser's cookie on web (credentials include, also Expo :8081 → API :8787 in
+// local dev); on native the stored cookie as a header (D-120).
 // x-anon-id: the device's random id, for free uses before signup (D-042). Not personal data.
 export const api = hc<AppType>(apiBaseUrl(), {
-  init: { credentials: "include" },
-  headers: (): Record<string, string> => {
+  init: { credentials: fetchCredentials },
+  headers: async (): Promise<Record<string, string>> => {
     const anonId = currentTouch()?.anonId;
-    return anonId ? { "x-anon-id": anonId } : {};
+    return { ...(await sessionHeaders()), ...(anonId ? { "x-anon-id": anonId } : {}) };
   },
 });
 

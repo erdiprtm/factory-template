@@ -34,6 +34,7 @@ import { setMarketingChoice } from "../marketing";
 import { setMonitoringUser } from "../monitoring";
 import { InstallAccountLink } from "../pwa/install-card";
 import { darkModeEnabled, type ThemePreference, useThemePreference } from "../theme";
+import { AppHandoffCard } from "./app-handoff-card";
 
 export function Account() {
   const { t, locale } = useI18n();
@@ -146,6 +147,8 @@ export function Account() {
         )}
       </Card>
 
+      {/* "Lanjut di aplikasi" (D-120): web only, once the product has a store listing. */}
+      <AppHandoffCard />
       <Preferences />
       {/* "Pasang di HP" (D-080): only where this browser can install the app. */}
       <InstallAccountLink />

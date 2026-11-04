@@ -9,6 +9,7 @@ export const appScheme = (slug: string) => slug.replaceAll("-", "");
 
 export function expoConfig(product: ProductConfig): ExpoConfig {
   const n = product.native;
+  const host = product.domain.app;
   const icon = `./${product.pwa.icon}`;
   const iosPermissions = {
     ...(n.permissions.camera ? { NSCameraUsageDescription: n.permissions.camera } : {}),
@@ -31,6 +32,19 @@ export function expoConfig(product: ProductConfig): ExpoConfig {
       ? {
           android: {
             package: n.androidPackage,
+            // App Links (D-120): https://<domain.app>/app/* opens the app, once Play's certificate is known.
+            ...(host && n.androidCertSha256.length > 0
+              ? {
+                  intentFilters: [
+                    {
+                      action: "VIEW",
+                      autoVerify: true,
+                      data: [{ scheme: "https", host, pathPrefix: "/app" }],
+                      category: ["BROWSABLE", "DEFAULT"],
+                    },
+                  ],
+                }
+              : {}),
             adaptiveIcon: {
               foregroundImage: `./${product.pwa.maskableIcon ?? product.pwa.icon}`,
               backgroundColor: product.brand.tokens.colors.light.background,
@@ -42,6 +56,8 @@ export function expoConfig(product: ProductConfig): ExpoConfig {
       ? {
           ios: {
             bundleIdentifier: n.iosBundleId,
+            // Universal links (D-120), once the Apple team id is known.
+            ...(host && n.iosTeamId ? { associatedDomains: [`applinks:${host}`] } : {}),
             supportsTablet: false,
             // Only plain HTTPS and no custom encryption: no export-compliance question per build.
             config: { usesNonExemptEncryption: false },

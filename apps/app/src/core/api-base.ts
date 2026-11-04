@@ -11,6 +11,9 @@ export function apiBaseUrl(): string {
   return url;
 }
 
+/** Native: no browser cookies; the session goes in a header (auth/client.ts sessionHeaders, D-120). */
+export const fetchCredentials: RequestCredentials = "omit";
+
 /** Where an auth flow returns to (native: the path; deep links come with native sign-in, Phase 10). */
 export function appReturnUrl(path: string): string {
   return path;

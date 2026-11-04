@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { defineProduct } from "../packages/config/src/index.ts";
 import product from "../product.config.ts";
 import {
+  APP_LINK_FILES,
   decodeIco,
   encodeIco,
   FAVICON_FILES,
@@ -14,6 +15,7 @@ import {
   PWA_START_URL,
   renderAppFonts,
   renderAppHeaders,
+  renderAppLinks,
   renderFavicons,
   renderFontFaces,
   renderIcons,
@@ -297,6 +299,45 @@ describe("installable web app (D-080)", () => {
       expect(readFileSync(new URL("../apps/app/public/_headers", import.meta.url), "utf8")).toBe(
         renderAppHeaders(product),
       );
+    });
+  });
+
+  describe("app links (D-120)", () => {
+    const fp = Array.from({ length: 32 }, () => "AB").join(":");
+    const native = {
+      androidPackage: "id.example.app",
+      iosBundleId: "id.example.app",
+      androidCertSha256: [fp],
+      iosTeamId: "ABCDE12345",
+    };
+
+    it("none without the ids, so links open the web; nothing in _headers", () => {
+      expect(renderAppLinks({ native: { ...native, androidCertSha256: [], iosTeamId: null } })).toEqual({
+        android: null,
+        ios: null,
+      });
+      expect(renderAppLinks({})).toEqual({ android: null, ios: null });
+      expect(renderAppHeaders({ native: { ...native, iosTeamId: null } })).not.toContain(APP_LINK_FILES.ios);
+    });
+
+    it("with the ids: Digital Asset Links and apple-app-site-association for /app/*, served as JSON", () => {
+      const { android, ios } = renderAppLinks({ native });
+      expect(android).toEqual([
+        {
+          relation: ["delegate_permission/common.handle_all_urls"],
+          target: { namespace: "android_app", package_name: "id.example.app", sha256_cert_fingerprints: [fp] },
+        },
+      ]);
+      expect(ios).toEqual({
+        applinks: { details: [{ appIDs: ["ABCDE12345.id.example.app"], components: [{ "/": "/app/*" }] }] },
+      });
+      expect(renderAppHeaders({ native })).toContain(`/${APP_LINK_FILES.ios}\n  Content-Type: application/json`);
+    });
+
+    it("the template ships no link files", () => {
+      const { android, ios } = renderAppLinks(product);
+      expect(existsSync(`apps/app/public/${APP_LINK_FILES.android}`)).toBe(android !== null);
+      expect(existsSync(`apps/app/public/${APP_LINK_FILES.ios}`)).toBe(ios !== null);
     });
   });
 });

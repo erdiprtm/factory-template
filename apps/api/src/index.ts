@@ -56,6 +56,7 @@ import { afterPaymentSettled } from "./core/payment-events";
 import { configuredProvider, fakePakasirServer, fakeProvider, type PaymentEnv } from "./core/payments";
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
+import { revenueCatWebhook, type StoreEnv } from "./core/store-billing";
 import { answerUpdate, type BotEnv, botReady, verifiedWebhook } from "./core/telegram-bot";
 import { apiBodyLimit } from "./core/uploads";
 import { exampleFeature } from "./features/example";
@@ -71,7 +72,8 @@ export type Bindings = AuthEnv &
   MarketingEnv &
   NotifyEnv &
   BotEnv &
-  RateLimitEnv & {
+  RateLimitEnv &
+  StoreEnv & {
     COMMIT_SHA: string;
     /** Extra admins on top of product.config.ts admin.emails (comma-separated). */
     ADMIN_EMAILS?: string;
@@ -150,6 +152,11 @@ app.post("/api/webhooks/:provider", rateLimit("WEBHOOK_LIMITER", clientIp), asyn
   if (outcome.kind === "processed") await afterPaymentSettled(c.env, outcome, (work) => background(c, work));
   return provider.webhookAck();
 });
+
+// In-app purchases via RevenueCat (D-120): its Authorization header, then RevenueCat's own record.
+app.post("/api/webhooks-store/revenuecat", rateLimit("WEBHOOK_LIMITER", clientIp), (c) =>
+  revenueCatWebhook(c.env, c.req.raw, (work) => background(c, work)),
+);
 
 // The owner's Telegram bot (D-114). Telegram sends our secret in X-Telegram-Bot-Api-Secret-Token;
 // anything else is refused. The answer rides in the response (a sendMessage call), so the reply

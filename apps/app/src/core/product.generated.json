@@ -193,7 +193,10 @@
     "stores": {
       "play": null,
       "appStore": null
-    }
+    },
+    "androidCertSha256": [],
+    "iosTeamId": null,
+    "iap": {}
   },
   "marketing": {
     "metaPixelId": "1134506435670666",

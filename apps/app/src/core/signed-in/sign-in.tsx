@@ -1,13 +1,14 @@
 import { Button, CenteredScreen, ErrorText, Input, Text } from "@factory/ui";
 import { Redirect } from "expo-router";
 import { useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import product from "../../../../../product.config";
 import { slots } from "../../features/slots";
 import { track } from "../analytics";
 import { appReturnUrl } from "../api-base";
 import { authClient } from "../auth/client";
 import { CodeForm } from "../auth/code-form";
+import { HandoffForm } from "../auth/handoff-form";
 import { useMe, useRefreshMe } from "../auth/use-me";
 import { useI18n } from "../i18n";
 
@@ -111,6 +112,8 @@ export function SignIn() {
               </Button>
             </>
           ) : null}
+          {/* Native: signed in or paid on the web already? The code from Akun signs in here (D-120). */}
+          {Platform.OS !== "web" ? <HandoffForm /> : null}
         </View>
       )}
     </CenteredScreen>
