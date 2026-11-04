@@ -37,6 +37,7 @@ Kami memakai penyedia layanan berikut sebagai pemroses data. Sebagian dari merek
 
 - **Cloudflare:** hosting aplikasi dan basis data.
 {{paymentProcessor}}
+{{storeProcessor}}
 - **Resend:** pengiriman email.
 {{aiProcessor}}
 - **Google:** login dengan akun Google (jika kamu memilihnya).

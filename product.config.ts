@@ -100,6 +100,11 @@ export default defineProduct({
     version: "1.0.0",
     permissions: { camera: null, photos: null },
     stores: { play: null, appStore: null },
+    // App Links / universal links for https://<domain.app>/app/* (D-120); empty = none.
+    androidCertSha256: [],
+    iosTeamId: null,
+    // In-app purchases via RevenueCat (D-120): store product id → plan id. Empty = none.
+    iap: {},
   },
   // The template's own TEST Pixel (an Events Manager dataset), for the sell-engine acceptance test.
   // /new-product clears it, like the OpenPanel and Sentry IDs: each product gets its own Pixel (D-034).

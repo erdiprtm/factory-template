@@ -685,5 +685,22 @@ Kode app native dibuat lewat Expo (EAS). Build berjalan di server Expo. Saya tid
    pbpaste | gh secret set EXPO_TOKEN
    ```
 
-Langkah berikutnya (project EAS, kunci Play untuk `eas submit`, App Store Connect API key, Sign in with Apple, RevenueCat) akan ditambahkan di sini saat bagiannya dibuat.
+**Pembelian di aplikasi iOS lewat RevenueCat (D-120):**
+7. Daftar di https://app.revenuecat.com, lalu buat project untuk produk ini dan sambungkan ke app di App Store Connect.
+8. Di App Store Connect, buat produk **Non-Renewing Subscription** untuk tiap paket, misalnya `fit_3m` dan `fit_6m`. Kirim ID produknya ke agent supaya diisi di `native.iap`.
+9. Di RevenueCat, buka **Integrations → Webhooks** dan isi URL `https://<domain app>/api/webhooks-store/revenuecat`. Buat teks acak panjang untuk **Authorization header value**, misalnya dari pengelola kata sandi. Salin teks itu, lalu jalankan dari folder repo:
+
+   ```bash
+   pbpaste | pnpm --filter @factory/api exec wrangler versions secret put REVENUECAT_WEBHOOK_AUTH --env=""
+   ```
+
+10. Di RevenueCat, buka **Project settings → API keys** dan buat **Secret API key (v1)**. Salin, lalu jalankan:
+
+    ```bash
+    pbpaste | pnpm --filter @factory/api exec wrangler versions secret put REVENUECAT_API_KEY --env=""
+    ```
+
+Selama kedua secret itu belum ada, webhook-nya mati (404) dan tidak ada yang berubah.
+
+Langkah berikutnya (project EAS, kunci Play untuk `eas submit`, App Store Connect API key, client ID Google untuk app, Sign in with Apple) akan ditambahkan di sini saat bagiannya dibuat.
 

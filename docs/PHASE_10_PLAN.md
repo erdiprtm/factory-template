@@ -1,6 +1,6 @@
 # Phase 10 plan: native apps
 
-Status: **accepted by Erdi 2026-11-04** (decisions in §8 and D-119). A1 (SDK 58) and A2 (native config) are done; the rest is not built yet.
+Status: **accepted by Erdi 2026-11-04** (decisions in §8 and D-119). Done: A1 (SDK 58), A2 (native config) (D-119); A3 native sign-in, A4 hand-off + link files, and B2's server side (RevenueCat webhook → entitlements) (D-120). Not yet: dev build, Google/Apple native buttons, the app's RevenueCat SDK, CI builds: they need Erdi's accounts and a device.
 
 Facts were checked against official docs on 2026-11-04 (sources in §10). Items marked ⚠ could not be confirmed and need a check before building. Everything here is template-owned, so every product gets it through `/sync-template`.
 
@@ -101,25 +101,34 @@ Each step is its own PR, with tests, a DECISIONS entry, STATUS and `pnpm verify`
 
 ## 5. Part C: health data (template, for Myna Run)
 
-Built after the Myna Run spec is final. Estimates: Health Connect + server tables 5–7 days, HealthKit 2–3 days, Huawei 3–5 days.
+Built after the Myna Run spec is final (`specs/myna-run.md`). Estimates: Health Connect + server tables 5–7 days, HealthKit 2–3 days, Huawei 3–5 days, the Strava write-only adapter 1–2 days.
+
+**Myna Run spec decisions (Erdi, 2026-11-04):**
+
+- **No generative AI in v1.** Debrief and report text come from Bahasa Indonesia templates in code. The AI adapter stays off, and no health data goes to Gemini or OpenRouter.
+- **Strava is an entry point but never read through its API.** Policy §5.4 bans processing Strava Data for "analytics, analyses, customer insight generation" and combining it with other customer data, even without AI.
+  - Strava runs reach Myna through HealthKit / Health Connect (Athlytic's pattern), so there is no Strava read adapter.
+  - Optional "Hubungkan Strava" is a write-only OAuth, added after Strava's written OK. It writes Myna's own summary, with numbers from HC/HealthKit, into the new activity's description. It uses only the webhook's activity id and start time, with the `activity:write` scope and a deauthorize webhook.
+- **No aggregator.** The stack is Health Connect + HealthKit + Huawei Health Kit. The Garmin API comes in v1.1, after Garmin's written permission for a paid app. Oura and WHOOP are never integrated.
 
 **What the research found:**
 
-1. **Strava data cannot feed AI.**
-   - Strava API Policy, effective 2026-06-01, §5.3: no Strava data "in connection with the development, training, evaluation, or operation of any AI Application".
-   - Also §5.4 (no "analytics, analyses, customer insight generation"), §5.8 (no charging for Strava data) and §3.3 (Standard tier needs an active Strava subscription).
-   - So Strava is at most display-only, after written confirmation from Strava. It is never used in the debrief or the score.
-2. **HRV is often missing on Android.**
+1. **HRV is often missing on Android.**
    - Samsung writes neither HRV nor resting HR to Health Connect. Huawei doesn't write to Health Connect at all. Garmin's Health Connect list has no HRV.
    - Scores must work from resting HR + sleep, with HRV as a bonus.
    - Android HRV is RMSSD and iOS HRV is SDNN. They aren't comparable, so each gets its own column and baseline.
-3. **History and timing differ by platform.**
+2. **History and timing differ by platform.**
    - Health Connect gives 30 days by default; `READ_HEALTH_DATA_HISTORY` lifts that. Check `getFeatureStatus` at runtime, because older phones may lack it.
    - HealthKit gives the full history, unless the user limits it (iOS 27).
    - Background sync works on both, but not reliably, so the app always syncs on open as well.
-4. **Huawei, the #1 brand, needs its cloud REST API.**
+3. **Huawei, the #1 brand, needs its cloud REST API.**
    - What's known: HUAWEI ID OAuth, test scopes for 100 users, then a verification review.
    - Exact scopes, history depth and Indonesia availability are unverified ⚠. Apply under the PT now.
+4. **Strava's terms** (API Policy effective 2026-06-01) are the reason for the write-only design:
+   - §5.3: no Strava data "in connection with the ... operation of any AI Application".
+   - §5.4: no analytics or insight generation.
+   - §5.8: no charging for Strava data.
+   - §3.3: the Standard tier needs an active Strava subscription.
 
 **Design:**
 
@@ -129,20 +138,22 @@ Built after the Myna Run spec is final. Estimates: Health Connect + server table
   - Shows a rationale screen before the OS dialog.
   - Paid features never depend on granting a permission.
 - **Server:**
-  - `POST /api/health/batch` writes `health_samples`: raw, normalised, with `metric`, `value`, `unit`, `method`, local timezone offset, `platform`, `source_app`, and a unique `external_id` so re-syncs are idempotent.
+  - `POST /api/health/batch` writes `health_samples`: raw, normalised, with `metric`, `value`, `unit`, `method`, local timezone offset, `platform`, `source_app` (e.g. Strava's package, when a run came from Strava through HC/HealthKit), and a unique `external_id` so re-syncs are idempotent.
   - That rolls up into `health_daily`: per local day, one chosen source per metric, never summed across apps, with the source stored per field.
   - `health_workouts` holds runs. `health_connections` holds the status and **encrypted** cloud tokens (AES-GCM with a Worker secret).
-  - Core offers baseline helpers; the score formula is product-owned.
-- **Cloud adapters** share one interface: authorize, callback, refresh, webhook, backfill through a Queue, revoke. Huawei is first; Strava is optional, display-only.
+  - Core offers baseline helpers; the score formula and the template texts are product-owned.
+- **Cloud adapters** share one interface: authorize, callback, refresh, webhook, revoke, plus a backfill through a Queue where the source has history.
+  - Huawei reads.
+  - Strava, optional, only writes: no backfill, and it never stores Strava's own activity data beyond the id and start time.
 - **Privacy (UU PDP, specific data):**
   - Explicit consent before the first read.
   - Export and account deletion cover `health_*` and revoke tokens.
   - Raw data kept 90 days, daily rows until deletion.
-  - Never sent to Meta, ads or analytics. Only the summary a feature needs goes to the AI provider.
+  - Never sent to Meta, ads, analytics or any AI provider.
 - **Stores:**
   - Play: the Health Connect permissions declaration, one justification per type, and the same privacy policy in the rationale screen.
   - Apple: HealthKit and background-delivery entitlements, `NSHealthShareUsageDescription`, and HealthKit stated in the description (2.5.1).
-  - Not in scope: writing data back, routes and maps, watch apps.
+  - Not in scope: writing health data back, routes and maps, watch apps.
 
 ---
 
@@ -165,7 +176,7 @@ Built after the Myna Run spec is final. Estimates: Health Connect + server table
 | Personal Play account: 12 testers × 14 days before production | Use an organization account (needs D-U-N-S), or start the closed test the day the account exists |
 | Myna Fit's scan only exists as `upload.web.ts` | A native version with `expo-image-picker` / camera in Myna Fit's features (Agent Fit) |
 | EAS free tier: 15 builds per platform per month, low priority | Starter at US$19/month when builds get frequent |
-| Part C: HRV missing, Huawei approval slow, Strava terms | See §5. The Myna Run spec designs around them |
+| Part C: HRV missing, Huawei approval slow, Strava terms | See §5. The Myna Run spec designs around them (no AI, no Strava read) |
 
 ---
 
@@ -177,7 +188,7 @@ Built after the Myna Run spec is final. Estimates: Health Connect + server table
 4. **iOS IAP:** RevenueCat, its webhook writing our own entitlements. IAP price: to be set with the products.
 5. **Google sign-in on native:** yes, so Sign in with Apple is built too (4.8).
 6. **Push (A6):** later.
-7. **Myna Run (Part C):** decided in the Myna Run spec.
+7. **Myna Run (Part C):** decided in the Myna Run spec (§5): no generative AI, Strava only through HC/HealthKit (plus an optional write-only summary), no aggregator, Garmin in v1.1.
 
 ---
 

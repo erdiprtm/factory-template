@@ -2433,3 +2433,53 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - Sign in with Apple, RevenueCat and CI builds, which need the store accounts.
 - **Tests:** `expoConfig` without and with native ids (store ids, permission texts only when set, the EAS project, router options); the schema's reverse-domain check and defaults; all app tests on SDK 58.
 
+## D-120: Native sign-in, the web→app hand-off code, app links, RevenueCat purchases (2026-11-04)
+
+- **Context.** Phase 10 A3, A4 and B2's server side (`docs/PHASE_10_PLAN.md`), built before any store account or device exists. Everything is **off until configured**, so web behaviour and production are unchanged.
+- **Native sign-in.**
+  - `@better-auth/expo` 1.7.6, the same version as `better-auth` (D-002), on the server and in the app, plus `expo-secure-store` 58.0.2, `expo-network` 58.0.3 and `expo-web-browser` 58.0.6 (SDK 58's versions).
+  - Server: the `expo()` plugin. `trustedOrigins` gains the app scheme (`<slug without dashes>://`) only once `native.androidPackage` or `iosBundleId` is set, never `exp://`.
+  - Google's `clientId` becomes an array: the web client, then `GOOGLE_NATIVE_CLIENT_IDS` (comma-separated public ids, optional). The array only widens ID-token audiences.
+  - App: `auth/client.ts` (native: `expoClient` with SecureStore) and `auth/client.web.ts` (web, unchanged), with one export each, `sessionHeaders()`. On native the RPC client sends the stored cookie as a header with `credentials: "omit"` (Better Auth's Expo guide); on web it is unchanged.
+  - The sign-in screen already leads with the email code (D-079), which works natively as is.
+  - The native Google button (ID token) and Sign in with Apple come with the dev build (B1). Both need Erdi's client ids and keys.
+- **Hand-off code** (`apps/api/src/core/app-handoff.ts`, a Better Auth plugin, so its session cookie is Better Auth's own and the Expo client stores it):
+  - `POST /api/auth/app-handoff/create` (signed in): 8 characters from 31 with no look-alikes. Stored hashed (SHA-256) in the verification table for 10 minutes, one open code per account.
+  - `POST /api/auth/app-handoff/redeem` (the app): single use, deleted before anything else. Creates a **new** session; the web cookie is never copied.
+  - Rate limits per IP: 5 redeems and 10 creates a minute.
+  - Web: Akun's "Lanjut di aplikasi" card (store buttons, "Tampilkan kode") shows only once `native.stores` has a URL.
+  - Native: "Punya kode dari web?" on sign-in, and the `/app/masuk?c=<code>` route, which fills in the code. On the web that route redirects to Akun.
+  - Events: `app_store_clicked {store}`, `app_signed_in {method: "handoff"}`.
+- **App Links / universal links.**
+  - Config: `native.androidCertSha256` (Play's app-signing and EAS's upload certificate, public) and `native.iosTeamId`.
+  - `pnpm theme` writes `public/.well-known/assetlinks.json` and `apple-app-site-association` for `/app/*` only when the ids exist, removes them otherwise, and serves the Apple file as `application/json` via `_headers`.
+  - `app.config` gets the matching `intentFilters` (autoVerify) and `associatedDomains` for `domain.app`.
+- **RevenueCat → entitlements** (`@factory/core/billing/revenuecat`, route `POST /api/webhooks-store/revenuecat`).
+  - It isn't under `/api/webhooks/:provider`: that route belongs to the web payment provider.
+  - Off (404) until `REVENUECAT_WEBHOOK_AUTH` and `REVENUECAT_API_KEY` are both set. A wrong `Authorization` header is 401 and pings the owner (throttled), as for payment webhooks.
+  - **Never on the webhook alone:** for `NON_RENEWING_PURCHASE` (and `INITIAL_PURCHASE`), the server reads RevenueCat's customer record (`GET /v1/subscribers/{id}`) and grants only if the purchase is in `non_subscriptions[product]`.
+    - It matches on `store_transaction_id`, or, when that field is absent, on the same store and a purchase time within 2 minutes.
+    - ⚠ RevenueCat's docs don't show whether non-subscription items carry `store_transaction_id`; check with the first sandbox purchase.
+    - A failed lookup releases the event key and answers 503, so RevenueCat retries (5 times over ~80 minutes).
+  - A purchase becomes a `payments` row (provider `revenuecat`, provider_ref = the store transaction, amount = the IDR price, else 0) settled through `settlePayment`.
+    - The entitlement source is `app_store` or `play_store` (`grantFromPayment` gained `source`); months and stacking are the same as for DOKU.
+    - It goes through `afterPaymentSettled`: purchase/renewal event, Telegram, CAPI with consent, receipt.
+  - Idempotent per RevenueCat event id (`webhook_events`) and per store transaction (payments' unique provider ref).
+  - `CANCELLATION` with `cancel_reason: CUSTOMER_SUPPORT` (a store refund) marks the payment refunded and ends access, as /admin's refund does.
+  - Users: the app will `Purchases.logIn(<our user id>)`, so `app_user_id` / aliases are our ids; RevenueCat's anonymous ids are ignored.
+  - Sandbox purchases are granted in production too, as RevenueCat advises (App Review buys in sandbox).
+  - Config `native.iap`: store product id → plan id, checked against `plans`. With any IAP product, the privacy policy names Apple/Google and RevenueCat (`storeProcessorLine`).
+- **Dependencies:** pnpm overrides pin `expo-router` 58.0.24, `@expo/ui` 58.0.21 and `react`/`react-dom` 19.3.0. `apps/api` gets Expo as an auto-installed peer of `@better-auth/expo`; without the pins it pulled SDK 57's router and React 19.2.
+- **Not tested on a device:** there's no dev build yet (no Expo account, no Xcode or Android SDK on this Mac). The first dev build must check:
+  - sign-in by code;
+  - the hand-off code;
+  - an App Link opening `/app/masuk`;
+  - the stored session surviving a restart.
+- **Tests:**
+  - API (real D1): the hand-off code (new session, same account, single use, replaced by a new code, loose typing, refused without a session); native origins only with native ids;
+  - RevenueCat (real D1): grant with source `app_store` for the plan, replays by event and by transaction, refund, not in RevenueCat's record, lookup down then retried, unknown product, store, account and type, the route off without secrets; helpers;
+  - app: the Akun card hidden without stores, store buttons and code; code typing;
+  - gen-theme: link files only with ids, their exact JSON, the Apple content type; the template ships none;
+  - site: the store processor line only with IAP;
+  - config: `native.iap` must map to plans.
+

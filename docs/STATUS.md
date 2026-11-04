@@ -4,6 +4,17 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-04: Native sign-in, web→app hand-off code, app links, RevenueCat purchases (D-120)
+
+- Native: `@better-auth/expo` (secure-storage session, app scheme trusted only with native ids), session header on the RPC client; Google accepts native client ids.
+- Hand-off: Akun's "Lanjut di aplikasi" (once a store URL is set) shows a 10-minute single-use code; the app's sign-in and `/app/masuk?c=` redeem it for a new session.
+- App Links / universal links files and `app.config` entries from `native.androidCertSha256` / `iosTeamId` (none by default).
+- RevenueCat webhook → payments + `app_store`/`play_store` entitlements, confirmed against RevenueCat's API first; refunds end access; off until its two secrets exist. Privacy policy names the stores and RevenueCat when `native.iap` is set.
+- Not yet on a device: needs the dev build (Erdi's Expo account).
+- Phase 10 plan Part C updated from the Myna Run spec: no generative AI, Strava only via Health Connect/HealthKit (optional write-only summary), no aggregator.
+
+---
+
 ## 2026-11-04: Phase 10 starts: plan accepted, Expo SDK 58, native config (D-119)
 
 - `docs/PHASE_10_PLAN.md` accepted by Erdi: Android + iOS together, organization store accounts under the PT, RevenueCat for iOS IAP, Google + Apple sign-in, push later. Myna Fit is the first native product; Myna Run's health data (Part C) waits for its spec.

@@ -52,6 +52,15 @@ export function paymentProcessorLine(payments: ProductConfig["payments"]): strin
 }
 
 /**
+ * In-app purchases (D-120): when the product sells through the App Store or Google Play
+ * (`native.iap` set), Apple/Google take the payment and RevenueCat records it for us. Empty otherwise.
+ */
+export function storeProcessorLine(native: Pick<ProductConfig["native"], "iap">): string {
+  if (Object.keys(native.iap).length === 0) return "";
+  return "- **Apple App Store / Google Play dan RevenueCat (pembelian di aplikasi):** Apple atau Google memproses pembayaran di aplikasi; RevenueCat mencatat pembelian (ID akun, produk, waktu) supaya akses kamu aktif. Kami tidak menerima data kartu atau rekeningmu.";
+}
+
+/**
  * Fills {{placeholders}} from `values`; unknown ones stay as they are. A placeholder alone on its
  * line that fills in empty (e.g. no AI) removes the whole line, so a list keeps no blank bullet.
  */

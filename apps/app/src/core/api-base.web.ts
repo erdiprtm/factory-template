@@ -4,6 +4,9 @@ export function apiBaseUrl(): string {
   return process.env.EXPO_PUBLIC_API_URL || window.location.origin;
 }
 
+/** Web: the session cookie flows, also across origins in local dev (Expo :8081 → API :8787). */
+export const fetchCredentials: RequestCredentials = "include";
+
 /**
  * Where an auth flow returns to: a path on this app. In local dev the app (:8081) and the API
  * (:8787) are different origins, so the path gets the app's origin (trusted in development only,

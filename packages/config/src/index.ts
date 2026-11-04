@@ -616,6 +616,22 @@ export const productSchema = z.object({
       stores: z
         .object({ play: z.url().nullable().default(null), appStore: z.url().nullable().default(null) })
         .default({ play: null, appStore: null }),
+      // App Links / universal links (D-120): https://<domain.app>/app/* opens the installed app.
+      // androidCertSha256: the Play app-signing certificate's SHA-256 (Play Console → App integrity)
+      // and EAS's upload key (`eas credentials`); iosTeamId: the Apple Developer team id. Public.
+      // Empty / null = no link file, so the links open the web instead.
+      androidCertSha256: z
+        .array(z.string().regex(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/, "a SHA-256 fingerprint like AB:CD:…"))
+        .default([]),
+      iosTeamId: z
+        .string()
+        .regex(/^[A-Z0-9]{10}$/, "a 10-character Apple team id")
+        .nullable()
+        .default(null),
+      // In-app purchases via RevenueCat (D-120): store product id → plan id, e.g.
+      // { "fit_3m": "3m" }. The plan's months (and bonus) are granted, as for a web payment.
+      // iOS sells non-renewing products; App Store Connect holds their prices. Empty = no IAP.
+      iap: z.record(z.string().regex(/^[A-Za-z0-9._:-]{1,100}$/, "a store product id"), z.string()).default({}),
     })
     .default({
       androidPackage: null,
@@ -624,6 +640,9 @@ export const productSchema = z.object({
       version: "1.0.0",
       permissions: { camera: null, photos: null },
       stores: { play: null, appStore: null },
+      androidCertSha256: [],
+      iosTeamId: null,
+      iap: {},
     }),
   // Meta Pixel ID (public: browsers carry it). Unset = no Pixel, no Conversions API, no marketing
   // consent banner. The CAPI access token is a Worker secret (META_CAPI_TOKEN), never here. D-034.
@@ -672,6 +691,11 @@ export function defineProduct(config: ProductConfigInput): ProductConfig {
   }
   const c = result.data;
   const unlabelled = [...new Set(c.plans.flatMap((p) => (p.tier && !(p.tier in c.pricing.tiers) ? [p.tier] : [])))];
+  const unknownIap = Object.entries(c.native.iap).filter(([, plan]) => !c.plans.some((p) => p.id === plan));
+  if (unknownIap.length > 0)
+    throw new Error(
+      `Invalid product.config.ts:\nnative.iap maps ${unknownIap.map(([id, plan]) => `${id} → ${plan}`).join(", ")} to no plan`,
+    );
   if (unlabelled.length > 0)
     throw new Error(`Invalid product.config.ts:\nplan tier ${unlabelled.join(", ")} has no label in pricing.tiers`);
   return { ...c, ai: c.ai ? resolveAi(c.ai, c.legal) : null };

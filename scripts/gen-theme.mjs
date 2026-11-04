@@ -360,7 +360,50 @@ export function renderAppHeaders(product) {
     "/_expo/static/*",
     "  Cache-Control: public, max-age=31536000, immutable",
     "",
+    // Apple reads the file only as JSON, and it has no extension (D-120).
+    ...(renderAppLinks(product).ios ? [`/${APP_LINK_FILES.ios}`, "  Content-Type: application/json", ""] : []),
   ].join("\n");
+}
+
+// ---- App Links / universal links (D-120) ----
+
+/** The app paths the installed app opens (the web→app hand-off code lands on /app/masuk). */
+export const APP_LINK_PATHS = ["/app/*"];
+export const APP_LINK_FILES = {
+  android: ".well-known/assetlinks.json",
+  ios: ".well-known/apple-app-site-association",
+};
+
+/**
+ * The two link files, or null when the product hasn't the ids for one: Android's Digital Asset
+ * Links (package + signing certificates) and Apple's apple-app-site-association (team + bundle).
+ */
+export function renderAppLinks(product) {
+  const n = product.native ?? {};
+  const android =
+    n.androidPackage && n.androidCertSha256?.length
+      ? [
+          {
+            relation: ["delegate_permission/common.handle_all_urls"],
+            target: {
+              namespace: "android_app",
+              package_name: n.androidPackage,
+              sha256_cert_fingerprints: n.androidCertSha256,
+            },
+          },
+        ]
+      : null;
+  const ios =
+    n.iosBundleId && n.iosTeamId
+      ? {
+          applinks: {
+            details: [
+              { appIDs: [`${n.iosTeamId}.${n.iosBundleId}`], components: APP_LINK_PATHS.map((p) => ({ "/": p })) },
+            ],
+          },
+        }
+      : null;
+  return { android, ios };
 }
 
 /** Reads a source icon and checks it: a square PNG of at least 512 px. */
@@ -441,6 +484,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     [OUTPUTS.appHtml]: renderIndexHtml(product),
     [OUTPUTS.appHeaders]: renderAppHeaders(product),
   };
+  const links = renderAppLinks(product);
+  const linkFiles = {
+    [publicPath(`/${APP_LINK_FILES.android}`)]: links.android,
+    [publicPath(`/${APP_LINK_FILES.ios}`)]: links.ios,
+  };
+  for (const [file, json] of Object.entries(linkFiles)) if (json) files[file] = `${JSON.stringify(json, null, 2)}\n`;
   const icons = {};
   if (product.pwa.enabled) {
     files[publicPath(PWA_FILES.manifest)] = `${JSON.stringify(renderManifest(product), null, 2)}\n`;
@@ -497,6 +546,17 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       console.log(`Removed ${file}`);
     }
   }
+  // No ids for a link file: none left behind (the links then open the web).
+  for (const [file, json] of Object.entries(linkFiles)) {
+    if (json || !existsSync(file)) continue;
+    if (check) {
+      console.error(`${file} should not exist (native link ids unset). Run: pnpm theme`);
+      stale = true;
+    } else {
+      rmSync(file);
+      console.log(`Removed ${file}`);
+    }
+  }
   for (const [file, css] of Object.entries(files)) {
     let current = "";
     try {
@@ -507,6 +567,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       console.error(`${file} is out of date (product.config.ts changed). Run: pnpm theme`);
       stale = true;
     } else {
+      mkdirSync(dirname(file), { recursive: true });
       writeFileSync(file, css);
       console.log(`Wrote ${file}`);
     }

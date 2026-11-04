@@ -33,6 +33,8 @@ describe("expoConfig", () => {
     expect(product.native.version).toMatch(/^\d+\.\d+\.\d+$/);
     const base = { ...product, ai: null } as unknown as Parameters<typeof defineProduct>[0];
     expect(() => defineProduct({ ...base, native: { androidPackage: "MynaFit" } })).toThrow(/reverse-domain/);
+    // D-120: every in-app product maps to a real plan.
+    expect(() => defineProduct({ ...base, native: { iap: { fit_3m: "no-such-plan" } } })).toThrow(/native\.iap/);
     expect(defineProduct({ ...base, native: { androidPackage: "id.mynahealth.fit" } }).native).toMatchObject({
       androidPackage: "id.mynahealth.fit",
       iosBundleId: null,

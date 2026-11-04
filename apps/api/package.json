@@ -17,6 +17,7 @@
     "auth:schema": "auth generate --config src/core/auth.cli.ts --output ../../packages/db/src/core/auth-schema.ts -y"
   },
   "dependencies": {
+    "@better-auth/expo": "1.7.6",
     "@factory/config": "workspace:*",
     "@factory/core": "workspace:*",
     "@factory/db": "workspace:*",

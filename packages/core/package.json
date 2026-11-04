@@ -16,6 +16,7 @@
     "./email": "./src/email/index.ts",
     "./email/templates": "./src/email/templates.ts",
     "./billing": "./src/billing/index.ts",
+    "./billing/revenuecat": "./src/billing/revenuecat.ts",
     "./account": "./src/account/index.ts",
     "./analytics": "./src/analytics/index.ts",
     "./admin": "./src/admin/index.ts",

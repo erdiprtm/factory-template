@@ -1,7 +1,7 @@
 import { methodChips } from "@factory/core/pricing";
 import registry from "../../../../factory.json";
 import product from "../../../../product.config";
-import { aiProcessorLine, fillTemplate, paymentProcessorLine, paymentProcessorName } from "./legal";
+import { aiProcessorLine, fillTemplate, paymentProcessorLine, paymentProcessorName, storeProcessorLine } from "./legal";
 import { appUrlFor } from "./urls.mjs";
 
 export { product };
@@ -53,6 +53,7 @@ export function fillPlaceholders(text: string): string {
     productDataDescription: product.legal.productDataDescription,
     aiProcessor: aiProcessorLine(product.ai),
     paymentProcessor: paymentProcessorLine(product.payments),
+    storeProcessor: storeProcessorLine(product.native),
     paymentProcessorName: paymentProcessorName(product.payments),
   };
   return fillTemplate(text, values);

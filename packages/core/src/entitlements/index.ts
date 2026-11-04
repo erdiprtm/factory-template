@@ -70,7 +70,14 @@ export async function grantTrial(db: Db, userId: string, days: number, now = new
  */
 export async function grantFromPayment(
   db: Db,
-  input: { userId: string; paymentId: string; planId: string; months: number },
+  input: {
+    userId: string;
+    paymentId: string;
+    planId: string;
+    months: number;
+    /** Web checkout = "payment"; a store purchase via RevenueCat = "app_store" / "play_store" (D-120). */
+    source?: "payment" | "app_store" | "play_store";
+  },
   now = new Date(),
 ): Promise<Entitlement> {
   const existing = await db.select().from(entitlements).where(eq(entitlements.paymentId, input.paymentId)).get();
@@ -79,7 +86,13 @@ export async function grantFromPayment(
   try {
     return await insertEntitlement(
       db,
-      { userId: input.userId, source: "payment", planId: input.planId, paymentId: input.paymentId, ...period },
+      {
+        userId: input.userId,
+        source: input.source ?? "payment",
+        planId: input.planId,
+        paymentId: input.paymentId,
+        ...period,
+      },
       now,
     );
   } catch (err) {

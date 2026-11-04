@@ -11,6 +11,8 @@ BETTER_AUTH_SECRET=
 # Google sign-in (SETUP_HUMAN.md step 4). Optional: without them the Google button is hidden.
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+# Native apps' Google client ids (Android, iOS), comma-separated (D-120). Optional: public ids, not secret.
+GOOGLE_NATIVE_CLIENT_IDS=
 
 # Resend (SETUP_HUMAN.md step 7). Optional locally: without it, magic links print to the wrangler log.
 # Required on production and preview, or sign-in emails fail.
@@ -76,3 +78,9 @@ TELEGRAM_CHAT_ID=
 # Two-way bot (`notifications.telegram.commands`, D-114): any random 1-256 chars of A-Z a-z 0-9 _ -.
 # Telegram sends it back on every webhook call; anything without it is refused.
 TELEGRAM_WEBHOOK_SECRET=
+
+# RevenueCat (in-app purchases, D-120; SETUP_HUMAN.md step 15). Optional: without both, the webhook is off.
+# REVENUECAT_WEBHOOK_AUTH: the Authorization header value set in RevenueCat's webhook settings.
+# REVENUECAT_API_KEY: a RevenueCat secret API key (v1), to confirm each purchase before granting.
+REVENUECAT_WEBHOOK_AUTH=
+REVENUECAT_API_KEY=
