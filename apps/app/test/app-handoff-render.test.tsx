@@ -16,7 +16,6 @@ vi.mock("../src/core/auth/client", () => ({
       return { data: { code: "ABCD2345", expiresAt: new Date().toISOString() }, error: null };
     },
   },
-  sessionHeaders: async () => ({}),
 }));
 
 async function load() {

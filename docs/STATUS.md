@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-04: First web bundle free of better-auth again (D-120 follow-up), from Myna Fit's sync
+
+- D-120 made `core/api.ts` import `sessionHeaders` from `auth/client`, which put better-auth's web client into the entry bundle (D-059): 1.40 → 1.52 MB. `sessionHeaders` now lives in `auth/session-headers(.web).ts` (the web one imports nothing): 1.42 MB. The bundle-split test also guards `auth/client.web.ts`, the file the web bundle would carry; it fails on the old code.
+
+---
+
 ## 2026-11-04: Native sign-in, web→app hand-off code, app links, RevenueCat purchases (D-120)
 
 - Native: `@better-auth/expo` (secure-storage session, app scheme trusted only with native ids), session header on the RPC client; Google accepts native client ids.

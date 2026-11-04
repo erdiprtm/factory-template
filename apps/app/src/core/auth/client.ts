@@ -18,9 +18,3 @@ export const authClient = createAuthClient({
     emailOTPClient(),
   ],
 });
-
-/** Native: our own API calls carry the stored session cookie by hand (no browser cookie jar). */
-export async function sessionHeaders(): Promise<Record<string, string>> {
-  const cookie = await authClient.getCookie();
-  return cookie ? { cookie } : {};
-}
