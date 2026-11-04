@@ -32,6 +32,15 @@ export function forgetTouch(): void {
   touch = null;
 }
 
+/**
+ * Takes over the touch handed by an in-app browser's escape link (D-121), over this browser's own:
+ * the quiz, consents and anonymous uses belong to that anonId, and its click time keeps fbc right.
+ */
+export function adoptTouch(handed: Touch): void {
+  touch = handed;
+  write(KEY, JSON.stringify(touch));
+}
+
 /** This device's touch; the first call captures it from the current URL. */
 export function currentTouch(): Touch {
   if (!touch) {

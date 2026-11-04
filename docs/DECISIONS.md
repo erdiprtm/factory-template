@@ -2483,3 +2483,20 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - site: the store processor line only with IAP;
   - config: `native.iap` must map to plans.
 
+
+## D-121: Sign-in offers the real browser inside Instagram, Facebook, Threads and TikTok (2026-11-04)
+
+- **Context.** Myna Fit's funnel leaks at sign-in for paid-social visitors. They take the quiz and the first result inside the app's own browser; the magic link then opens in another browser with an empty localStorage (no quiz progress, no `afterSignIn`) and a different anonId (anonymous scans and consents unclaimed, fbc loses the click time). The 6-digit code (D-079) fixes it, but people miss it. Erdi decided on a popup with "Buka di browser". It must be core: the state is core's (quiz storage, touch), and the `signInHeader` slot is display-only (D-086).
+- **What.** On sign-in's email stage, before an email is sent, an in-app browser (user agent: `Barcelona` = Threads, `Instagram`, `FBAN/FBAV/FB_IAB`, `musical_ly`/`BytedanceWebview`/`trill`/`TikTok`) gets a dialog: "Buka di browser", and "Tetap di sini — pakai kode 6 digit" (just "Tetap di sini" without `auth.emailCode`). Config `auth.inAppEscape`, **on by default**: it changes nothing outside those browsers.
+- **Opening** happens only on the tap, never automatically on load (in-app browsers block scripted jumps to other apps, and an unasked jump is hostile). The schemes are undocumented community findings (2026), so they live in one function (`escapeHref`) and need a real-device check:
+  - Android: `intent://<host><path>?<query>#<fragment>#Intent;scheme=https;end`, no package, so the default browser. Android reads the intent part after the last `#`.
+  - iOS Instagram: `instagram://extbrowser/?url=<encoded>`.
+  - iOS Facebook, Threads, TikTok: `x-safari-https://…`.
+  - Nothing known, or still on the page after 1.5 s: "Ketuk ⋯ … Buka di browser" plus "Salin tautan".
+- **What travels.**
+  - The query carries `withTouch` (aid, fst, UTM, fbclid), the marketing choice (`mc`, as from the site) and `hx=1`. With `hx=1` the opened browser **adopts** the handed touch even if it has its own, since the quiz, consents and anonymous uses belong to that anonId.
+  - The **fragment** `#fx=` carries the device state: `factory.quiz.<id>`, `factory.afterSignIn`, `factory.firstResult` and the first landing path, base64url JSON. Quiz answers can be health data, and a fragment is never sent to the server or its logs. Over 3,000 characters the quiz is dropped; the anonId still goes. Only those keys are read back, each validated.
+  - `restoreEscape()` runs in the root layout before the touch is read and writes them, once per link (`factory.escape.done`), so a reload never rewinds progress. `cleanEscapeUrl()` then removes `hx` and the fragment from the address bar, after the router is up (it writes back the URL it started with, so an earlier clean is undone).
+- **Events:** `inapp_escape_shown`, `inapp_escape_tapped`, `inapp_escape_stayed` (props `app`, `os`; stayed also `stage`).
+- **Native:** no-ops (`auth/in-app.ts`); only the web build can be inside another app's browser.
+- **Not done:** no device test here (needs real phones with each app). Threads and Facebook on Android use the same intent link, unverified.

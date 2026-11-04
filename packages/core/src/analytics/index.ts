@@ -82,6 +82,10 @@ export const STANDARD_EVENTS = [
   "pwa_prompt_dismissed",
   "pwa_installed",
   "pwa_open",
+  // In-app browser escape at sign-in (D-121): offered, "Buka di browser" tapped, stayed in the app
+  "inapp_escape_shown",
+  "inapp_escape_tapped",
+  "inapp_escape_stayed",
 ] as const;
 
 export type StandardEvent = (typeof STANDARD_EVENTS)[number];

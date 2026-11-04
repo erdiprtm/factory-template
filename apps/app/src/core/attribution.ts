@@ -6,4 +6,5 @@ export function currentTouch(): Touch | null {
 }
 export async function sendTouch(_userId: string): Promise<void> {}
 export function forgetTouch(): void {}
+export function adoptTouch(_handed: Touch): void {}
 export function trackFunnel(_event: string, _step?: number): void {}

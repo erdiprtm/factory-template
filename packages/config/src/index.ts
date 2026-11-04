@@ -407,7 +407,11 @@ export const productSchema = z.object({
   monitoring: z.object({ sentryDsn: z.url().nullable().default(null) }).default({ sentryDsn: null }),
   // Sign-in (D-079). emailCode: the sign-in email carries a 6-digit code next to the magic link,
   // typed where the visitor started (an email app's browser keeps its own cookies). On by default.
-  auth: z.object({ emailCode: z.boolean().default(true) }).default({ emailCode: true }),
+  // inAppEscape: inside Instagram, Facebook, Threads or TikTok, sign-in first offers "Buka di browser",
+  // carrying the anonId, attribution and quiz progress along (D-121). On by default.
+  auth: z
+    .object({ emailCode: z.boolean().default(true), inAppEscape: z.boolean().default(true) })
+    .default({ emailCode: true, inAppEscape: true }),
   // The paid funnel (sell engine Module 5, D-037): the first real result comes before the paywall.
   // freeUses: free uses of the core action per user, enforced by the API (requireAccessOrFreeUse).
   // paywallPlacement: when the paywall is offered: right after the quiz and sign-in, under the first
