@@ -2514,3 +2514,16 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **The Pixel:** the response carries `signupEventId` (only on the call that recorded it). The app's Pixel sends CompleteRegistration with it as `eventID`, after `initMarketing()`, so Meta deduplicates with CAPI. The browser's own OpenPanel `signup_completed` is gone, so OpenPanel counts it once.
 - **Older accounts:** only accounts created in the last 24 hours count. Without that limit, the first deploy would report every existing user as a new signup on their next `/me`.
 - **Cost:** in an account's first day, `/me` does one indexed read by primary key once the row exists.
+
+## D-123: Store developer accounts belong to the holding, PT Musim Panen Harmonis (2026-11-05)
+
+- **Decision (Erdi):** the Apple Developer and Google Play organization accounts are opened under the holding **PT Musim Panen Harmonis** (Musimpanen Intelligence), not under each product's PT. Every factory product's apps live in them. Erdi's personal Apple Account is the Account Holder. This replaces Phase 10 decisions #2 and #3 (PT Myna Bio Teknologi).
+- **Why:**
+  - Apple's enrollment refuses a second membership for an Apple Account that already holds one ("Your Apple Account is already associated with the Account Holder of a membership", reported on the developer forums; Apple's docs don't state the limit).
+  - New Apple Accounts couldn't be created for Erdi ("You cannot create an Apple Account at this time").
+  - One membership for the holding costs one D-U-N-S, US$99 a year and one Play fee, for any number of products, which fits the factory's many-products model.
+- **Consequences:**
+  - Store seller "PT Musim Panen Harmonis" on every app. Store payouts go to the holding, with an intercompany agreement per product.
+  - Each product's privacy policy still names its own PT as data controller, plus a line that the holding publishes the app. The lawyer confirms this (UU PDP) before the first store release.
+  - Web payments may stay under the product's PT.
+- **Risk:** Apple 5.1.1(ix) (regulated fields submitted by the providing entity). Wellness and trackers are expected to pass. Otherwise the app moves to its own PT's membership by app transfer; that PT's D-U-N-S (PT Myna's is already requested) is the fallback.

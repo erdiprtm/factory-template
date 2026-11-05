@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-05: Store accounts under the holding, PT Musim Panen Harmonis (D-123)
+
+- Apple Developer and Google Play organization accounts are opened once, for the holding, and hold every product's apps; Erdi's personal Apple Account is the Account Holder. Phase 10 plan §8 and `SETUP_HUMAN` §15 updated. Erdi: D-U-N-S for PT Musim Panen Harmonis next (PT Myna's request stays as a fallback).
+
+---
+
 ## 2026-11-05: signup_completed from the server, once per account (D-122), from Myna Fit
 
 - Visitors who consented before signup (scan/quiz) skipped `/consent`, so `signup_completed` / CompleteRegistration was never sent. The API now records it when the account first has every required consent (`/consents` or `/me` after the anonymous consent moves over): first-party row with a fixed id, OpenPanel server event, CAPI with marketing consent; the Pixel reuses the event id so Meta counts one.
