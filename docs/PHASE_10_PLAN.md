@@ -187,8 +187,11 @@ Built after the Myna Run spec is final (`specs/myna-run.md`). Estimates: Health 
 ## 8. Decisions (Erdi, 2026-11-04)
 
 1. **Order:** Android and iOS together (A and B).
-2. **Play account:** organization under PT Myna Bio Teknologi (Erdi creates it; needs D-U-N-S).
-3. **Apple account:** organization under the PT (Erdi creates it).
+2. **Play account:** organization under the holding, **PT Musim Panen Harmonis** (Musimpanen Intelligence), for every factory product (Myna Fit, Myna Run, hemat.ai, …). Erdi creates it; needs the holding's D-U-N-S. *(Changed 2026-11-05 from PT Myna Bio Teknologi.)*
+3. **Apple account:** organization under PT Musim Panen Harmonis too, with Erdi's personal Apple Account as Account Holder. *(Changed 2026-11-05.)*
+   - **Why the holding:** Apple's enrollment reports *"Your Apple Account is already associated with the Account Holder of a membership"* when one Apple Account tries to own a second membership (developer forums; not in Apple's docs). Creating new Apple Accounts was blocked for Erdi ("You cannot create an Apple Account at this time"). One holding membership holds every product's apps: one D-U-N-S, one US$99/year, one Play fee.
+   - **What follows:** the store's seller is "PT Musim Panen Harmonis" for every app, and store payouts go to the holding (an intercompany agreement records each product's revenue). A product's privacy policy still names its own PT as data controller and adds that the holding publishes the app (lawyer to confirm, UU PDP). Web payments (DOKU, Pakasir) may stay under the product's PT.
+   - **Risk:** Apple 5.1.1(ix) wants regulated services (health care, finance) submitted by the entity that provides them. Myna is wellness and hemat.ai is a tracker, not a bank, so this is expected to pass; if a reviewer objects, the app moves to its own PT's membership (Apple and Google both support app transfers).
 4. **iOS IAP:** RevenueCat, its webhook writing our own entitlements. IAP price: to be set with the products.
 5. **Google sign-in on native:** yes, so Sign in with Apple is built too (4.8).
 6. **Push (A6):** server push later. Myna Run v1 uses local scheduled reminders instead (A6a, no FCM).
@@ -201,9 +204,9 @@ Built after the Myna Run spec is final (`specs/myna-run.md`). Estimates: Health 
 Mulai sekarang, karena ini yang paling menentukan jadwal:
 
 1. **Expo**: buat akun dan organisasi, lalu simpan token sebagai secret GitHub `EXPO_TOKEN`. Ini cukup untuk memasang build uji di HP Android kamu.
-2. **D-U-N-S untuk PT Myna Bio Teknologi**, gratis, butuh beberapa hari sampai minggu. Hanya perlu kalau memilih akun organisasi.
-3. **Google Play Console**: US$25 sekali bayar, verifikasi identitas atau bisnis, lalu buat app Myna Fit. Saya akan menulis langkah membuat service account untuk `eas submit`.
-4. **Apple Developer Program**: US$99 per tahun. Di App Store Connect, setujui Paid Apps Agreement, isi data bank dan pajak, lalu daftar Small Business Program.
+2. **D-U-N-S untuk PT Musim Panen Harmonis** (holding), gratis, sampai 5 hari kerja + 2 hari kerja sampai datanya di Apple. Nama persis seperti di akta, email kerja `@musimpanen.id`. (D-U-N-S PT Myna yang sudah diajukan disimpan sebagai cadangan.)
+3. **Google Play Console**: US$25 sekali bayar, akun organisasi atas nama PT Musim Panen Harmonis, lalu buat app Myna Fit. Saya akan menulis langkah membuat service account untuk `eas submit`.
+4. **Apple Developer Program**: US$99 per tahun, organisasi PT Musim Panen Harmonis, didaftarkan dengan Apple Account pribadi Erdi (jadi Account Holder). Di App Store Connect, setujui Paid Apps Agreement, isi data bank dan pajak, lalu daftar Small Business Program.
 5. **Firebase**: buat project untuk push Android. Hanya perlu kalau A6 (push dari server) jadi; pengingat lokal Myna Run (A6a) tidak butuh Firebase.
 6. **Untuk Myna Run (nanti)**: ajukan Huawei Health Kit dengan data PT, tanyakan ke pengacara soal consent data kesehatan dan AI, dan siapkan 5–10 penguji dengan merek jam yang berbeda.
 

@@ -673,9 +673,9 @@ Kode app native dibuat lewat Expo (EAS). Build berjalan di server Expo. Saya tid
 
 **Sekali saja (akun):**
 1. **Expo:** daftar di https://expo.dev/signup. Buat organisasi (misalnya `mynahealth`).
-2. **D-U-N-S untuk PT** (gratis): dibutuhkan oleh akun organisasi Google Play dan Apple. Ajukan lewat https://developer.apple.com/enroll/duns-lookup/. Prosesnya bisa beberapa hari sampai beberapa minggu.
-3. **Google Play Console** (US$25 sekali bayar, akun **organisasi**): https://play.google.com/console/signup
-4. **Apple Developer Program** (US$99 per tahun, **organisasi**): https://developer.apple.com/programs/enroll/. Setelah aktif, di App Store Connect setujui **Paid Apps Agreement**, isi data bank dan pajak, lalu daftar **Small Business Program** (potongan 15%).
+2. **D-U-N-S untuk PT pemilik akun toko** (gratis): dibutuhkan oleh akun organisasi Google Play dan Apple. Untuk produk Musimpanen, PT-nya adalah holding **PT Musim Panen Harmonis**: satu akun toko untuk semua produk (D-123). Ajukan lewat https://developer.apple.com/enroll/duns-lookup/ dengan nama **persis seperti di akta**, alamat dan telepon sesuai NIB, dan email kerja dengan domain PT (mis. `@musimpanen.id`). Nomor keluar dalam ±5 hari kerja, lalu ±2 hari kerja sampai Apple menerimanya.
+3. **Google Play Console** (US$25 sekali bayar, akun **organisasi**, sekali untuk holding): https://play.google.com/console/signup. Email developer dan nomor telepon developer tampil publik di Play Store, jadi pakai email support domain PT.
+4. **Apple Developer Program** (US$99 per tahun, **organisasi**, sekali untuk holding): https://developer.apple.com/programs/enroll/. Satu Apple Account hanya bisa jadi Account Holder untuk satu keanggotaan, jadi Apple Account yang dipakai di sini (Apple Account pribadi Erdi) jangan dipakai untuk mendaftarkan PT lain; orang lain cukup diundang sebagai anggota tim. Setelah aktif, di App Store Connect setujui **Paid Apps Agreement**, isi data bank dan pajak, lalu daftar **Small Business Program** (potongan 15%).
 
 **Per produk:**
 5. Isi `native.androidPackage` dan `native.iosBundleId` di `product.config.ts` (agent yang mengerjakan; contoh `id.mynahealth.fit`). Setelah build pertama diunggah ke toko, keduanya tidak bisa diganti.
