@@ -125,6 +125,44 @@ export async function recordServerEvent(
   return tag;
 }
 
+/** The id of a user's one signup_completed row, and the shared Pixel eventID / CAPI event_id. */
+export const signupEventId = (userId: string) => `signup_completed:${userId}`;
+
+/**
+ * Records signup_completed once per user (D-122): the row's id is fixed, so a second call, also a
+ * concurrent one, inserts nothing. Returns whether this call recorded it, with the A/B arm.
+ */
+export async function recordSignupCompleted(
+  db: Db,
+  input: { userId: string; experiment?: Experiment | null },
+  now = new Date(),
+): Promise<{ recorded: boolean; tag: ExperimentTag | null; attribution: UserAttribution | null }> {
+  const id = signupEventId(input.userId);
+  // /me calls this on every load in an account's first day: a read settles the usual case.
+  const done = await db.select({ id: funnelEvents.id }).from(funnelEvents).where(eq(funnelEvents.id, id)).limit(1);
+  if (done.length > 0) return { recorded: false, tag: null, attribution: null };
+  const a = await attributionFor(db, input.userId);
+  const tag = experimentTag(input.experiment ?? null, a?.anonId);
+  const rows = await db
+    .insert(funnelEvents)
+    .values({
+      id,
+      event: "signup_completed",
+      anonId: a?.anonId ?? null,
+      userId: input.userId,
+      step: null,
+      utmSource: a?.utmSource ?? null,
+      utmCampaign: a?.utmCampaign ?? null,
+      valueIdr: null,
+      experiment: tag?.experiment ?? null,
+      variant: tag?.variant ?? null,
+      createdAt: now,
+    })
+    .onConflictDoNothing()
+    .returning({ id: funnelEvents.id });
+  return { recorded: rows.length > 0, tag, attribution: a };
+}
+
 /** A confirmed payment is the user's "purchase" if no paid one came before it, otherwise a "renewal". */
 export async function paidEventKind(
   db: Db,

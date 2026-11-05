@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-05: signup_completed from the server, once per account (D-122), from Myna Fit
+
+- Visitors who consented before signup (scan/quiz) skipped `/consent`, so `signup_completed` / CompleteRegistration was never sent. The API now records it when the account first has every required consent (`/consents` or `/me` after the anonymous consent moves over): first-party row with a fixed id, OpenPanel server event, CAPI with marketing consent; the Pixel reuses the event id so Meta counts one.
+- Only accounts created in the last 24 hours, so existing users aren't reported as new signups.
+
+---
+
 ## 2026-11-04: Phase 10 plan Part C follows the updated Myna Run spec
 
 - No Strava integration at all (the optional write-only adapter is gone); runs written to Health Connect / HealthKit are read like any source.

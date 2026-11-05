@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { attributions, funnelEvents, payments, schema } from "@factory/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
 import { runScheduled } from "../src/core/cron";
@@ -103,7 +103,10 @@ describe("attribution → payment → purchase/renewal", () => {
     expect(row).toMatchObject({ utmSource: "meta", utmCampaign: "c-buy", fbclid: "IwAR-x" });
 
     const id = await userId(email);
-    const events = await db.select().from(funnelEvents).where(eq(funnelEvents.userId, id));
+    // Payment events only: signing in also records signup_completed (D-122).
+    const events = (await db.select().from(funnelEvents).where(eq(funnelEvents.userId, id))).filter(
+      (e) => e.event !== "signup_completed",
+    );
     expect(events.map((e) => e.event).sort()).toEqual(["purchase", "renewal"]);
     expect(
       events.every((e) => e.anonId === anonId && e.utmCampaign === "c-buy" && e.valueIdr === firstPlan.priceIdr),
@@ -121,7 +124,7 @@ describe("attribution → payment → purchase/renewal", () => {
     const events = await db
       .select()
       .from(funnelEvents)
-      .where(eq(funnelEvents.userId, await userId(email)));
+      .where(and(eq(funnelEvents.userId, await userId(email)), eq(funnelEvents.event, "purchase")));
     expect(events).toMatchObject([{ event: "purchase", anonId: null, utmCampaign: null }]);
   });
 
@@ -147,12 +150,13 @@ describe("UU PDP", () => {
       funnelEvents: { event: string }[];
     }>();
     expect(data.attribution.utmCampaign).toBe("c-pdp");
-    expect(data.funnelEvents.map((e) => e.event).sort()).toEqual(["lp_view", "purchase"]);
+    expect(data.funnelEvents.map((e) => e.event).sort()).toEqual(["lp_view", "purchase", "signup_completed"]);
 
     const id = await userId(email);
     expect((await post("/api/account/delete", cookie, { confirm: "HAPUS" })).status).toBe(200);
     expect(await db.select().from(attributions).where(eq(attributions.userId, id))).toEqual([]);
     expect(await db.select().from(funnelEvents).where(eq(funnelEvents.anonId, anonId))).toEqual([]);
+    expect(await db.select().from(funnelEvents).where(eq(funnelEvents.userId, id))).toEqual([]);
     expect(await db.select().from(payments).where(eq(payments.id, paymentId)).get()).toMatchObject({
       utmCampaign: "c-pdp",
       fbclid: null,

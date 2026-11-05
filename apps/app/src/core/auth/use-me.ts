@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "../api";
+import { api, pixelSignup } from "../api";
 
 export const meQueryKey = ["me"] as const;
 
@@ -10,7 +10,10 @@ export function useMe() {
     queryFn: async () => {
       const res = await api.api.me.$get();
       if (!res.ok) throw new Error(`me ${res.status}`);
-      return res.json();
+      const me = await res.json();
+      // Signed up just now with consent given before signup (D-043, D-122): the server recorded it.
+      if (me.user) pixelSignup(me.signupEventId);
+      return me;
     },
   });
 }
