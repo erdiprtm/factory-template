@@ -2500,3 +2500,17 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Events:** `inapp_escape_shown`, `inapp_escape_tapped`, `inapp_escape_stayed` (props `app`, `os`; stayed also `stage`).
 - **Native:** no-ops (`auth/in-app.ts`); only the web build can be inside another app's browser.
 - **Not done:** no device test here (needs real phones with each app). Threads and Facebook on Android use the same intent link, unverified.
+
+## D-122: signup_completed comes from the server, once per account (2026-11-05)
+
+- **Bug (Myna Fit):** `signup_completed` and Meta's CompleteRegistration were sent only by the browser, from `acceptConsents()` on the `/consent` screen. A visitor who consented before signup (D-043, the scan and quiz flows) never sees `/consent`, so between 3 and 5 Nov Myna Fit recorded 0 signups for about 17 new profiles.
+- **Now:** `completeSignup()` (`apps/api/src/core/signup.ts`) runs where an account can first have every required consent:
+  - `POST /api/consents`;
+  - `GET /api/me`, right after the device's anonymous consent moves to the account.
+- **It records once per account**:
+  - a `funnel_events` row with a fixed id, `signup_completed:<userId>`, inserted with `ON CONFLICT DO NOTHING`, so concurrent `/me` calls can't double it;
+  - OpenPanel's server event with the A/B arm;
+  - with Meta CAPI on and the account's marketing consent, a CAPI CompleteRegistration (no value) with that same id as `event_id`, plus fbp/fbc from the cookies or the stored fbclid, IP and user agent.
+- **The Pixel:** the response carries `signupEventId` (only on the call that recorded it). The app's Pixel sends CompleteRegistration with it as `eventID`, after `initMarketing()`, so Meta deduplicates with CAPI. The browser's own OpenPanel `signup_completed` is gone, so OpenPanel counts it once.
+- **Older accounts:** only accounts created in the last 24 hours count. Without that limit, the first deploy would report every existing user as a new signup on their next `/me`.
+- **Cost:** in an account's first day, `/me` does one indexed read by primary key once the row exists.

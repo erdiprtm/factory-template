@@ -56,6 +56,7 @@ import { afterPaymentSettled } from "./core/payment-events";
 import { configuredProvider, fakePakasirServer, fakeProvider, type PaymentEnv } from "./core/payments";
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
+import { completeSignup } from "./core/signup";
 import { revenueCatWebhook, type StoreEnv } from "./core/store-billing";
 import { answerUpdate, type BotEnv, botReady, verifiedWebhook } from "./core/telegram-bot";
 import { apiBodyLimit } from "./core/uploads";
@@ -316,8 +317,12 @@ const routes = app
       });
     // Consent given on this device before signup counts for the account (D-043).
     if (anonId) await claimAnonymousConsents(db(c.env), user.id, anonId);
+    // The account's first moment with every required consent is its signup (D-122), also when the
+    // consent came from before signup and /consent was never shown.
+    const signupEventId = await completeSignup(c.env, db(c.env), user, c.req.raw, (w) => background(c, w));
     return c.json({
       user: { id: user.id, email: user.email, name: user.name },
+      signupEventId,
       access: await hasAccess(db(c.env), user.id),
       missingConsents: (await missingConsents(db(c.env), user.id, required)) as string[],
       providers,
@@ -358,7 +363,8 @@ const routes = app
     const missingRequired = missing.filter((t) => !parsed.data.accept.includes(t));
     if (missingRequired.length > 0) return c.json({ error: "consent_required" as const, missingRequired }, 400);
     await recordConsents(db(c.env), userId, parsed.data.accept);
-    return c.json({ ok: true as const });
+    const signupEventId = await completeSignup(c.env, db(c.env), c.get("user"), c.req.raw, (w) => background(c, w));
+    return c.json({ ok: true as const, signupEventId });
   })
   // The "iklan/marketing" choice (UU PDP): grant or withdraw at any time. Recorded in consents.
   .post("/consents/marketing", async (c) => {

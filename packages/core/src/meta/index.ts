@@ -23,13 +23,14 @@ export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 export const fbcFromClick = (fbclid: string, seenAtMs: number) => `fb.1.${seenAtMs}.${fbclid}`;
 
 export type CapiInput = {
-  event: "purchase" | "renewal";
+  event: "purchase" | "renewal" | "signup_completed";
   eventId: string;
   eventTime: Date;
   eventSourceUrl: string;
   email: string;
   userId: string;
-  valueIdr: number;
+  /** Integer IDR; left out for events without a value (CompleteRegistration). */
+  valueIdr?: number;
   fbp?: string | null;
   fbc?: string | null;
   clientIp?: string | null;
@@ -54,7 +55,7 @@ export async function capiEvent(input: CapiInput) {
     event_source_url: input.eventSourceUrl,
     user_data: userData,
     // Integer IDR; Meta reads value in the currency's major unit.
-    custom_data: { value: input.valueIdr, currency: "IDR" },
+    ...(input.valueIdr === undefined ? {} : { custom_data: { value: input.valueIdr, currency: "IDR" } }),
   };
 }
 
