@@ -8,6 +8,7 @@ const mock = vi.hoisted(() => ({ isAdmin: true, deleted: [] as unknown[] }));
 vi.mock("../src/features/slots", () => ({
   slots: { adminPanel: ({ locale }: { locale: string }) => <p data-testid="panel">{`panel:${locale}`}</p> },
 }));
+vi.mock("expo-router", () => ({ useRouter: () => ({ canGoBack: () => false, replace: () => {} }) }));
 vi.mock("../src/core/admin/economics", () => ({ EconomicsSection: () => <p>economics</p> }));
 vi.mock("../src/core/auth/use-me", () => ({
   useMe: () => ({ isPending: false, data: { user: { email: "a@example.com" }, isAdmin: mock.isAdmin } }),

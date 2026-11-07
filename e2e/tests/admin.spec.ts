@@ -9,6 +9,7 @@ test("admin sees metrics and grants access", async ({ page, request }) => {
   await expect(navItem(page, "/admin")).toHaveCount(0);
   await navItem(page, "/account").click();
   await page.getByRole("button", { name: "Keluar" }).click();
+  await page.getByTestId("sign-out-yes").click(); // asked once more (D-124)
   await expect(page).toHaveURL(/\/sign-in$/); // sign-out finished before signing in again
 
   await signIn(page, request, "admin@example.com");

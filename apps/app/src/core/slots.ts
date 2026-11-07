@@ -21,6 +21,16 @@ export type QuizStepSlotProps = {
   back: (() => void) | undefined;
   progress: { step: number; total: number };
   t: (key: MessageKey) => string;
+  /**
+   * The consent under this step isn't ticked yet (D-074): an answer won't go on. A slot may dim its
+   * options; core's consent row says what to do.
+   */
+  locked?: boolean;
+  /**
+   * The visitor answered without ticking the consent (D-124). Core's row already shows "Centang
+   * persetujuan dulu, ya"; a slot may also point at it (scroll, shake, highlight).
+   */
+  consentMissing?: boolean;
 };
 
 export type HeaderSlotProps = { title: string; subtitle: string };
@@ -82,10 +92,18 @@ export type BillingReturnSlotProps = {
   state: "checking" | "paid" | "failed" | "timeout";
   /** Core's text for the state. */
   text: string;
-  /** Show the "home" button: the payment is final (paid or failed). */
+  /** The payment is final (paid or failed). */
   done: boolean;
+  /**
+   * Show the "home" button (D-124): the payment is final, or still unconfirmed after the wait (or
+   * there was no payment id). Never leave the screen without a way out.
+   */
+  showHome: boolean;
   homeLabel: string;
   onHome: () => void;
+  /** "Cek lagi": another round of polling, when still unconfirmed after the wait; else null. */
+  onRetry: (() => void) | null;
+  retryLabel: string;
   /** Paid: when the user's access now ends, formatted for the locale ("12 Okt 2027"), D-098. */
   accessUntil: string | null;
   /** The same moment as an ISO string, for a product's own formatting. */
@@ -97,6 +115,11 @@ export type CenterActionSlotProps = {
   placement: "bottom" | "top";
   /** Theme colors (native SVG can't read CSS variables). */
   colors: { primary: string; primaryForeground: string; mutedForeground: string; foreground: string };
+};
+
+export type AccountSectionsSlotProps = {
+  t: (key: MessageKey) => string;
+  locale: Locale;
 };
 
 export type AdminPanelSlotProps = {
@@ -149,6 +172,12 @@ export type CoreSlots = {
   /** Icons for the tabs core adds (D-058): Beranda (without product tabs), Akun, Admin. */
   coreTabIcons?: Partial<Record<"home" | "account" | "admin", ComponentType<{ size: number; color: string }>>>;
   accountHeader?: ComponentType<HeaderSlotProps & { productName: string; logo: string }>;
+  /**
+   * The product's own cards on Akun (D-124), under the profile card: links to its settings screens
+   * ("Target & goal", "Grafik", "Program saya"). Display and navigation only; the subscription,
+   * privacy and deletion cards stay core's.
+   */
+  accountSections?: ComponentType<AccountSectionsSlotProps>;
   /**
    * The product's own section on /admin (D-100), under the unit economics: e.g. scan feedback from
    * a product table. Core renders it only for admins; its data comes from the product's own API

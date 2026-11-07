@@ -87,6 +87,23 @@ describe("marketing consent banner", { timeout: 120_000 }, () => {
     expect(s.tracked).toEqual(["consent_shown", "consent_denied"]);
   });
 
+  it("✕ closes it without a choice; inside the tabs only the tabs' copy shows (D-124)", async () => {
+    const { view } = await show("first_visit");
+    const { MarketingBanner } = await import("../src/core/marketing-banner");
+    const { I18nProvider } = await import("../src/core/i18n");
+    view.rerender(
+      <I18nProvider>
+        <MarketingBanner />
+        <MarketingBanner where="tabs" />
+      </I18nProvider>,
+    );
+    await act(async () => {});
+    expect(screen.getAllByTestId("consent-allow")).toHaveLength(1);
+    fireEvent.click(screen.getByTestId("consent-close"));
+    expect(screen.queryByTestId("consent-allow")).toBeNull();
+    expect(s.chosen).toEqual([]);
+  });
+
   it("the product's own words replace core's", async () => {
     await show("first_visit", {
       id: {

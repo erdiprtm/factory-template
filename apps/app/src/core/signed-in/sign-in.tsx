@@ -6,6 +6,7 @@ import product from "../../../../../product.config";
 import { slots } from "../../features/slots";
 import { track } from "../analytics";
 import { appReturnUrl } from "../api-base";
+import { siteLanding } from "../auth/anonymous-home";
 import { authClient } from "../auth/client";
 import { CodeForm } from "../auth/code-form";
 import { HandoffForm } from "../auth/handoff-form";
@@ -13,6 +14,7 @@ import { currentInApp } from "../auth/in-app";
 import { InAppEscape } from "../auth/in-app-escape";
 import { useMe, useRefreshMe } from "../auth/use-me";
 import { useI18n } from "../i18n";
+import { BackLink } from "../nav/back-link";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -56,6 +58,8 @@ export function SignIn() {
   const Header = slots.signInHeader;
   return (
     <CenteredScreen>
+      {/* No tab bar here: back to where the visitor came from, else to the landing page (D-124). */}
+      <BackLink leave={siteLanding()} />
       {Header ? (
         <Header
           productName={product.name}

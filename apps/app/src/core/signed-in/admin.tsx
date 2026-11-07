@@ -10,6 +10,7 @@ import { api } from "../api";
 import { useMe } from "../auth/use-me";
 import { formatDate, formatIdr } from "../format";
 import { type MessageKey, useI18n } from "../i18n";
+import { BackLink } from "../nav/back-link";
 
 // Per-product admin (Phase 7). The API enforces the allowlist; this screen only renders.
 export function Admin() {
@@ -43,6 +44,8 @@ export function Admin() {
 
   return (
     <Screen className="max-w-3xl">
+      {/* Reached from Akun when there is no Admin tab (D-111): a way back (D-124). */}
+      <BackLink fallback="/account" />
       <Text variant="h1">{t("admin.title")}</Text>
       {/* The monitoring dashboard first (D-113); the details and tools below. */}
       <DashboardSection />

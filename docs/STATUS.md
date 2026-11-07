@@ -4,6 +4,14 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-07: Core UX fixes from Myna Fit's screen audit (D-124)
+
+- "‹ Kembali" on sign-in and /admin; the quiz says "Centang persetujuan dulu, ya" instead of ignoring a tap; /billing/return always has a way out ("Cek lagi", "Ke beranda").
+- Akun: product cards slot (`accountSections`), title from the tab label, retry on error, sign-out confirmation. Core copy says "Paket", not "Langganan".
+- The marketing banner sits above the tab bar and has a ✕; /billing/pay only exists with Pakasir.
+
+---
+
 ## 2026-11-05: Store accounts under the holding, PT Musim Panen Harmonis (D-123)
 
 - Apple Developer and Google Play organization accounts are opened once, for the holding, and hold every product's apps; Erdi's personal Apple Account is the Account Holder. Phase 10 plan §8 and `SETUP_HUMAN` §15 updated. Erdi: D-U-N-S for PT Musim Panen Harmonis next (PT Myna's request stays as a fallback).
