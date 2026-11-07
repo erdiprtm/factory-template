@@ -10,7 +10,15 @@ export type QuizOption<K extends string = string> = { value: string; label: K };
 export type QuizStep<K extends string = string> =
   | { id: string; kind: "single"; title: K; hint?: K; options: QuizOption<K>[] }
   | { id: string; kind: "multi"; title: K; hint?: K; options: QuizOption<K>[]; max?: number }
-  | { id: string; kind: "number"; title: K; hint?: K; min: number; max: number; unit?: K };
+  | { id: string; kind: "number"; title: K; hint?: K; min: number; max: number; unit?: K }
+  /**
+   * A short free answer, e.g. the first name (D-125). Trimmed, at most `maxLength` characters
+   * (default and cap TEXT_MAX). Kept on the device only: never sent to the API or analytics.
+   */
+  | { id: string; kind: "text"; title: K; hint?: K; placeholder?: K; maxLength?: number };
+
+/** Longest text answer (D-125). */
+export const TEXT_MAX = 40;
 
 export type QuizAnswer = string | string[] | number;
 export type QuizAnswers = Record<string, QuizAnswer>;
@@ -39,6 +47,12 @@ export function quizProblems(def: QuizDefinition): string[] {
       if (!(step.min < step.max)) problems.push(`step "${step.id}": min must be below max`);
       continue;
     }
+    if (step.kind === "text") {
+      const max = step.maxLength ?? TEXT_MAX;
+      if (!Number.isInteger(max) || max < 1 || max > TEXT_MAX)
+        problems.push(`step "${step.id}": maxLength is 1–${TEXT_MAX}`);
+      continue;
+    }
     if (step.options.length < 2 || step.options.length > 8) problems.push(`step "${step.id}": 2–8 options`);
     const values = step.options.map((o) => o.value);
     if (new Set(values).size !== values.length) problems.push(`step "${step.id}": option values must be unique`);
@@ -49,6 +63,15 @@ export function quizProblems(def: QuizDefinition): string[] {
 export function isValidAnswer(step: QuizStep, value: unknown): value is QuizAnswer {
   if (step.kind === "number")
     return typeof value === "number" && Number.isFinite(value) && value >= step.min && value <= step.max;
+  if (step.kind === "text")
+    return (
+      typeof value === "string" &&
+      value === value.trim() &&
+      value.length > 0 &&
+      value.length <= Math.min(step.maxLength ?? TEXT_MAX, TEXT_MAX) &&
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: a name has no control characters
+      !/[\u0000-\u001f\u007f]/.test(value)
+    );
   const allowed = new Set(step.options.map((o) => o.value));
   if (step.kind === "single") return typeof value === "string" && allowed.has(value);
   return (
@@ -71,6 +94,12 @@ export function cleanAnswers(def: QuizDefinition, answers: unknown): QuizAnswers
   return out;
 }
 
+/** The answers that may leave the device (D-125): everything but text steps, which stay on it. */
+export function sharedAnswers(def: QuizDefinition, answers: QuizAnswers): QuizAnswers {
+  const local = new Set(def.steps.filter((s) => s.kind === "text").map((s) => s.id));
+  return Object.fromEntries(Object.entries(answers).filter(([id]) => !local.has(id)));
+}
+
 /** The first unanswered step (steps.length when all are answered). */
 export function firstOpenStep(def: QuizDefinition, answers: QuizAnswers): number {
   const i = def.steps.findIndex((s) => !(s.id in answers));
@@ -84,11 +113,12 @@ export const isQuizComplete = (def: QuizDefinition, answers: QuizAnswers) =>
 export function recapAnswers<K extends string>(
   def: QuizDefinition<K>,
   answers: QuizAnswers,
-): { title: K; labels: K[]; value?: number; unit?: K }[] {
+): { title: K; labels: K[]; value?: number; unit?: K; text?: string }[] {
   return def.steps.flatMap((step) => {
     const a = answers[step.id];
     if (a === undefined) return [];
     if (step.kind === "number") return [{ title: step.title, labels: [], value: a as number, unit: step.unit }];
+    if (step.kind === "text") return [{ title: step.title, labels: [], text: a as string }];
     const chosen = Array.isArray(a) ? a : [a];
     return [{ title: step.title, labels: step.options.filter((o) => chosen.includes(o.value)).map((o) => o.label) }];
   });

@@ -11,7 +11,7 @@ test("free trial unlocks paid access", async ({ page, request }) => {
   await signIn(page, request, `e2e-trial-${Date.now()}@example.com`);
   await expectAccess(page, false);
   await page.goto("/pricing");
-  await page.getByRole("button", { name: /Mulai coba gratis/ }).click();
+  await page.getByTestId("start-trial").click();
   await expectAccess(page, true);
 });
 
@@ -33,7 +33,7 @@ test("access expiry then purchase restores access", async ({ page, request }) =>
   const email = `e2e-expiry-${Date.now()}@example.com`;
   await signIn(page, request, email);
   await page.goto("/pricing");
-  if (product.trial.enabled) await page.getByRole("button", { name: /Mulai coba gratis/ }).click();
+  if (product.trial.enabled) await page.getByTestId("start-trial").click();
   else await buyPlan(page, firstPlan.priceIdr);
   await expectAccess(page, true);
 

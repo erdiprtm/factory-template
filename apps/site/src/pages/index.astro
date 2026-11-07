@@ -3,29 +3,31 @@ import Faq from "../components/Faq.astro";
 import Pricing from "../components/Pricing.astro";
 import Base from "../layouts/Base.astro";
 import { faqLd, organizationLd, productLd } from "../lib/jsonld";
-import { appUrl, faqs, product } from "../lib/site";
+import { appUrl, faqs, methodsSentence, planLengths, product, trialPhrase } from "../lib/site";
 
 const site = Astro.site as URL;
-const description = `${product.tagline} Coba gratis ${product.trial.days} hari, lalu pilih paket 6 atau 12 bulan. Bayar dengan QRIS, e-wallet, atau virtual account.`;
+// Plan lengths, the trial and payment methods come from config (D-125), so the defaults stay true.
+const intro = trialPhrase ? `${trialPhrase}, lalu pilih paket ${planLengths()}.` : `Pilih paket ${planLengths()}.`;
+const description = `${product.tagline} ${intro} Bayar dengan ${methodsSentence}.`;
 
 // PRODUCT-OWNED copy: replace from the spec. Structure (D-077, /design-review's landing section):
 // hero with ONE primary CTA → (proof strip: only true proof, add it once it exists) → one problem
 // in the reader's words → at most 3 mechanism points → how it works in 3 steps → pricing → FAQ →
 // a close that answers the last doubt, with the SAME CTA label as the hero.
-const cta = { label: `Coba gratis ${product.trial.days} hari`, href: `${appUrl}/sign-in` };
+const cta = { label: trialPhrase ?? "Mulai sekarang", href: `${appUrl}/sign-in` };
 const problem = {
   title: "Mau mulai, tapi selalu tertunda?",
   body: "Banyak yang sudah niat, lalu bingung harus mulai dari mana dan berhenti di minggu pertama.",
 };
 const points = [
   { title: "Mulai dalam hitungan detik", body: "Masuk dengan email atau Google. Tanpa kata sandi." },
-  { title: "Bayar sekali, tanpa ribet", body: "QRIS, e-wallet, atau virtual account. Tidak ada tagihan otomatis." },
+  { title: "Bayar sekali, tanpa ribet", body: `${methodsSentence}. Tidak ada tagihan otomatis.` },
   { title: "Datamu milikmu", body: "Unduh atau hapus data kapan saja, sesuai UU Pelindungan Data Pribadi." },
 ];
 const steps = [
   { title: "Daftar", body: "Masukkan email, buka tautan yang kami kirim." },
-  { title: "Coba gratis", body: `Pakai semua fitur selama ${product.trial.days} hari.` },
-  { title: "Pilih paket", body: "Lanjut dengan paket 6 atau 12 bulan kalau cocok." },
+  ...(trialPhrase ? [{ title: "Coba dulu", body: `Pakai semua fitur selama ${product.trial.days} hari.` }] : []),
+  { title: "Pilih paket", body: `Lanjut dengan paket ${planLengths()} kalau cocok.` },
 ];
 const ctaClass =
   "inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-primary px-6 font-semibold text-primary-foreground hover:opacity-90 sm:w-auto";
@@ -35,11 +37,11 @@ const ctaClass =
   <section class="mx-auto flex w-full max-w-5xl flex-col items-start gap-6 px-5 py-16 sm:py-24">
     <h1 class="max-w-3xl text-4xl font-extrabold tracking-tight sm:text-5xl">{product.tagline}</h1>
     <p class="max-w-2xl text-lg text-muted-foreground">
-      {product.name} membantu kamu lebih cepat. Coba gratis {product.trial.days} hari, lalu pilih paket 6 atau 12 bulan.
+      {product.name} membantu kamu lebih cepat. {intro}
     </p>
     <div class="flex w-full flex-col items-start gap-4 sm:flex-row sm:items-center">
       <a href={cta.href} data-event="signup_started" data-cta="hero" class={ctaClass}>{cta.label}</a>
-      <a href="/harga/" class="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline">Lihat harga</a>
+      <a href="/harga/" class="inline-flex min-h-11 items-center font-semibold text-link underline-offset-4 hover:underline">Lihat harga</a>
     </div>
   </section>
 

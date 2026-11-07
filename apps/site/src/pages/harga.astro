@@ -3,14 +3,14 @@ import Faq from "../components/Faq.astro";
 import Pricing from "../components/Pricing.astro";
 import Base from "../layouts/Base.astro";
 import { faqLd, productLd } from "../lib/jsonld";
-import { faqs, product } from "../lib/site";
+import { faqs, planLengths, product, trialPhrase } from "../lib/site";
 
 const site = Astro.site as URL;
 ---
 
 <Base
   title="Harga"
-  description={`Harga langganan ${product.name}: paket 6 dan 12 bulan, bayar sekali tanpa perpanjangan otomatis. Coba gratis ${product.trial.days} hari.`}
+  description={`Harga ${product.name}: paket ${planLengths()}, bayar sekali tanpa perpanjangan otomatis.${trialPhrase ? ` ${trialPhrase}.` : ""}`}
   og="harga"
   event="pricing_view"
   jsonLd={[productLd(site), faqLd()]}

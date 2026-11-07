@@ -122,6 +122,19 @@ function parseArgs(argv) {
 const run = (cmd, args, opts = {}) =>
   execFileSync(cmd, args, { stdio: ["ignore", "pipe", "inherit"], encoding: "utf8", ...opts });
 
+/** Clones a just-created repo into `dir`, retrying while GitHub is still copying the template. */
+function cloneWhenReady(repo, dir, tries = 10) {
+  for (let i = 1; ; i++) {
+    try {
+      run("gh", ["repo", "clone", repo, dir]);
+      return;
+    } catch (err) {
+      if (i >= tries) throw err;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 3000);
+    }
+  }
+}
+
 function main() {
   const a = parseArgs(process.argv.slice(2));
   const specText = readFileSync(a.spec, "utf8");
@@ -136,7 +149,7 @@ function main() {
   const plan = [
     `Spec OK: "${spec.name}" — ${spec.tagline}`,
     `Plans: ${spec.plans.map((p) => `${p.months} bulan Rp${p.priceIdr}`).join(", ") || "(template defaults)"}`,
-    `gh repo create ${repo} --template ${templateRepo} --${a.public ? "public" : "private"} --clone → ${a.dir}`,
+    `gh repo create ${repo} --template ${templateRepo} --${a.public ? "public" : "private"}, then gh repo clone ${repo} ${a.dir}`,
     `.template-version ← the template commit the repo starts from (the base for /sync-template, D-061)`,
     `product.config.ts, wrangler.jsonc (api + site): slug/name/hosts → ${a.slug} on ${a.subdomain}.workers.dev`,
     `wrangler d1 create ${a.slug}-prod and ${a.slug}-preview (region apac), ids → apps/api/wrangler.jsonc`,
@@ -150,9 +163,10 @@ function main() {
   if (!a.execute) return;
   if (existsSync(a.dir)) throw new Error(`${a.dir} already exists`);
 
-  run("gh", ["repo", "create", repo, "--template", templateRepo, a.public ? "--public" : "--private", "--clone"], {
-    cwd: resolve(a.dir, ".."),
-  });
+  // Not `--clone`: it always clones into <cwd>/<repo name>, which ignored --dir. GitHub fills a repo
+  // made from a template in the background, so the clone retries for a short while.
+  run("gh", ["repo", "create", repo, "--template", templateRepo, a.public ? "--public" : "--private"]);
+  cloneWhenReady(repo, a.dir);
   const inRepo = (p) => join(a.dir, p);
   const edit = (p, fn) => writeFileSync(inRepo(p), fn(readFileSync(inRepo(p), "utf8")));
   // "Create from template" copies the default branch's files without its history, so record which

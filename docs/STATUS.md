@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-07: Template fixes and options from the Myna Run build (D-125)
+
+- Fixed: `new-product.mjs --dir`, the `controlHeight` config test, `requireAdmin` undefined in product routes (now `core/require-admin.ts`), the lander "Mulai dari" test, `pnpm dev` without `apps/app/dist`.
+- New: text quiz steps (device only), `anonymousEntry` without free uses, a `link` colour token, `trial.primary` on /pricing, trial copy without "gratis", site copy (plan lengths, trial, methods) from config.
+
+---
+
 ## 2026-11-07: Core UX fixes from Myna Fit's screen audit (D-124)
 
 - "‹ Kembali" on sign-in and /admin; the quiz says "Centang persetujuan dulu, ya" instead of ignoring a tap; /billing/return always has a way out ("Cek lagi", "Ke beranda").

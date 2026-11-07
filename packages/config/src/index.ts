@@ -61,9 +61,14 @@ export const colorTokens = [
   "input",
   "ring",
 ] as const;
-const colorScale = z.object(
-  Object.fromEntries(colorTokens.map((k) => [k, hex])) as Record<(typeof colorTokens)[number], typeof hex>,
-);
+const colorScale = z.object({
+  ...(Object.fromEntries(colorTokens.map((k) => [k, hex])) as Record<(typeof colorTokens)[number], typeof hex>),
+  /**
+   * Text links and active labels (D-125), when the filled-button colour is too light to read as
+   * text (coral on cream is ~2.5:1). Defaults to primary. Aim for 4.5:1 on the background.
+   */
+  link: hex.optional(),
+});
 
 const aiCaps = {
   perUserPerDay: z.int().min(1).max(1000).default(20),
@@ -333,7 +338,9 @@ export const productSchema = z.object({
         colors: { light: b.tokens.colors.light, dark: b.tokens.colors.dark ?? b.tokens.colors.light },
       },
     })),
-  trial: z.object({ enabled: z.boolean(), days: z.int().min(1).max(90) }),
+  // primary (D-125): on /pricing the trial is the filled main button under the plans, with "Tanpa
+  // kartu" under it; off, it is a quiet text button (the default).
+  trial: z.object({ enabled: z.boolean(), days: z.int().min(1).max(90), primary: z.boolean().default(false) }),
   plans: z
     .array(planSchema)
     .nonempty()
@@ -421,7 +428,8 @@ export const productSchema = z.object({
   // (generous: mobile carriers put many people behind one IP).
   // anonymousEntry: the product's PUBLIC screen for that first use (e.g. "/scan"), outside the signed-in
   // area. The quiz leads there instead of to sign-in, after the visitor's consent (D-043). Required
-  // when anonymousFreeUses > 0.
+  // when anonymousFreeUses > 0; allowed without free uses too, for a public screen that spends
+  // nothing (a story or demo, D-125).
   funnel: z
     .object({
       coreAction: z

@@ -6,14 +6,14 @@ import { describe, expect, it, vi } from "vitest";
 // D-098: the quiz summary's wording follows what comes next, a product may name its button, and its
 // body slot may change an earlier answer (core-validated); /pricing has a footer slot under the
 // plans; the payment return screen knows when access ends. Core message keys only (D-078).
-const mock = vi.hoisted(() => ({ slots: {} as Record<string, unknown> }));
+const mock = vi.hoisted(() => ({ slots: {} as Record<string, unknown>, access: true }));
 vi.mock("../src/features/slots", () => ({ slots: mock.slots }));
 vi.mock("../src/core/analytics", () => ({ track: vi.fn(), initAnalytics: () => Promise.resolve() }));
 vi.mock("../src/core/marketing", () => ({ metaTrack: vi.fn() }));
 vi.mock("../src/core/pwa/install-card", () => ({ InstallOffer: () => null }));
 vi.mock("../src/core/billing/plans", () => ({ PlanCards: () => <p>plans</p> }));
 vi.mock("../src/core/auth/use-me", () => ({
-  useMe: () => ({ data: { user: { email: "a@example.com" }, access: true } }),
+  useMe: () => ({ data: { user: { email: "a@example.com" }, access: mock.access } }),
   useRefreshMe: () => () => {},
 }));
 const until = "2027-10-12T05:00:00.000Z";
@@ -188,5 +188,52 @@ describe("payment return knows when access ends (D-098)", () => {
     await act(async () => {});
     await waitFor(() => expect(seen).toContainEqual(["12 Oktober 2027", until]));
     delete mock.slots.billingReturn;
+  });
+});
+
+describe("/pricing trial as the main button (D-125)", () => {
+  it("trial.primary: a filled 'Coba 7 hari' with 'Tanpa kartu' under it; off, a quiet button", async () => {
+    mock.access = false;
+    for (const primary of [true, false]) {
+      vi.resetModules();
+      vi.doMock("../../../product.config", async (orig) => {
+        const real = ((await orig()) as { default: Record<string, unknown> }).default;
+        return { default: { ...real, trial: { enabled: true, days: 7, primary } } };
+      });
+      const fresh = await import("../src/core/signed-in/pricing");
+      const i18n = await import("../src/core/i18n");
+      const view = render(
+        <QueryClientProvider client={new QueryClient()}>
+          <i18n.I18nProvider>
+            <fresh.Pricing />
+          </i18n.I18nProvider>
+        </QueryClientProvider>,
+      );
+      expect(view.getByTestId("start-trial").textContent).toBe(
+        `${i18n.t("pricing.trial")} 7 ${i18n.t("pricing.trialDays")}`,
+      );
+      expect(Boolean(view.queryByText(i18n.t("pricing.trialNote")))).toBe(primary);
+      view.unmount();
+    }
+    vi.doUnmock("../../../product.config");
+    mock.access = true;
+  });
+});
+
+describe("text quiz step (D-125)", () => {
+  it("takes a trimmed name and shows it in the recap as typed", async () => {
+    const withName = {
+      id: "text-test",
+      steps: [...["a", "b", "c", "d"].map(single), { id: "name", kind: "text" as const, title: "quiz.back" as const }],
+    };
+    saveQuizProgress(withName.id, { answers: { a: "x", b: "x", c: "x", d: "x" } });
+    render(
+      <I18nProvider>
+        <QuizRunner quiz={withName} onDone={() => {}} />
+      </I18nProvider>,
+    );
+    fireEvent.change(screen.getByTestId("quiz-text"), { target: { value: "  Erdi   P " } });
+    fireEvent.click(screen.getByTestId("quiz-next"));
+    await waitFor(() => expect(screen.getByText("Erdi P")).toBeTruthy());
   });
 });

@@ -21,7 +21,15 @@ describe("product quiz", () => {
       q.steps.flatMap((s) => [
         s.title,
         ...(s.hint ? [s.hint] : []),
-        ...(s.kind === "number" ? (s.unit ? [s.unit] : []) : s.options.map((o) => o.label)),
+        ...(s.kind === "number"
+          ? s.unit
+            ? [s.unit]
+            : []
+          : s.kind === "text"
+            ? s.placeholder
+              ? [s.placeholder]
+              : []
+            : s.options.map((o) => o.label)),
       ]),
     );
     expect(used.filter((k) => !keys.has(k))).toEqual([]);

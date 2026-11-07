@@ -57,8 +57,9 @@ describe("built site", () => {
       : [];
     for (const slug of slugs) {
       const html = page(`l/${slug}/index.html`);
-      // The line under the CTA only: the lander's own body text is the product's.
-      const line = html.match(/Mulai dari[^<]*/)?.[0] ?? "";
+      // The line under the CTA only, by its test id: the lander's own text may say "Mulai dari" too.
+      const line = html.match(/data-testid="cta-terms"[^>]*>([^<]*)/)?.[1] ?? "";
+      expect(line, slug).toMatch(/^\s*Mulai dari/);
       expect(line, slug).toContain(methodChips(product.payments.methods).join(", "));
       expect(line.includes("tanpa tagihan otomatis"), slug).toBe(product.payments.showTerms);
       expect(html, slug).not.toContain("QRIS, e-wallet, virtual account");

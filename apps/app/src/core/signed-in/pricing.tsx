@@ -61,9 +61,22 @@ export function Pricing() {
         <Footer methods={methodChips(product.payments.methods)} hasAccess={Boolean(me.data?.access)} t={t} />
       ) : null}
       {product.trial.enabled && !me.data?.access ? (
-        <Button variant="ghost" onPress={startTrial} disabled={busy}>
-          <Text>{`${t("pricing.trial")} (${product.trial.days} ${t("pricing.trialDays")})`}</Text>
-        </Button>
+        // trial.primary (D-125): the main button, with what it doesn't ask for under it.
+        <View className="gap-1">
+          <Button
+            testID="start-trial"
+            variant={product.trial.primary ? "default" : "ghost"}
+            onPress={startTrial}
+            disabled={busy}
+          >
+            <Text>{`${t("pricing.trial")} ${product.trial.days} ${t("pricing.trialDays")}`}</Text>
+          </Button>
+          {product.trial.primary ? (
+            <Text variant="muted" className="text-center">
+              {t("pricing.trialNote")}
+            </Text>
+          ) : null}
+        </View>
       ) : null}
       {message ? <ErrorText>{message}</ErrorText> : null}
     </Screen>

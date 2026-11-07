@@ -169,6 +169,9 @@ describe("defineProduct", () => {
     expect(defineProduct({ ...base, funnel: { ...funnel, anonymousEntry: "/scan" } }).funnel.anonymousEntry).toBe(
       "/scan",
     );
+    // A public screen that spends nothing (a story, D-125).
+    const story = { ...base.funnel, anonymousFreeUses: 0, anonymousEntry: "/rencana" };
+    expect(defineProduct({ ...base, funnel: story }).funnel.anonymousEntry).toBe("/rencana");
   });
 
   it("darkMode: false needs no colors.dark; true (the default) still does (D-076)", () => {
@@ -192,8 +195,18 @@ describe("defineProduct", () => {
     });
 
     it("defaults to the template's look when nothing is set", () => {
-      const t = defineProduct(tokens({ radii: undefined, shadow: undefined, density: undefined, fonts: undefined }))
-        .brand.tokens;
+      // Every optional look token unset, whatever the product's own config sets (a product with
+      // controlHeight failed this template test).
+      const t = defineProduct(
+        tokens({
+          radii: undefined,
+          shadow: undefined,
+          density: undefined,
+          fonts: undefined,
+          weights: undefined,
+          controlHeight: undefined,
+        }),
+      ).brand.tokens;
       expect(t).toMatchObject({ radii: {}, shadow: "none", density: "regular", weights: {}, fonts: [] });
       expect(t.controlHeight).toBeUndefined();
     });

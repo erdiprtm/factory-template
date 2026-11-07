@@ -49,6 +49,8 @@ module.exports = {
         background: token("background"),
         foreground: token("foreground"),
         primary: { DEFAULT: token("primary"), foreground: token("primary-foreground") },
+        // Text links and active labels (D-125): brand.tokens.colors.*.link, else primary.
+        link: token("link"),
         secondary: { DEFAULT: token("secondary"), foreground: token("secondary-foreground") },
         destructive: { DEFAULT: token("destructive"), foreground: token("destructive-foreground") },
         muted: { DEFAULT: token("muted"), foreground: token("muted-foreground") },

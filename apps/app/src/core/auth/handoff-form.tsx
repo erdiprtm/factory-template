@@ -36,7 +36,7 @@ export function HandoffForm({ initialCode = "" }: { initialCode?: string }) {
   if (!open)
     return (
       <Pressable role="button" onPress={() => setOpen(true)} className="min-h-11 justify-center" testID="handoff-open">
-        <Text className="text-center font-semibold text-primary">{t("auth.handoff.open")}</Text>
+        <Text className="text-center font-semibold text-link">{t("auth.handoff.open")}</Text>
       </Pressable>
     );
   return (

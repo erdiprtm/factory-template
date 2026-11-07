@@ -81,7 +81,8 @@
   },
   "trial": {
     "enabled": true,
-    "days": 7
+    "days": 7,
+    "primary": false
   },
   "plans": [
     {

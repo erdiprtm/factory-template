@@ -73,7 +73,7 @@ function DocLink({ href, label }: { href: string; label: string }) {
   return (
     <Text
       role="link"
-      className="text-primary underline"
+      className="text-link underline"
       // Web: a real link that opens a new tab, so the quiz stays where it is. Native: the browser.
       {...(Platform.OS === "web"
         ? ({ href, hrefAttrs: { target: "_blank", rel: "noopener" } } as object)
