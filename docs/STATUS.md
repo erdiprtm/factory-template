@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-07: "Pasang di HP" guide per browser (D-126), from Myna Fit
+
+- The install guide has one collapsible row per browser: Safari (iPhone/iPad), Chrome (iPhone/iPad), Chrome (Android). Each has a drawn mark and its name. The visitor's own browser opens first (`CriOS` → Chrome). Steps show a drawn glyph of what to tap. The copy is shorter (`pwa.guide.*` replaces `pwa.ios.*`).
+
+---
+
 ## 2026-11-07: Template fixes and options from the Myna Run build (D-125)
 
 - Fixed: `new-product.mjs --dir`, the `controlHeight` config test, `requireAdmin` undefined in product routes (now `core/require-admin.ts`), the lander "Mulai dari" test, `pnpm dev` without `apps/app/dist`.

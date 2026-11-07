@@ -15,6 +15,8 @@ const UA = {
     "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36",
   iphone:
     "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1",
+  iphoneChrome:
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/141.0.7390.41 Mobile/15E148 Safari/604.1",
   instagram:
     "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 390.0.0.0",
   desktopFirefox: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.5; rv:140.0) Gecko/20100101 Firefox/140.0",
@@ -94,15 +96,36 @@ describe("install offer (D-080)", () => {
     expect(tracked[0]?.[1]).toEqual({ kind: "prompt", placement: "payment" });
   });
 
-  it("iPhone Safari: Pasang opens the three-step Share guide", async () => {
+  it("iPhone Safari: Pasang opens the per-browser guide with Safari's row open (D-126)", async () => {
     const { InstallOffer, show, t } = await load("payment", UA.iphone);
     show(<InstallOffer placement="payment" />);
-    expect(screen.queryByTestId("pwa-ios-guide")).toBeNull();
+    expect(screen.queryByTestId("pwa-guide")).toBeNull();
     fireEvent.click(screen.getByText(t("pwa.install")));
-    expect(screen.getByTestId("pwa-ios-guide")).toBeTruthy();
-    expect(screen.getByText(t("pwa.ios.step1"))).toBeTruthy();
-    expect(screen.getByText(t("pwa.ios.step2"))).toBeTruthy();
-    expect(t("pwa.ios.step1")).toMatch(/Bagikan|Share/);
+    expect(screen.getByTestId("pwa-guide")).toBeTruthy();
+    for (const name of ["pwa.guide.safari", "pwa.guide.chromeIos", "pwa.guide.android"] as const)
+      expect(screen.getByText(t(name))).toBeTruthy();
+    expect(screen.getByTestId("pwa-guide-safari-steps")).toBeTruthy();
+    expect(screen.queryByTestId("pwa-guide-chrome-ios-steps")).toBeNull();
+    expect(screen.getByText(t("pwa.guide.safari.share"))).toBeTruthy();
+    expect(screen.getByText(t("pwa.guide.addToHome"))).toBeTruthy();
+    expect(t("pwa.guide.safari.share")).toMatch(/Bagikan|Share/);
+  });
+
+  it("iPhone Chrome (CriOS): Chrome's row opens; tapping rows opens and closes them", async () => {
+    const { InstallOffer, show, t } = await load("payment", UA.iphoneChrome);
+    show(<InstallOffer placement="payment" />);
+    fireEvent.click(screen.getByText(t("pwa.install")));
+    expect(screen.getByTestId("pwa-guide-chrome-ios-steps")).toBeTruthy();
+    expect(screen.getByText(t("pwa.guide.chromeIos.share"))).toBeTruthy();
+    expect(screen.queryByTestId("pwa-guide-safari-steps")).toBeNull();
+    const safari = screen.getByText(t("pwa.guide.safari"));
+    fireEvent.click(safari);
+    expect(screen.getByTestId("pwa-guide-safari-steps")).toBeTruthy();
+    expect(screen.queryByTestId("pwa-guide-chrome-ios-steps")).toBeNull(); // one open at a time
+    fireEvent.click(safari);
+    expect(screen.queryByTestId("pwa-guide-safari-steps")).toBeNull();
+    fireEvent.click(screen.getByText(t("pwa.guide.android")));
+    expect(screen.getByText(t("pwa.guide.android.menu"))).toBeTruthy();
   });
 
   it("in-app browser (Instagram): open in Chrome/Safari, with a copy-link button", async () => {
@@ -167,7 +190,7 @@ describe("install offer (D-080)", () => {
     install.dismissOffer();
     show(<InstallAccountLink />);
     fireEvent.click(screen.getByText(t("pwa.account")));
-    expect(screen.getByTestId("pwa-ios-guide")).toBeTruthy();
+    expect(screen.getByTestId("pwa-guide")).toBeTruthy();
     const m = await load("never", UA.desktopFirefox);
     m.show(<m.InstallAccountLink />);
     expect(screen.queryAllByTestId("pwa-account")).toHaveLength(1); // only the iPhone one above
@@ -209,5 +232,26 @@ describe("install rules (D-080)", () => {
     const ipad = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.5 Safari/605.1.15";
     expect(installKind({ ua: ipad, maxTouchPoints: 5, standalone: false, hasPrompt: false })).toBe("ios");
     expect(installKind({ ua: ipad, maxTouchPoints: 0, standalone: false, hasPrompt: false })).toBeNull();
+  });
+});
+
+describe("guide rules (D-126)", () => {
+  it("opens the row for the visitor's browser, none for others", async () => {
+    const { guideBrowser } = await import("../src/core/pwa/rules");
+    expect(guideBrowser(UA.iphone)).toBe("safari");
+    expect(guideBrowser(UA.iphoneChrome)).toBe("chrome-ios");
+    expect(guideBrowser(UA.android)).toBe("chrome-android");
+    const ipad = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.5 Safari/605.1.15";
+    expect(guideBrowser(ipad, 5)).toBe("safari");
+    expect(guideBrowser(ipad, 0)).toBeNull(); // a real Mac
+    for (const ua of [
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/140.0 Mobile/15E148 Safari/605.1.15",
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) EdgiOS/140.0 Mobile/15E148 Safari/605.1.15",
+      "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/28.0 Chrome/130.0.0.0 Mobile Safari/537.36",
+      "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36 EdgA/141.0",
+      UA.instagram,
+      UA.desktopFirefox,
+    ])
+      expect(guideBrowser(ua), ua).toBeNull();
   });
 });
