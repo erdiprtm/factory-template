@@ -95,7 +95,7 @@ export function BottomNav() {
         ) : (
           <>
             {Icon ? <Icon size={22} color={active ? colors.primary : colors.mutedForeground} /> : null}
-            <Text className={`text-xs ${active ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+            <Text className={`text-xs ${active ? "font-semibold text-link" : "text-muted-foreground"}`}>
               {t(tab.label)}
             </Text>
           </>

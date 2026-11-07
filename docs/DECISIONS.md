@@ -2555,3 +2555,25 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - the consent nudge in `single-consent.test.tsx`;
   - the banner's ✕ and tabs host in `marketing-banner-render.test.tsx`;
   - the E2E sign-outs confirm.
+
+## D-125: Template fixes and options from the Myna Run build (2026-11-07)
+
+- **Context.** Eleven requests from Myna Run's overnight build. Myna Run had worked around each one. Erdi: all of them, in one PR.
+- **Bugs:**
+  - **`new-product.mjs --dir`** was ignored. `gh repo create --clone` always clones into `<cwd>/<repo name>`. The script now creates the repo, then runs `gh repo clone <repo> <dir>`, retrying for up to about 30 s while GitHub copies the template.
+  - **`brand.tokens.controlHeight`** failed the template's own config test, which didn't unset it. The test now unsets every optional look token.
+  - **`requireAdmin` was undefined in product routes.** The cycle was `core/admin.ts → erase-account → features/user-data → product module → core/admin.ts`, so the route 404'd. It now lives in the leaf module `apps/api/src/core/require-admin.ts`, which imports no relative runtime modules (a test checks this). `core/admin.ts` re-exports it first. Product code imports it from `core/require-admin`.
+  - **The lander test** matched the first "Mulai dari" anywhere on the page. The line under the CTA now has `data-testid="cta-terms"`.
+  - **`pnpm dev`** failed in a fresh checkout until `apps/app/dist` existed (wrangler's assets directory). The API's `dev` script creates it.
+- **Options:**
+  - **Text quiz step** `{ kind: "text", maxLength?, placeholder? }`, e.g. the first name:
+    - trimmed, whitespace collapsed, no control characters, at most 40 characters;
+    - recapped as typed;
+    - **device only**: `sharedAnswers()` drops text steps before `POST /api/quiz`, and analytics never sees answers.
+  - **`funnel.anonymousEntry` without free uses.** A public screen after the quiz that spends nothing, such as a story or demo. The config already allowed it; the app's `anonymousEntry` no longer requires `anonymousFreeUses > 0`.
+  - **Link colour.** `brand.tokens.colors.{light,dark}.link` is optional and defaults to primary. It becomes `--link` and the `text-link` class in the app and on the site.
+    - Used for consent links, "Ganti email", the hand-off link, the active tab label, and the site's prose links and plan notes.
+    - Filled buttons keep primary. A light primary such as coral on cream (~2.5:1) no longer makes text unreadable.
+  - **`trial.primary`.** On /pricing the trial becomes the filled main button under the plans, with "Tanpa kartu, tanpa tagihan otomatis." under it. It defaults to the quiet text button.
+  - **Neutral trial copy.** Core no longer says "gratis" for the trial: "Coba 7 hari", "Masa coba sampai", "Coba dulu, tanpa daftar". Free *uses* keep "jatah gratis", which is literally true; products reword it in `features/messages.ts`.
+  - **Site copy from config.** Plan lengths come from `planLengths()` (e.g. "3 atau 6 bulan"), the trial from `trialPhrase` (no "gratis", and nothing when there's no trial), and payment methods from config. This covers the landing page, /harga, the FAQ, the pricing note and the article CTA.

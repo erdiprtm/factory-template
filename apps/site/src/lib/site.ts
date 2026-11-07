@@ -59,10 +59,26 @@ export function fillPlaceholders(text: string): string {
   return fillTemplate(text, values);
 }
 
+/**
+ * The plan lengths from config (D-125), e.g. "3 atau 6 bulan": site copy never names lengths a
+ * product doesn't sell.
+ */
+export function planLengths(plans: readonly { months: number }[] = product.plans): string {
+  const months = [...new Set(plans.map((p) => p.months))].sort((a, b) => a - b);
+  const list = months.length > 1 ? `${months.slice(0, -1).join(", ")} atau ${months.at(-1)}` : `${months[0]}`;
+  return `${list} bulan`;
+}
+
+/** "Coba 7 hari" when the product has a trial (no "gratis": D-125), else null. */
+export const trialPhrase: string | null = product.trial.enabled ? `Coba ${product.trial.days} hari` : null;
+
+/** The payment methods in a sentence, from config (D-098). */
+export const methodsSentence = methodChips(product.payments.methods).join(", ");
+
 export const faqs = [
   {
-    q: "Apakah langganan diperpanjang otomatis?",
-    a: "Tidak. Kamu membayar sekali di muka untuk 6 atau 12 bulan. Perpanjangan adalah pembelian baru, dan kami mengingatkan sebelum masa aktif habis.",
+    q: "Apakah paket diperpanjang otomatis?",
+    a: `Tidak. Kamu membayar sekali di muka untuk ${planLengths()}. Perpanjangan adalah pembelian baru, dan kami mengingatkan sebelum masa aktif habis.`,
   },
   {
     q: "Kalau saya memperpanjang lebih awal, sisa hari hangus?",
@@ -73,10 +89,14 @@ export const faqs = [
     // From config (D-098), so a product on another provider never lists methods it doesn't take.
     a: `${methodChips(product.payments.methods).join(", ")}.`,
   },
-  {
-    q: "Ada masa coba gratis?",
-    a: `Ada, ${product.trial.days} hari, satu kali per akun. Tidak perlu kartu kredit.`,
-  },
+  ...(product.trial.enabled
+    ? [
+        {
+          q: "Ada masa coba?",
+          a: `Ada, ${product.trial.days} hari, satu kali per akun. Tidak perlu kartu kredit.`,
+        },
+      ]
+    : []),
   {
     q: "Bagaimana dengan data saya?",
     a: "Data kamu dilindungi sesuai UU Pelindungan Data Pribadi. Kamu bisa mengunduh atau menghapus data kapan saja dari menu Akun.",

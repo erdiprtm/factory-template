@@ -1,3 +1,9 @@
+// requireAdmin first (D-125): this re-export loads the leaf module before the imports below, which
+// reach product code (erase-account → features/user-data) that may import requireAdmin back.
+import { requireAdmin } from "./require-admin";
+
+export { requireAdmin };
+
 import { config } from "@factory/config/product";
 import { adminStats, findUserByEmail, isAdminEmail, recentPayments, recentWebhookEvents } from "@factory/core/admin";
 import { loadDashboard, loadFeed } from "@factory/core/admin/dashboard";
@@ -17,7 +23,6 @@ import { refundText } from "@factory/core/notify";
 import { schema } from "@factory/db";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
-import { createMiddleware } from "hono/factory";
 import { z } from "zod";
 import type { Bindings } from "../index";
 import { experiment, serverAnalytics } from "./analytics";
@@ -25,16 +30,6 @@ import { eraseAccount } from "./erase-account";
 import { ownerAlert } from "./notify";
 import { type SessionVariables, sessionMiddleware } from "./session";
 import { botReady, connectBot } from "./telegram-bot";
-
-/** 401 signed out, 403 not on the allowlist (product.config.ts admin.emails ∪ ADMIN_EMAILS var). */
-export const requireAdmin = createMiddleware<{ Bindings: Bindings; Variables: SessionVariables }>(async (c, next) => {
-  const user = c.get("user");
-  if (!user) return c.json({ error: "unauthorized" as const }, 401);
-  if (!isAdminEmail(user.email, config.admin.emails, c.env.ADMIN_EMAILS)) {
-    return c.json({ error: "forbidden" as const }, 403);
-  }
-  await next();
-});
 
 const grantBody = z.object({ email: z.email(), days: z.int().min(1).max(366) });
 // D-110: the email typed twice, so a slip in one field can't delete the wrong person.

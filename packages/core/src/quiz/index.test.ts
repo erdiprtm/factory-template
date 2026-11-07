@@ -8,6 +8,8 @@ import {
   type QuizDefinition,
   quizProblems,
   recapAnswers,
+  sharedAnswers,
+  TEXT_MAX,
 } from "./index";
 
 const opts = [
@@ -110,5 +112,29 @@ describe("frozenAnswers (slots read earlier answers, D-094)", () => {
     }).toThrow();
     expect(() => (shown.blockers as string[]).push("x")).toThrow();
     expect(answers.blockers).toEqual(["time"]);
+  });
+});
+
+describe("text steps (D-125)", () => {
+  const name = { id: "name", kind: "text", title: "q.name", maxLength: 20 } as const;
+  const withName: QuizDefinition = { ...quiz, steps: [...quiz.steps.slice(0, 4), name] };
+
+  it("take a short trimmed answer without control characters", () => {
+    expect(isValidAnswer(name, "Erdi")).toBe(true);
+    expect(isValidAnswer(name, " Erdi")).toBe(false);
+    expect(isValidAnswer(name, "")).toBe(false);
+    expect(isValidAnswer(name, "x".repeat(21))).toBe(false);
+    expect(isValidAnswer(name, "a\u0000b")).toBe(false);
+    expect(isValidAnswer(name, 3)).toBe(false);
+    expect(quizProblems(withName)).toEqual([]);
+    expect(quizProblems({ ...withName, steps: [...quiz.steps.slice(0, 4), { ...name, maxLength: 99 }] })).toEqual([
+      `step "name": maxLength is 1–${TEXT_MAX}`,
+    ]);
+  });
+
+  it("are recapped as typed, and never leave the device", () => {
+    const answers = { goal: "a", habits: ["b"], age: 30, time: "a", name: "Erdi" };
+    expect(recapAnswers(withName, answers).at(-1)).toEqual({ title: "q.name", labels: [], text: "Erdi" });
+    expect(sharedAnswers(withName, answers)).toEqual({ goal: "a", habits: ["b"], age: 30, time: "a" });
   });
 });

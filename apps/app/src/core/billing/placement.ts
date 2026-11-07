@@ -10,11 +10,11 @@ import { notifyMarketingChange } from "../marketing";
 export const paywallPlacement = product.funnel.paywallPlacement;
 
 /**
- * "Pay for proof" (D-042, D-043): the product's public screen for a visitor's first use, or null
- * when the first result needs an account. The quiz leads there instead of to sign-in.
+ * "Pay for proof" (D-042, D-043): the product's public screen after the quiz, or null when the next
+ * step is sign-in. The quiz leads there instead of to sign-in. It may spend a free use (a scan), or
+ * spend none at all (a story or demo screen, anonymousFreeUses 0, D-125).
  */
-export const anonymousEntry: string | null =
-  product.funnel.anonymousFreeUses > 0 ? product.funnel.anonymousEntry : null;
+export const anonymousEntry: string | null = product.funnel.anonymousEntry;
 
 let reported = false;
 const FIRST_RESULT = "factory.firstResult";

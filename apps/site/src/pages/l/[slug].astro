@@ -31,7 +31,7 @@ const quizUrl = `${appUrl}/quiz`;
     >
       {cta}
     </a>
-    <p class="text-center text-sm text-muted-foreground">
+    <p class="text-center text-sm text-muted-foreground" data-testid="cta-terms">
       {/* Methods from config (D-098); the terms follow payments.showTerms (D-109). */}
       {[
         `Mulai dari ≈ ${formatIdr(cheapest)}/minggu`,

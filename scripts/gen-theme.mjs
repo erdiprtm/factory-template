@@ -83,8 +83,9 @@ export function sizeVars(tokens) {
  * light only, no .dark block.
  */
 export function renderTokens(tokens, darkMode = true) {
+  // --link falls back to primary (D-125), so every product has it.
   const block = (colors) =>
-    Object.entries(colors)
+    Object.entries(colors.link || !colors.primary ? colors : { ...colors, link: colors.primary })
       .map(([k, v]) => `    --${kebab(k)}: ${hexToHslChannels(v)};`)
       .join("\n");
   return [

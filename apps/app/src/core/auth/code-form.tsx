@@ -49,7 +49,7 @@ export function CodeForm({
       <View className="flex-row flex-wrap items-center gap-x-2">
         <Text variant="muted">{`${t("auth.signIn.sentTo")} ${email}`}</Text>
         <Pressable role="button" onPress={changeEmail} className="min-h-11 justify-center" testID="change-email">
-          <Text className="font-semibold text-primary">{t("auth.signIn.changeEmail")}</Text>
+          <Text className="font-semibold text-link">{t("auth.signIn.changeEmail")}</Text>
         </Pressable>
       </View>
       <Input

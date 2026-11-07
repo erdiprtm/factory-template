@@ -14,6 +14,7 @@
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-link: hsl(var(--link));
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
@@ -66,6 +67,6 @@
     @apply my-4 rounded-lg border border-border bg-muted p-4 text-muted-foreground;
   }
   .prose-legal a {
-    @apply text-primary underline;
+    @apply text-link underline;
   }
 }

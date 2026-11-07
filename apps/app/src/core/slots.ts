@@ -181,7 +181,7 @@ export type CoreSlots = {
   /**
    * The product's own section on /admin (D-100), under the unit economics: e.g. scan feedback from
    * a product table. Core renders it only for admins; its data comes from the product's own API
-   * route, guarded on the server with core's `requireAdmin` (apps/api/src/core/admin.ts).
+   * route, guarded on the server with core's `requireAdmin` (apps/api/src/core/require-admin.ts, D-125).
    */
   adminPanel?: ComponentType<AdminPanelSlotProps>;
 };

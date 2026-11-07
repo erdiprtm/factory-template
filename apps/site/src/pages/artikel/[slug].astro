@@ -32,7 +32,9 @@ const ld = page.data.faq.length > 0 ? [faqLd(page.data.faq)] : [];
     }
     <p class="mt-10 rounded-lg bg-accent p-5 text-accent-foreground">
       Informasi ini bersifat umum dan bukan pengganti tenaga profesional.
-      <a href={`${appUrl}/sign-in`} data-event="signup_started">Coba {product.name} gratis {product.trial.days} hari</a>.
+      <a href={`${appUrl}/sign-in`} data-event="signup_started">
+        {product.trial.enabled ? `Coba ${product.name} ${product.trial.days} hari` : `Mulai pakai ${product.name}`}
+      </a>.
     </p>
   </article>
 </Base>

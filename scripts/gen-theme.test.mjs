@@ -28,6 +28,13 @@ import {
 import { encodePng, pngSize } from "./png.mjs";
 
 describe("gen-theme", () => {
+  it("--link is the link colour, else primary (D-125)", () => {
+    const scale = { primary: "#2563eb" };
+    const out = (colors) => renderTokens({ radius: "0.75rem", radii: {}, colors: { light: colors } }, false);
+    expect(out(scale)).toContain("--link: 221.2 83.2% 53.3%;");
+    expect(out({ ...scale, link: "#dc2626" })).toContain("--link: 0 72.2% 50.6%;");
+  });
+
   it("converts hex to HSL channels", () => {
     expect(hexToHslChannels("#ffffff")).toBe("0 0% 100%");
     expect(hexToHslChannels("#000000")).toBe("0 0% 0%");

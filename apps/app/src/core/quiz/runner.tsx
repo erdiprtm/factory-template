@@ -7,6 +7,7 @@ import {
   type QuizDefinition,
   type QuizStep,
   recapAnswers,
+  TEXT_MAX,
 } from "@factory/core/quiz";
 import { Button, Card, CardContent, CardHeader, CardTitle, cn, ErrorText, Input, Screen, Text } from "@factory/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -198,8 +199,37 @@ function StepInput({
 }) {
   const { t } = useI18n();
   const [multi, setMulti] = useState<string[]>(Array.isArray(value) ? value : []);
-  const [text, setText] = useState(typeof value === "number" ? String(value) : "");
+  const [text, setText] = useState(
+    typeof value === "number" ? String(value) : step.kind === "text" && typeof value === "string" ? value : "",
+  );
   const [invalid, setInvalid] = useState(false);
+
+  // A short free answer (D-125), e.g. the first name: kept on the device only.
+  if (step.kind === "text") {
+    const max = Math.min(step.maxLength ?? TEXT_MAX, TEXT_MAX);
+    const submit = () => {
+      const v = text.trim().replace(/\s+/g, " ");
+      if (!isValidAnswer(step, v)) return;
+      onAnswer(v);
+    };
+    return (
+      <View className="gap-3">
+        <Input
+          testID="quiz-text"
+          accessibilityLabel={t(step.title)}
+          placeholder={step.placeholder ? t(step.placeholder) : undefined}
+          autoCapitalize="words"
+          maxLength={max}
+          value={text}
+          onChangeText={setText}
+          onSubmitEditing={submit}
+        />
+        <Button testID="quiz-next" onPress={submit} disabled={text.trim() === ""}>
+          <Text>{t("quiz.next")}</Text>
+        </Button>
+      </View>
+    );
+  }
 
   if (step.kind === "number") {
     const submit = () => {
@@ -299,9 +329,11 @@ function Summary({
   const recap = recapAnswers(quiz, answers).map((r) => ({
     title: t(r.title),
     value:
-      r.value !== undefined
-        ? `${formatNumber(r.value, locale)}${r.unit ? ` ${t(r.unit)}` : ""}`
-        : r.labels.map((l) => t(l)).join(", "),
+      r.text !== undefined
+        ? r.text
+        : r.value !== undefined
+          ? `${formatNumber(r.value, locale)}${r.unit ? ` ${t(r.unit)}` : ""}`
+          : r.labels.map((l) => t(l)).join(", "),
   }));
   const Header = slots.quizSummaryHeader;
   const Body = slots.quizSummaryBody;

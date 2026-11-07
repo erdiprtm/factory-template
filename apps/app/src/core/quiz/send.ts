@@ -1,4 +1,4 @@
-import { cleanAnswers, isQuizComplete } from "@factory/core/quiz";
+import { cleanAnswers, isQuizComplete, sharedAnswers } from "@factory/core/quiz";
 import { api } from "../api";
 import { activeQuiz } from "./active";
 import { loadQuizProgress, saveQuizProgress } from "./storage";
@@ -12,7 +12,8 @@ export async function sendQuiz(): Promise<void> {
   const answers = cleanAnswers(quiz, progress.answers);
   if (!isQuizComplete(quiz, answers)) return;
   const res = await api.api.quiz
-    .$post({ json: { quizId: quiz.id, answers, completedAt: progress.completedAt } })
+    // Text answers (a first name) stay on the device (D-125).
+    .$post({ json: { quizId: quiz.id, answers: sharedAnswers(quiz, answers), completedAt: progress.completedAt } })
     .catch(() => null);
   if (res?.ok) saveQuizProgress(quiz.id, { ...progress, sentAt: Date.now() });
 }

@@ -75,10 +75,10 @@ describe("slots can't bypass core rules", () => {
 });
 
 describe("paywall copy", () => {
-  it("mentions the free trial only when the product has one", async () => {
+  it('mentions the trial only when the product has one (no "gratis", D-125)', async () => {
     const { paywallBodyKey } = await import("../src/core/billing/paywall-copy");
     const { id } = await import("../src/core/i18n/id");
-    expect(id[paywallBodyKey(true)]).toMatch(/coba gratis/i);
-    expect(id[paywallBodyKey(false)]).not.toMatch(/coba gratis|trial/i);
+    expect(id[paywallBodyKey(true)]).toMatch(/masa coba/i);
+    expect(id[paywallBodyKey(false)]).not.toMatch(/coba|trial/i);
   });
 });

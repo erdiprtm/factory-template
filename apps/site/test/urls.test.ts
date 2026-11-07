@@ -50,3 +50,12 @@ describe("site and app URLs", () => {
     }
   });
 });
+
+describe("site copy from config (D-125)", () => {
+  it("names only the plan lengths the product sells", async () => {
+    const { planLengths } = await import("../src/lib/site");
+    expect(planLengths([{ months: 12 }, { months: 6 }])).toBe("6 atau 12 bulan");
+    expect(planLengths([{ months: 1 }, { months: 3 }, { months: 6 }, { months: 3 }])).toBe("1, 3 atau 6 bulan");
+    expect(planLengths([{ months: 3 }])).toBe("3 bulan");
+  });
+});

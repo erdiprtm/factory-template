@@ -40,7 +40,7 @@ const bonus = (plan: (typeof product.plans)[number]) => bonusLine(plan.bonusMont
                 Harga founder untuk {founder(plan)?.limit} pembeli pertama
               </p>
             )}
-            {saving(plan) && <p class="text-sm font-semibold text-primary">{saving(plan)}</p>}
+            {saving(plan) && <p class="text-sm font-semibold text-link">{saving(plan)}</p>}
             {group.label ? <h4 class="text-lg font-semibold">{plan.label}</h4> : <h3 class="text-lg font-semibold">{plan.label}</h3>}
             {founder(plan) ? (
               <p class="flex flex-wrap items-baseline gap-3">
@@ -50,7 +50,7 @@ const bonus = (plan: (typeof product.plans)[number]) => bonusLine(plan.bonusMont
             ) : (
               <p class="text-4xl font-extrabold">{formatIdr(plan.priceIdr)}</p>
             )}
-            {bonus(plan) && <p class="font-semibold text-primary" data-testid="plan-bonus">{bonus(plan)}</p>}
+            {bonus(plan) && <p class="font-semibold text-link" data-testid="plan-bonus">{bonus(plan)}</p>}
             <p class="text-sm text-muted-foreground">
               ≈ {formatIdr(perWeekIdr({ ...plan, priceIdr: founder(plan)?.priceIdr ?? plan.priceIdr }))}/minggu
             </p>
@@ -81,7 +81,7 @@ const bonus = (plan: (typeof product.plans)[number]) => bonusLine(plan.bonusMont
 {
   product.trial.enabled && (
     <p class="mt-5 text-center text-sm text-muted-foreground">
-      Belum yakin? Coba gratis {product.trial.days} hari, satu kali per akun.
+      Belum yakin? Coba {product.trial.days} hari dulu, satu kali per akun.
     </p>
   )
 }
