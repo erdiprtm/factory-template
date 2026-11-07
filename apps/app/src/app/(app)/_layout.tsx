@@ -8,6 +8,7 @@ import { anonymousHome, leaveTo } from "../../core/auth/anonymous-home";
 import { useMe } from "../../core/auth/use-me";
 import { useI18n } from "../../core/i18n";
 import { syncMarketingConsent } from "../../core/marketing";
+import { MarketingBanner } from "../../core/marketing-banner";
 import { setMonitoringUser } from "../../core/monitoring";
 import { BottomNav, TopNav, useNavPlacement } from "../../core/nav/product-nav";
 import { sendQuiz } from "../../core/quiz/send";
@@ -51,6 +52,8 @@ export default function ProtectedLayout() {
       <View className="flex-1">
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "transparent" } }} />
       </View>
+      {/* Above the tab bar, not under it (D-124); the root layout's copy steps aside meanwhile. */}
+      <MarketingBanner where="tabs" />
       {placement === "bottom" ? <BottomNav /> : null}
     </View>
   );

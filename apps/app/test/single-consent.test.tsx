@@ -87,8 +87,11 @@ describe("single consent (D-074)", () => {
     fireEvent.click(screen.getByTestId("quiz-option"));
     expect(accept).not.toHaveBeenCalled();
     expect(screen.getByText(t("quiz.summary.answers"))).toBeTruthy();
+    // Says why nothing happened (D-124), and stops saying it once ticked.
+    await vi.waitFor(() => expect(screen.getByTestId("consent-nudge").textContent).toBe(t("consent.tickFirst")));
 
     fireEvent.click(screen.getByRole("checkbox"));
+    expect(screen.queryByTestId("consent-nudge")).toBeNull();
     fireEvent.click(screen.getByTestId("quiz-option"));
     await vi.waitFor(() => expect(accept).toHaveBeenCalledWith(needed));
     await vi.waitFor(() => expect(screen.getByText(t("quiz.summary.title"))).toBeTruthy());

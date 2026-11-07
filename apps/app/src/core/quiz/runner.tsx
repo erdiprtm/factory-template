@@ -40,7 +40,14 @@ type RunnerProps = {
   tryFirst?: boolean;
 };
 
-const NO_CONSENT: InlineConsent = { needed: [], pending: false, ticked: true, accept: async () => true, row: null };
+const NO_CONSENT: InlineConsent = {
+  needed: [],
+  pending: false,
+  ticked: true,
+  nudged: false,
+  accept: async () => true,
+  row: null,
+};
 
 function RunnerWithConsent(props: RunnerProps) {
   return <Runner {...props} consent={useInlineConsent()} />;
@@ -117,6 +124,8 @@ function Runner({ quiz, onDone, consentAt, tryFirst = false, consent }: RunnerPr
           back={index > 0 ? () => setIndex(index - 1) : undefined}
           progress={{ step: index + 1, total }}
           t={t}
+          locked={asking && !consent.ticked}
+          consentMissing={asking && consent.nudged}
         />
         {asking ? consent.row : null}
       </Screen>
@@ -181,7 +190,10 @@ function StepInput({
   step: QuizStep<MessageKey>;
   value: QuizAnswer | undefined;
   onAnswer: (v: QuizAnswer) => void;
-  /** Consent not ticked yet (D-074): the answer can be prepared but not sent on. */
+  /**
+   * Consent not ticked yet (D-074): the answer can be prepared but not sent on. Taps still reach
+   * onAnswer, which refuses and shows "Centang persetujuan dulu, ya" (D-124) instead of nothing.
+   */
   locked?: boolean;
 }) {
   const { t } = useI18n();
@@ -213,7 +225,7 @@ function StepInput({
           {step.unit ? <Text className="text-foreground">{t(step.unit)}</Text> : null}
         </View>
         {invalid ? <ErrorText>{`${t("quiz.numberRange")} ${step.min}–${step.max}`}</ErrorText> : null}
-        <Button testID="quiz-next" onPress={submit} disabled={locked || text.trim() === ""}>
+        <Button testID="quiz-next" onPress={submit} disabled={text.trim() === ""}>
           <Text>{t("quiz.next")}</Text>
         </Button>
       </View>
@@ -234,7 +246,7 @@ function StepInput({
             aria-checked={selected}
             accessibilityState={{ checked: selected }}
             onPress={() => {
-              if (!isMulti) return locked ? undefined : onAnswer(o.value);
+              if (!isMulti) return onAnswer(o.value);
               setMulti((m) =>
                 m.includes(o.value) ? m.filter((v) => v !== o.value) : m.length < max ? [...m, o.value] : m,
               );
@@ -242,6 +254,7 @@ function StepInput({
             className={cn(
               "min-h-14 justify-center rounded-xl border-2 px-4 py-3",
               selected ? "border-primary bg-accent" : "border-border bg-card",
+              locked && "opacity-60",
             )}
           >
             <Text className="text-base font-medium text-foreground">{t(o.label)}</Text>
@@ -253,7 +266,7 @@ function StepInput({
           {max < step.options.length && !step.hint ? (
             <Text variant="muted">{`${t("quiz.pickUpTo")} ${max}`}</Text>
           ) : null}
-          <Button testID="quiz-next" onPress={() => onAnswer(multi)} disabled={locked || multi.length === 0}>
+          <Button testID="quiz-next" onPress={() => onAnswer(multi)} disabled={multi.length === 0}>
             <Text>{t("quiz.next")}</Text>
           </Button>
         </>

@@ -6,6 +6,11 @@ export function anonymousHome(path: string): string | null {
   return anonymousHomeFor(path, window.location.hostname, product.domain);
 }
 
+/** The product's landing page, to leave sign-in for (D-124): the one-domain landing, else the site. */
+export function siteLanding(): string | null {
+  return product.domain.anonymousHome ?? (product.domain.site ? `https://${product.domain.site}/` : null);
+}
+
 /**
  * Leaves the app for a site page with a full page load: on one domain the landing is the site
  * Worker's path, which the app's router can't render. `keepQuery` carries ?utm_… along.

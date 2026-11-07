@@ -5,5 +5,10 @@ export function anonymousHome(_path: string): string | null {
   return null;
 }
 
+/** Native has no site to leave for. */
+export function siteLanding(): string | null {
+  return null;
+}
+
 /** Leaves the app for a site page with a full page load (web only). */
 export function leaveTo(_url: string, _keepQuery = false): void {}

@@ -21,7 +21,7 @@ vi.mock("../src/core/auth/client", () => ({
   authClient: { signIn: { magicLink: async () => ({ error: null }), emailOtp: async () => ({ error: null }) } },
 }));
 vi.mock("../src/core/analytics", () => ({ track: vi.fn() }));
-vi.mock("expo-router", () => ({ Redirect: () => null }));
+vi.mock("expo-router", () => ({ Redirect: () => null, useRouter: () => ({ canGoBack: () => false }) }));
 
 const { SignIn } = await import("../src/core/signed-in/sign-in");
 const { I18nProvider, t } = await import("../src/core/i18n");

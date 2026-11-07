@@ -20,13 +20,16 @@ export function BillingReturn() {
   const { paymentId } = useLocalSearchParams<{ paymentId?: string }>();
   const router = useRouter();
   const refreshMe = useRefreshMe();
-  const [timedOut, setTimedOut] = useState(false);
+  // Without a payment id there is nothing to check: straight to the way out (D-124).
+  const [timedOut, setTimedOut] = useState(!paymentId);
   const [offering, setOffering] = useState(false);
 
+  // A new wait each time "Cek lagi" clears the timeout.
   useEffect(() => {
+    if (!paymentId || timedOut) return;
     const timer = setTimeout(() => setTimedOut(true), TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, []);
+  }, [paymentId, timedOut]);
 
   const status = useQuery({
     queryKey: ["billing-status", paymentId],
@@ -56,6 +59,17 @@ export function BillingReturn() {
   else if (state === "failed" || state === "expired") text = t("billing.return.failed");
   else if (timedOut) text = t("billing.return.timeout");
   const done = Boolean(state && state !== "pending");
+  // Still pending after the wait, or no payment id: never a dead end (D-124). "Cek lagi" polls for
+  // another round; "Ke beranda" leaves, and Akun shows the payment once the provider confirms it.
+  const stuck = timedOut && !done;
+  const retry =
+    stuck && paymentId
+      ? () => {
+          setTimedOut(false);
+          void status.refetch();
+        }
+      : null;
+  const goHome = () => router.replace("/");
   const Slot = slots.billingReturn;
   if (Slot) {
     const shown =
@@ -72,8 +86,11 @@ export function BillingReturn() {
           state={shown}
           text={text}
           done={done}
+          showHome={done || stuck}
           homeLabel={t("billing.return.home")}
-          onHome={() => router.replace("/")}
+          onHome={goHome}
+          onRetry={retry}
+          retryLabel={t("billing.return.retry")}
           accessUntil={until}
           accessUntilIso={untilIso}
         />
@@ -89,9 +106,14 @@ export function BillingReturn() {
         {text}
       </Text>
       {until ? <Text variant="muted" className="text-center">{`${t("billing.return.until")} ${until}`}</Text> : null}
-      {done ? (
-        // With the install card on screen, its "Pasang" is the one filled button (D-081).
-        <Button variant={offering ? "outline" : "default"} onPress={() => router.replace("/")}>
+      {retry ? (
+        <Button testID="billing-retry" onPress={retry}>
+          <Text>{t("billing.return.retry")}</Text>
+        </Button>
+      ) : null}
+      {done || stuck ? (
+        // With the install card (or "Cek lagi") on screen, that is the one filled button (D-081).
+        <Button testID="billing-home" variant={offering || retry ? "outline" : "default"} onPress={goHome}>
           <Text>{t("billing.return.home")}</Text>
         </Button>
       ) : null}

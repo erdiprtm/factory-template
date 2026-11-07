@@ -18,6 +18,8 @@ export type InlineConsent = {
   pending: boolean;
   /** True when nothing is needed, or the visitor ticked the box(es). */
   ticked: boolean;
+  /** The visitor tried to go on without ticking (D-124): the row says "Centang persetujuan dulu, ya". */
+  nudged: boolean;
   /** Records the consents on the server (once), before any data leaves the device. */
   accept: () => Promise<boolean>;
   row: React.ReactNode;
@@ -35,17 +37,23 @@ export function useInlineConsent(): InlineConsent {
   const refresh = useRefreshMe();
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [failed, setFailed] = useState(false);
+  const [nudged, setNudged] = useState(false);
   const pending = me.isPending;
   const needed = (me.data?.user || !me.data ? [] : me.data.missingConsents) as ConsentType[];
   const ticked = !pending && (needed.length === 0 || canAccept(needed, checked));
+  const showNudge = nudged && !ticked;
   return {
     needed,
     pending,
     ticked,
+    nudged: showNudge,
     accept: async () => {
       if (pending) return false;
       if (needed.length === 0) return true;
-      if (!canAccept(needed, checked)) return false;
+      if (!canAccept(needed, checked)) {
+        setNudged(true);
+        return false;
+      }
       setFailed(false);
       try {
         await acceptAnonymousConsents(needed);
@@ -60,6 +68,11 @@ export function useInlineConsent(): InlineConsent {
       needed.length === 0 ? null : (
         <View className="gap-2" testID="inline-consent">
           <ConsentChecks needed={needed} checked={checked} onChange={setChecked} />
+          {showNudge ? (
+            <ErrorText accessibilityLiveRegion="polite" testID="consent-nudge">
+              {t("consent.tickFirst")}
+            </ErrorText>
+          ) : null}
           {failed ? <ErrorText>{t("consent.error")}</ErrorText> : null}
         </View>
       ),

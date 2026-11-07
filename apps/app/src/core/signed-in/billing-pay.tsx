@@ -1,8 +1,9 @@
 import { CenteredScreen, Loading, Screen, Text } from "@factory/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
+import product from "../../../../../product.config";
 import { api } from "../api";
 import { PakasirCheckout } from "../billing/pakasir-checkout";
 import { showsWebPrices } from "../billing/web-prices";
@@ -20,6 +21,12 @@ export const PAY_POLL_MS = 5000;
  * countdown ends, or the buyer picks another method, the transaction is cancelled at Pakasir.
  */
 export function BillingPay() {
+  // Only Pakasir checks out in the app; with another provider this route leads nowhere (D-124).
+  if (product.payments.provider !== "pakasir") return <Redirect href="/pricing" />;
+  return <PakasirPay />;
+}
+
+function PakasirPay() {
   const { t } = useI18n();
   const { paymentId } = useLocalSearchParams<{ paymentId?: string }>();
   const router = useRouter();

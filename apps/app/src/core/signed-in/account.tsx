@@ -41,6 +41,7 @@ export function Account() {
   const router = useRouter();
   const refreshMe = useRefreshMe();
   const me = useMe();
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const summary = useQuery({
     queryKey: ["account-summary"],
@@ -60,9 +61,31 @@ export function Account() {
   });
 
   if (summary.isPending) return <Loading label={t("common.loading")} />;
-  if (!summary.data) return <ErrorText className="p-5">{t("common.error")}</ErrorText>;
+  if (!summary.data)
+    return (
+      <Screen>
+        <ErrorText>{t("common.error")}</ErrorText>
+        <Button testID="account-retry" onPress={() => void summary.refetch()}>
+          <Text>{t("common.retry")}</Text>
+        </Button>
+      </Screen>
+    );
   const { profile, subscription } = summary.data;
   const AccountHeader = slots.accountHeader;
+  const AccountSections = slots.accountSections;
+  // The tab's own label (D-124): a product that calls the tab "Profil" gets "Profil" here too.
+  const title = t("nav.account");
+
+  async function signOut() {
+    await authClient.signOut();
+    resetAnalytics();
+    setMonitoringUser(null);
+    await refreshMe();
+    // One domain: back to the landing page (D-068); elsewhere sign-in, as before.
+    const landing = anonymousHome("/");
+    if (landing) leaveTo(landing);
+    else router.replace("/sign-in");
+  }
 
   let status = t("account.inactive");
   if (subscription.active && subscription.expiresAt) {
@@ -75,14 +98,9 @@ export function Account() {
   return (
     <Screen>
       {AccountHeader ? (
-        <AccountHeader
-          title={t("account.title")}
-          subtitle={profile.email}
-          productName={product.name}
-          logo={product.brand.logo}
-        />
+        <AccountHeader title={title} subtitle={profile.email} productName={product.name} logo={product.brand.logo} />
       ) : (
-        <Text variant="h1">{t("account.title")}</Text>
+        <Text variant="h1">{title}</Text>
       )}
 
       <Card>
@@ -90,21 +108,24 @@ export function Account() {
           <CardTitle>{t("account.profile")}</CardTitle>
           <CardDescription>{profile.email}</CardDescription>
         </CardHeader>
-        <Button
-          variant="outline"
-          onPress={async () => {
-            await authClient.signOut();
-            resetAnalytics();
-            setMonitoringUser(null);
-            await refreshMe();
-            // One domain: back to the landing page (D-068); elsewhere sign-in, as before.
-            const landing = anonymousHome("/");
-            if (landing) leaveTo(landing);
-            else router.replace("/sign-in");
-          }}
-        >
-          <Text>{t("auth.signOut")}</Text>
-        </Button>
+        {/* Asked once more (D-124): a stray tap shouldn't sign anyone out. */}
+        {confirmSignOut ? (
+          <View className="gap-2" testID="sign-out-confirm">
+            <Text>{t("auth.signOutConfirm")}</Text>
+            <View className="flex-row gap-3">
+              <Button variant="outline" className="flex-1" onPress={() => setConfirmSignOut(false)}>
+                <Text>{t("common.cancel")}</Text>
+              </Button>
+              <Button variant="destructive" className="flex-1" testID="sign-out-yes" onPress={() => void signOut()}>
+                <Text>{t("auth.signOutYes")}</Text>
+              </Button>
+            </View>
+          </View>
+        ) : (
+          <Button variant="outline" testID="sign-out" onPress={() => setConfirmSignOut(true)}>
+            <Text>{t("auth.signOut")}</Text>
+          </Button>
+        )}
         {/* nav.adminTab false (D-111): no Admin tab, so admins get here from Akun. */}
         {!product.nav.adminTab && me.data?.isAdmin ? (
           <Button variant="outline" testID="account-admin" onPress={() => router.push("/admin")}>
@@ -112,6 +133,9 @@ export function Account() {
           </Button>
         ) : null}
       </Card>
+
+      {/* The product's own links and cards (D-124), e.g. "Target & goal", "Program saya". */}
+      {AccountSections ? <AccountSections t={t} locale={locale} /> : null}
 
       <Card>
         <CardHeader>

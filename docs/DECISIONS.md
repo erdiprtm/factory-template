@@ -2527,3 +2527,31 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - Each product's privacy policy still names its own PT as data controller, plus a line that the holding publishes the app. The lawyer confirms this (UU PDP) before the first store release.
   - Web payments may stay under the product's PT.
 - **Risk:** Apple 5.1.1(ix) (regulated fields submitted by the providing entity). Wellness and trackers are expected to pass. Otherwise the app moves to its own PT's membership by app transfer; that PT's D-U-N-S (PT Myna's is already requested) is the fallback.
+
+## D-124: Core screens from Myna Fit's UX audit: a way out everywhere, honest copy (2026-11-07)
+
+- **Context.** Agent Fit audited every Myna Fit screen (7 Nov). Seven findings sit in core, and Erdi asked for them to be fixed in the template.
+- **What changed:**
+  1. **A way out.** `core/nav/back-link.tsx` shows "‹ Kembali" and goes back in history, else to a fallback. It renders nothing when there is nowhere to go.
+     - Sign-in falls back to the product's landing page: `domain.anonymousHome`, else `https://<domain.site>/` (`siteLanding()`, web only).
+     - /admin falls back to /account.
+  2. **Quiz consent.** Answering the consent step without ticking now shows "Centang persetujuan dulu, ya." under the box (`consent.tickFirst`) instead of doing nothing.
+     - The default step dims its options and no longer disables "Lanjut", so a tap always gets an answer.
+     - `quizStep` slots get `locked` and `consentMissing`.
+  3. **Payment return.** /billing/return without a `paymentId` goes straight to the timeout text with "Ke beranda". When still pending after the wait, it offers "Cek lagi" (another polling round) and "Ke beranda".
+     - The `billingReturn` slot gets `showHome`, `onRetry` (null unless it can check again) and `retryLabel`.
+  4. **Akun:**
+     - new `accountSections` slot for the product's cards (e.g. "Target & goal", "Program saya");
+     - the title is the tab's label `nav.account`, so a product that calls the tab "Profil" sees "Profil". The `account.title` key is removed: a product that overrode it overrides `nav.account` instead;
+     - a load error has "Coba lagi";
+     - "Keluar" asks once more ("Keluar dari akun ini?" / "Ya, keluar").
+  5. **Wording.** Core's default copy says "Paket" / "Beli paket" / "Tambah masa aktif" instead of "Langganan" / "Berlangganan" / "Perpanjang", because the factory sells one-time plans without auto-renewal. Products can still reword it in `features/messages.ts`.
+  6. **Marketing banner.**
+     - Inside the signed-in tabs, the tabs layout draws it above the tab bar (`<MarketingBanner where="tabs" />`), and the root layout's copy steps aside.
+     - It has a ✕ that hides it until the app is opened again. That isn't a choice, so no Pixel loads, and the ask comes back next time (D-107 unchanged).
+  7. **/billing/pay** redirects to /pricing unless `payments.provider` is "pakasir".
+- **Tests:**
+  - `apps/app/test/core-ux-audit.test.tsx` (back link order, Akun slot/title/sign-out confirm/retry, payment return without id);
+  - the consent nudge in `single-consent.test.tsx`;
+  - the banner's ✕ and tabs host in `marketing-banner-render.test.tsx`;
+  - the E2E sign-outs confirm.

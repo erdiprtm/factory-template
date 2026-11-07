@@ -40,6 +40,7 @@ test("magic link sign-in → consent → home → sign out", async ({ page, requ
 
   await navItem(page, "/account").click();
   await page.getByRole("button", { name: "Keluar" }).click();
+  await page.getByTestId("sign-out-yes").click(); // asked once more (D-124)
   await expect(page).toHaveURL(/\/sign-in$/);
 });
 
