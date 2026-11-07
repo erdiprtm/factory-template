@@ -4,6 +4,7 @@ import { View } from "react-native";
 import product from "../../../../../product.config";
 import { track } from "../analytics";
 import { productMessage, useI18n } from "../i18n";
+import { InstallGuide } from "./guide.web";
 import { appLink, copyText, dismissOffer, offerDismissed, promptInstall, useInstallKind } from "./install";
 import type { InstallKind } from "./rules";
 
@@ -15,24 +16,11 @@ export type InstallPlacement = "payment" | "first_result";
 
 const withName = (s: string) => s.replaceAll("{name}", product.name);
 
-/** The guide (iOS) or the open-in-browser note (in-app browsers) under the card's sentence. */
+/** The per-browser guide (iOS, D-126) or the open-in-browser note (in-app browsers) under the card's sentence. */
 function Steps({ kind }: { kind: InstallKind }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
-  if (kind === "ios") {
-    return (
-      <View className="gap-2" testID="pwa-ios-guide">
-        <Text className="font-semibold">{t("pwa.ios.title")}</Text>
-        {(["pwa.ios.step1", "pwa.ios.step2", "pwa.ios.step3"] as const).map((key, i) => (
-          <View key={key} className="flex-row gap-2">
-            <Text className="font-semibold">{i + 1}.</Text>
-            <Text className="flex-1">{withName(t(key))}</Text>
-          </View>
-        ))}
-        <Text variant="muted">{t("pwa.ios.signIn")}</Text>
-      </View>
-    );
-  }
+  if (kind === "ios") return <InstallGuide />;
   if (kind === "inapp") {
     return (
       <View className="gap-3" testID="pwa-inapp">

@@ -2577,3 +2577,28 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - **`trial.primary`.** On /pricing the trial becomes the filled main button under the plans, with "Tanpa kartu, tanpa tagihan otomatis." under it. It defaults to the quiet text button.
   - **Neutral trial copy.** Core no longer says "gratis" for the trial: "Coba 7 hari", "Masa coba sampai", "Coba dulu, tanpa daftar". Free *uses* keep "jatah gratis", which is literally true; products reword it in `features/messages.ts`.
   - **Site copy from config.** Plan lengths come from `planLengths()` (e.g. "3 atau 6 bulan"), the trial from `trialPhrase` (no "gratis", and nothing when there's no trial), and payment methods from config. This covers the landing page, /harga, the FAQ, the pricing note and the article CTA.
+
+## D-126: "Pasang di HP" guide per browser, with drawn visuals (2026-11-07)
+
+- **Problem (Myna Fit, Erdi's iPhone).** The iPhone guide only described Safari ("di bilah Safari"). Erdi uses Chrome on his iPhone, so the steps didn't match his screen.
+- **What the browsers do (read 2026-11-07).**
+  - **Chrome on iPhone/iPad** ([Google Chrome Help](https://support.google.com/chrome/answer/15085120?hl=en&co=GENIE.Platform%3DiOS)): Share, beside the address bar → "Add to Home Screen" → "Add". This needs iOS 16.4 or later, when Apple opened Add to Home Screen to other browsers ([WebKit](https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/)). Google says "to the right of the address bar", but Erdi's screenshot shows it on the left, and the bar can sit at the bottom. So the copy says "di bilah alamat" and doesn't name a side.
+  - **Which browser the icon opens in.** WebKit: a site whose manifest has `display: standalone` opens as its own web app, "no matter which browser added" it. Only plain bookmarks open in the default browser. Our manifest is standalone (D-080), so the "it may open in Safari" note isn't true for us and isn't shown.
+  - **Safari** ([Apple, iOS 26](https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios)): ••• → Share (or Share directly in the Bottom/Top tab layouts) → scroll → "Add to Home Screen" → "Add".
+  - **Chrome on Android** ([Google Chrome Help](https://support.google.com/chrome/answer/9658361?hl=en&co=GENIE.Platform%3DAndroid)): ⋮ → "Install app" (older: "Add to home screen") → "Install". Where Chrome's own dialog is available, it's still used (`beforeinstallprompt`, D-080).
+- **Decision.**
+  - `core/pwa/guide.web.tsx` (`InstallGuide`) has one collapsible row each for Safari (iPhone/iPad), Chrome (iPhone/iPad) and Chrome (Android). Each row has a small drawn mark and the browser's name. Tapping a row opens it and closes the others. The header is a button with `expanded` state and a 44 px target.
+  - **Default row** (`guideBrowser` in `rules.ts`, pure and tested):
+    - `CriOS` → Chrome iOS;
+    - another iOS browser (`FxiOS`, `EdgiOS`, `OPiOS`, …) → none;
+    - any other iOS browser (including iPadOS's Mac UA with touch) → Safari;
+    - Android `Chrome/` without Edge, Samsung, Opera, Yandex or Firefox tokens → Chrome Android;
+    - in-app browsers and everything else → none.
+  - **Each step shows what to tap**: a drawn glyph (Share tray, plus-square, ⋮, phone with arrow) or the button's own word ("Tambah", "Instal") in a chip, then one short line. The glyphs are plain DOM `<svg>`, so react-native-svg stays out of the web bundle (D-059). The file is web-only, like the card.
+  - **Browser marks are simple drawings** (a compass, three sectors round a dot), not official artwork. They're small (22 px) and only name the browser in instructions (nominative use).
+  - **When it shows** is unchanged: the iOS card after "Pasang" and Akun's "Pasang di HP". The in-app browser note is unchanged too. `InstallGuide` takes an optional `onInstall`; with it, the Android row shows "Pasang" (Chrome's dialog) instead of the menu steps.
+  - **Copy** (`id` + `en`): `pwa.guide.*` replaces `pwa.ios.title/step1..3/signIn`. The sign-in-again note now shows only in the iOS rows. Home-screen apps on Android share Chrome's cookies.
+- **Tests.** `pwa-install-render.test.tsx`:
+  - Safari's row opens on an iPhone Safari UA, and Chrome's on a `CriOS` UA;
+  - rows open and close one at a time;
+  - the UA → row rules (Safari, CriOS, Android Chrome, iPad with touch vs a real Mac, Firefox/Edge iOS, Samsung, Edge Android, in-app, desktop).

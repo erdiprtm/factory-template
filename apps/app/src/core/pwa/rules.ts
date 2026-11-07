@@ -4,7 +4,7 @@
 /**
  * How this browser can install the app:
  * - "prompt": Chrome/Edge/Samsung Internet fired beforeinstallprompt; "Pasang" calls prompt();
- * - "ios": iPhone/iPad, no prompt API: Share → "Tambah ke Layar Utama" (a guide);
+ * - "ios": iPhone/iPad, no prompt API: Share → "Tambah ke Layar Utama" (a guide per browser, D-126);
  * - "inapp": an app's own browser (Instagram, Facebook, LINE, Gmail/Google app, Android WebView),
  *   which can't install: open the link in Chrome or Safari;
  * - null: already installed, or nothing to offer (desktop Firefox, Chrome before its event).
@@ -31,6 +31,30 @@ export function installKind(env: {
   if (IN_APP_UA.test(env.ua)) return "inapp";
   if (env.hasPrompt) return "prompt";
   if (isIos(env.ua, env.maxTouchPoints)) return "ios";
+  return null;
+}
+
+/** The browsers the install guide has steps for, one collapsible row each (D-126). */
+export type GuideBrowser = "safari" | "chrome-ios" | "chrome-android";
+export const GUIDE_BROWSERS: readonly GuideBrowser[] = ["safari", "chrome-ios", "chrome-android"];
+
+/** Other iOS browsers (Firefox, Edge, Opera, DuckDuckGo, Yandex): no row of their own opens. */
+const OTHER_IOS = /FxiOS|EdgiOS|OPiOS|OPT\/|DuckDuckGo|YaBrowser/;
+/** Chromium-based Android browsers that aren't Chrome. */
+const OTHER_ANDROID = /EdgA|SamsungBrowser|OPR\/|YaBrowser|Firefox/;
+
+/**
+ * Which guide row opens by default for this visitor: Chrome on iOS says "CriOS"; Safari is an iOS
+ * browser with none of the other browsers' tokens; Chrome on Android says "Chrome/" without
+ * another Chromium browser's token. Anything else: null, every row stays collapsed.
+ */
+export function guideBrowser(ua: string, maxTouchPoints = 0): GuideBrowser | null {
+  if (IN_APP_UA.test(ua)) return null;
+  if (isIos(ua, maxTouchPoints)) {
+    if (/CriOS/.test(ua)) return "chrome-ios";
+    return OTHER_IOS.test(ua) ? null : "safari";
+  }
+  if (/Android/.test(ua) && /Chrome\//.test(ua) && !OTHER_ANDROID.test(ua)) return "chrome-android";
   return null;
 }
 
