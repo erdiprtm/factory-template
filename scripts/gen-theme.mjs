@@ -277,6 +277,13 @@ export function renderIndexHtml(product) {
     '    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />',
     '    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />',
     `    <title>${escapeHtml(product.name)}</title>`,
+    // Link previews of any app URL a crawler reaches (D-127): name + tagline, never a blank card.
+    // No og:image: the app has none of its own (the site's OG images live on the site).
+    `    <meta name="description" content="${escapeHtml(product.tagline)}" />`,
+    '    <meta property="og:type" content="website" />',
+    `    <meta property="og:site_name" content="${escapeHtml(product.name)}" />`,
+    `    <meta property="og:title" content="${escapeHtml(product.name)}" />`,
+    `    <meta property="og:description" content="${escapeHtml(product.tagline)}" />`,
     ...faviconTags().map((tag) => `    ${tag}`),
     ...pwaTags,
     "    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->",

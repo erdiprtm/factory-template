@@ -2602,3 +2602,14 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - Safari's row opens on an iPhone Safari UA, and Chrome's on a `CriOS` UA;
   - rows open and close one at a time;
   - the UA → row rules (Safari, CriOS, Android Chrome, iPad with touch vs a real Mac, Firefox/Edge iOS, Samsung, Edge Android, in-app, desktop).
+
+## D-127: Link previews of "/" on one domain: crawlers get the landing (2026-11-08)
+
+- **Problem (Myna Fit, production, 2026-11-08).** `curl -A 'facebookexternalhit/1.1' -H 'Accept: */*' https://fit.mynahealth.id/` returned 200 with the app shell (a title, no `og:` tags). With `Accept: text/html,*/*` it 302s to `/mulai/`, which has full OG tags. `anonymousHomeRedirect` (D-068) only redirected requests whose Accept includes `text/html`, and link-preview crawlers (WhatsApp, Facebook, Instagram) send `*/*`. Shares of the bare domain showed a blank card.
+- **Decision.**
+  - **Redirect known crawlers by User-Agent** as well as `text/html` page loads: `facebookexternalhit`, `facebookcatalog`, `meta-externalagent`, WhatsApp, Twitterbot, Slackbot, TelegramBot, LinkedInBot, Discordbot, Googlebot, `Google-InspectionTool`, bingbot, Applebot, Pinterest, redditbot, SkypeUriPreview, vkShare, Embedly, Iframely, Mastodon, Bluesky, YandexBot, DuckDuckBot (case-insensitive substring). iMessage previews use the facebookexternalhit/Twitterbot UAs. Everything else is unchanged: GET/HEAD of `/` only, the production `domain.app` host only, no session cookie, 302 with `no-store` (never 301), the query string kept.
+  - `vary: Cookie, Accept, User-Agent` on the 302 (was `Cookie`): the answer depends on all three. `no-store` already keeps it out of caches.
+  - **Not** "any `*/*` without `application/json`": a non-crawler's wildcard fetch of `/` (an uptime check, `fetch()`, a service worker precaching the shell) would be redirected to the landing. A service worker would then cache the landing as the app shell. A named list is precise, and a new crawler that misses it still gets a card from the fallback below.
+  - **Fallback in the app shell head** (`scripts/gen-theme.mjs` `renderIndexHtml`, D-080): `<meta name="description">`, `og:type`, `og:site_name`, `og:title` (product `name`) and `og:description` (`tagline`). This covers crawlers outside the list, app URLs other than `/`, and products without `anonymousHome`. No `og:image`: the app has none of its own; the site's OG images live on the site.
+- **Tests.** `apps/api/test/anonymous-home.test.ts`: nine real crawler UAs with `*/*` and `text/html,*/*` → 302 with the query kept; HEAD with no Accept; a crawler with a session cookie, or on `/quiz` and `/api/health` → app; `*/*` from curl or a browser UA → app; the new `vary`. `scripts/gen-theme.test.mjs`: the description and OG tags, escaped, and no `og:image`.
+- **Products** pick it up with `/sync-template`, then `pnpm theme`. Myna Fit syncs after Erdi approves.
