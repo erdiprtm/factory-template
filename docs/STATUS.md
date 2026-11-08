@@ -4,6 +4,13 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-08: Link previews of "/" on one domain (D-127), from Myna Fit
+
+- WhatsApp/Instagram/Facebook previews of the bare domain were blank: crawlers ask for "/" with `Accept: */*`, so they got the app shell instead of the landing. Known link-preview and search crawlers (by User-Agent) now get the same 302 to `anonymousHome` as browsers; `vary: Cookie, Accept, User-Agent`.
+- The app shell's head also has `description`, `og:title`, `og:site_name`, `og:description` from `name` + `tagline` (`pnpm theme`), so any app URL a crawler reaches shows a card. Products: `/sync-template`, then `pnpm theme`.
+
+---
+
 ## 2026-11-07: "Pasang di HP" guide per browser (D-126), from Myna Fit
 
 - The install guide has one collapsible row per browser: Safari (iPhone/iPad), Chrome (iPhone/iPad), Chrome (Android). Each has a drawn mark and its name. The visitor's own browser opens first (`CriOS` → Chrome). Steps show a drawn glyph of what to tap. The copy is shorter (`pwa.guide.*` replaces `pwa.ios.*`).

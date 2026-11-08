@@ -174,6 +174,13 @@ describe("installable web app (D-080)", () => {
     expect(html).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png" />');
     expect(html).toContain('<meta name="apple-mobile-web-app-capable" content="yes" />');
     expect(html).toContain('<div id="root"></div>');
+    // D-127: link previews of the app shell show the name and tagline.
+    const og = renderIndexHtml({ ...base, name: "Fit", tagline: 'Latihan & "protein"' });
+    expect(og).toContain('<meta name="description" content="Latihan &amp; &quot;protein&quot;" />');
+    expect(og).toContain('<meta property="og:title" content="Fit" />');
+    expect(og).toContain('<meta property="og:site_name" content="Fit" />');
+    expect(og).toContain('<meta property="og:description" content="Latihan &amp; &quot;protein&quot;" />');
+    expect(og).not.toContain("og:image");
     const off = renderIndexHtml({ ...base, pwa: { ...base.pwa, enabled: false } });
     expect(off).not.toContain("manifest");
     expect(off).not.toContain("apple-");
