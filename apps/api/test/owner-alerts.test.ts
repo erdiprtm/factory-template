@@ -15,7 +15,7 @@ vi.doMock("@factory/config/product", async (orig) => {
       ...real.config,
       notifications: {
         telegram: {
-          events: ["purchase", "renewal", "refund", "webhook_rejected"],
+          events: ["purchase", "renewal", "refund", "webhook_rejected", "payment_rescued", "repeat_checkout"],
           email: "masked",
           dailySummaryHourWib: 8,
         },
@@ -55,6 +55,16 @@ describe("ownerAlert gates", () => {
     await ownerAlert(live, "webhook_rejected", "b", t + 60_000);
     await ownerAlert(live, "webhook_rejected", "c", t + 11 * 60_000);
     expect(sent.messages).toEqual(["a", "c"]);
+  });
+
+  it("rescued payments ping at most once per 10 minutes too; repeat checkouts are not capped here (D-128)", async () => {
+    sent.messages = [];
+    const t = Date.now() + 60 * 60_000;
+    await ownerAlert(live, "payment_rescued", "r1", t);
+    await ownerAlert(live, "payment_rescued", "r2", t + 60_000);
+    await ownerAlert(live, "repeat_checkout", "x1", t);
+    await ownerAlert(live, "repeat_checkout", "x2", t + 1000);
+    expect(sent.messages).toEqual(["r1", "x1", "x2"]);
   });
 });
 

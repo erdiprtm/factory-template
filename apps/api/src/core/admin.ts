@@ -8,7 +8,7 @@ import { config } from "@factory/config/product";
 import { adminStats, findUserByEmail, isAdminEmail, recentPayments, recentWebhookEvents } from "@factory/core/admin";
 import { loadDashboard, loadFeed } from "@factory/core/admin/dashboard";
 import { FUNNEL_STEPS } from "@factory/core/analytics";
-import { grantMonths } from "@factory/core/billing";
+import { checkPaymentStatus, grantMonths } from "@factory/core/billing";
 import {
   deleteSpend,
   jakartaDay,
@@ -18,9 +18,10 @@ import {
   spendFromMetaCsv,
   upsertSpend,
 } from "@factory/core/economics";
-import { grantAdminDays } from "@factory/core/entitlements";
+import { grantAdminDays, latestExpiry } from "@factory/core/entitlements";
 import { refundText } from "@factory/core/notify";
 import { schema } from "@factory/db";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -28,6 +29,8 @@ import type { Bindings } from "../index";
 import { experiment, serverAnalytics } from "./analytics";
 import { eraseAccount } from "./erase-account";
 import { ownerAlert } from "./notify";
+import { afterStatusCheck, resendReceipt } from "./payment-events";
+import { configuredProvider } from "./payments";
 import { type SessionVariables, sessionMiddleware } from "./session";
 import { botReady, connectBot } from "./telegram-bot";
 
@@ -44,6 +47,7 @@ const spendBody = z.object({
 const dashboardQuery = z.object({ range: z.enum(["today", "7d", "30d"]).default("7d") });
 const economicsQuery = z.object({ from: day.optional(), to: day.optional(), campaign: z.string().max(200).optional() });
 const refundBody = z.object({ paymentId: z.string().regex(/^pay_[0-9a-f]{32}$/) });
+const recheckBody = refundBody.extend({ grantMode: z.enum(["replace", "stack"]).optional() });
 
 /** The funnel /admin shows: after_quiz puts the paywall before any result, so first_result drops out. */
 export const funnelSteps = () =>
@@ -129,6 +133,68 @@ export const adminRoutes = new Hono<{ Bindings: Bindings; Variables: SessionVari
       await ownerAlert(c.env, "refund", refundText({ product: config.name, plan, amountIdr, paymentId: r.payment.id }));
     }
     return c.json({ ok: true as const });
+  })
+  // "Cek ulang di provider" (D-128): asks the provider about one unpaid payment (any provider, once:
+  // a human click, not polling) and settles it like a webhook: access, receipt, purchase event,
+  // Telegram, CAPI rules unchanged. A manual grant made after the payment (the stand-in for it)
+  // makes this answer needs_confirm first; the admin then replaces that grant or stacks on it.
+  .post("/payments/recheck", async (c) => {
+    const parsed = recheckBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
+    const provider = configuredProvider(c.env);
+    if (!provider) return c.json({ error: "payments_unavailable" as const }, 503);
+    const check = await checkPaymentStatus(db(c.env), provider, {
+      paymentId: parsed.data.paymentId,
+      source: "admin",
+      plans: config.plans,
+      grantMode: parsed.data.grantMode,
+    });
+    if (check.kind === "not_found") return c.json({ error: "not_found" as const }, 404);
+    if (check.kind === "needs_confirm") {
+      const payment = await db(c.env)
+        .select({ planId: schema.payments.planId })
+        .from(schema.payments)
+        .where(eq(schema.payments.id, parsed.data.paymentId))
+        .get();
+      const plan = config.plans.find((p) => p.id === payment?.planId);
+      return c.json(
+        {
+          error: "needs_confirm" as const,
+          currentExpiry: check.currentExpiry?.toISOString() ?? null,
+          adminGrantUntil: check.adminGrantUntil.toISOString(),
+          planLabel: plan?.label ?? payment?.planId ?? "",
+          months: plan ? grantMonths(plan) : 0,
+        },
+        409,
+      );
+    }
+    await afterStatusCheck(c.env, check, "admin", async (work) => {
+      try {
+        c.executionCtx.waitUntil(work);
+      } catch {
+        await work;
+      }
+    });
+    const row = await db(c.env)
+      .select({ status: schema.payments.status, userId: schema.payments.userId })
+      .from(schema.payments)
+      .where(eq(schema.payments.id, parsed.data.paymentId))
+      .get();
+    const until = row?.status === "paid" ? await latestExpiry(db(c.env), row.userId) : null;
+    return c.json({
+      ok: true as const,
+      result: check.kind,
+      status: row?.status ?? null,
+      accessUntil: until ? until.toISOString() : null,
+    });
+  })
+  // "Kirim ulang struk" (D-128): the receipt email of a paid payment again.
+  .post("/payments/receipt", async (c) => {
+    const parsed = refundBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
+    return (await resendReceipt(c.env, parsed.data.paymentId))
+      ? c.json({ ok: true as const })
+      : c.json({ error: "not_paid" as const }, 409);
   })
   // Manual access for support and partners. Extends from the user's latest expiry.
   .post("/grant", async (c) => {

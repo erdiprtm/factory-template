@@ -256,11 +256,17 @@ Template mendukung DOKU Checkout sebagai penyedia kedua. Langkah ini **hanya** p
 2. Di Back Office: **Integration → API Keys**. Salin dua nilai ini ke password manager:
    - **Client ID** (contoh bentuknya `BRN-xxxx-xxxxxxxxxxxx`)
    - **Secret Key** (bukan *Public Key*). Hanya dua ini yang dipakai: DOKU Public Key, Merchant Public Key dan Token URL di "Pengaturan SNAP" untuk API SNAP, yang tidak dipakai template.
-3. **Notification URL** (wajib, beda dengan Duitku): DOKU tidak menerima alamat callback per transaksi, jadi harus diisi di dashboard **untuk setiap channel** yang dipakai. Buka **Settings → Payment Settings**, lalu untuk Virtual Account, e-Wallet, QRIS, dan lainnya klik **CONFIGURE** dan isi:
+3. **Notification URL** (wajib, beda dengan Duitku): DOKU tidak menerima alamat callback per transaksi, jadi harus diisi di dashboard **untuk setiap channel** yang dipakai. Buka **Settings → Payment Settings**, lalu untuk Virtual Account, e-Wallet, Paylater, Convenience Store, dan Kartu klik **CONFIGURE** dan isi (QRIS: lihat catatan di bawah):
    - Preview: `https://factory-template-preview.erdiprtm.workers.dev/api/webhooks/doku`
    - Produksi (akun produksi, nanti): `https://factory-template.erdiprtm.workers.dev/api/webhooks/doku`
 
    Catatan: satu akun sandbox hanya punya satu Notification URL per channel, jadi notifikasi sandbox masuk ke **preview** Worker yang tetap (bukan URL `pr-<n>`).
+
+   **QRIS diatur terpisah (D-128).** QRIS tidak ikut daftar CONFIGURE di atas: buka **Settings → Payment Settings → QR Payment → Edit** dan isi Notification URL yang sama. Kalau dibiarkan, alamatnya tetap bawaan DOKU (`my.dokuwallet.com/…`) dan webhook kita tidak pernah datang. Ini yang terjadi di Myna Fit, 11 Nov 2026: pembeli pertama bayar QRIS, tapi akses baru diberikan 5 jam kemudian.
+
+   **Untuk produk dengan domain sendiri** (mis. `https://fit.mynahealth.id`), isi `https://<domain app>/api/webhooks/doku` di **setiap** channel yang aktif (VA, e-Wallet, QRIS, Paylater, Convenience Store, Kartu), lalu periksa satu per satu sesudahnya: tidak boleh ada yang masih alamat bawaan DOKU.
+
+   **Satu transaksi nyata per jenis channel sebelum diaktifkan untuk pembeli.** Bayar sendiri dengan nominal terkecil (QRIS sekali, VA sekali, e-Wallet sekali), lalu pastikan di `/admin`: pembayaran **Lunas**, ada baris webhook `doku · …:SUCCESS`, struk masuk email, dan Telegram berbunyi. Kalau pembayaran lunas tapi tidak ada baris webhook, notify URL channel itu salah. Jaring pengaman template (cek status ke DOKU dari halaman kembali, tombol "Saya sudah bayar", dan cron tiap 30 menit) akan tetap memberi akses, dan Telegram mengirim "🛟 Webhook terlewat", tapi itu cadangan, bukan pengganti notify URL yang benar.
 4. **Metode pembayaran:** halaman DOKU Checkout menampilkan semua channel yang aktif di akun. Aktifkan yang dipakai produk (QRIS, e-wallet, Virtual Account).
 5. **Simpan ke Cloudflare** (cara di langkah 2a). Salin **Client ID**, lalu:
    ```bash

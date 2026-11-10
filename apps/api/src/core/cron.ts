@@ -3,10 +3,12 @@ import { purgeAnonymousAiUsage } from "@factory/core/ai/usage";
 import { purgeFunnelEvents } from "@factory/core/attribution";
 import {
   cancelPayment,
+  checkPaymentStatus,
   dueReminders,
   expirePendingPayments,
   markReminderSent,
   overduePayments,
+  statusCheckCandidates,
 } from "@factory/core/billing";
 import { purgeAnonymousConsents } from "@factory/core/consents";
 import { emailProvider } from "@factory/core/email";
@@ -23,15 +25,16 @@ import type { Bindings } from "../index";
 import { serverAnalytics } from "./analytics";
 import { captureError } from "./monitoring";
 import { ownerTelegram } from "./notify";
-import { afterPaymentSettled } from "./payment-events";
+import { afterPaymentSettled, afterStatusCheck } from "./payment-events";
 import { configuredProvider } from "./payments";
 
 /**
  * Cron Trigger (wrangler.jsonc triggers.crons): expires stale pending payments and sends
  * renewal reminders (7 days, 1 day, on expiry), and drops funnel events and checkout tracking
- * context past their retention. Never polls Duitku or DOKU: Duitku's status API blocks merchants
- * that poll it. Pakasir (D-092) allows it: overdue payments are checked once and cancelled there
- * first, so a QR or VA can't be paid after we expired it (or one just paid is granted).
+ * context past their retention. Never polls Duitku: its status API blocks merchants that poll it.
+ * DOKU (D-128): payments of the last 2 hours still unpaid are asked about once per run, so a
+ * missed webhook is found within 30 minutes. Pakasir (D-092): overdue payments are checked once and
+ * cancelled there first, so a QR or VA can't be paid after we expired it (or one just paid is granted).
  * Then runs the product's own jobs (features/scheduled.ts).
  */
 export async function runScheduled(env: Bindings, now = new Date()) {
@@ -44,6 +47,25 @@ export async function runScheduled(env: Bindings, now = new Date()) {
         if (result.kind === "settled") await afterPaymentSettled(env, result.outcome, (work) => work.then(() => {}));
       } catch (err) {
         console.error("overdue payment cancel failed", err);
+        captureError(err);
+      }
+    }
+  }
+  // D-128: before the expiry below, so a payment paid just before its end is granted, not expired.
+  let rescued = 0;
+  if (provider?.statusFallbackMs) {
+    for (const { id } of await statusCheckCandidates(db, provider.name, now)) {
+      try {
+        const check = await checkPaymentStatus(db, provider, {
+          paymentId: id,
+          source: "cron",
+          plans: config.plans,
+          now,
+        });
+        if (check.kind === "settled" && check.outcome.kind === "processed" && check.outcome.entitlement) rescued++;
+        await afterStatusCheck(env, check, "cron", (work) => work.then(() => {}));
+      } catch (err) {
+        console.error("payment status check failed", err);
         captureError(err);
       }
     }
@@ -85,5 +107,5 @@ export async function runScheduled(env: Bindings, now = new Date()) {
     console.error("product scheduled jobs failed", err);
     captureError(err);
   }
-  return { expired, remindersSent: sent, funnelEventsPurged: purged, product };
+  return { expired, rescued, remindersSent: sent, funnelEventsPurged: purged, product };
 }

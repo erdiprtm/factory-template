@@ -6,6 +6,7 @@ import { ActivityIndicator } from "react-native";
 import { slots } from "../../features/slots";
 import { api } from "../api";
 import { useRefreshMe } from "../auth/use-me";
+import { paymentCheckMessage, usePaymentCheck } from "../billing/payment-check";
 import { formatDate } from "../format";
 import { useI18n } from "../i18n";
 import { metaTrack } from "../marketing";
@@ -23,6 +24,7 @@ export function BillingReturn() {
   // Without a payment id there is nothing to check: straight to the way out (D-124).
   const [timedOut, setTimedOut] = useState(!paymentId);
   const [offering, setOffering] = useState(false);
+  const paymentCheck = usePaymentCheck();
 
   // A new wait each time "Cek lagi" clears the timeout.
   useEffect(() => {
@@ -62,12 +64,18 @@ export function BillingReturn() {
   // Still pending after the wait, or no payment id: never a dead end (D-124). "Cek lagi" polls for
   // another round; "Ke beranda" leaves, and Akun shows the payment once the provider confirms it.
   const stuck = timedOut && !done;
+  // "Cek lagi" also asks the provider now (D-128, throttled on the server): a missed webhook
+  // can't leave a paid buyer here.
   const retry =
     stuck && paymentId
       ? () => {
           setTimedOut(false);
-          void status.refetch();
+          void paymentCheck.check(paymentId).then(() => status.refetch());
         }
+      : null;
+  const checkNote =
+    paymentCheck.result && stuck && paymentCheck.result.status !== "paid"
+      ? paymentCheckMessage(t, paymentCheck.result)
       : null;
   const goHome = () => router.replace("/");
   const Slot = slots.billingReturn;
@@ -106,6 +114,11 @@ export function BillingReturn() {
         {text}
       </Text>
       {until ? <Text variant="muted" className="text-center">{`${t("billing.return.until")} ${until}`}</Text> : null}
+      {checkNote ? (
+        <Text variant="muted" className="text-center">
+          {checkNote}
+        </Text>
+      ) : null}
       {retry ? (
         <Button testID="billing-retry" onPress={retry}>
           <Text>{t("billing.return.retry")}</Text>

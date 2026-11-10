@@ -1,6 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { DokuProvider, dokuInvoice, dokuSignature, sha256Base64 } from "./doku";
+import type { PaymentProvider } from "./provider";
 
 const CLIENT = "BRN-0001-1700000000000";
 const SECRET = "SK-sandbox-secret";
@@ -228,5 +229,10 @@ describe("DokuProvider.getStatus", () => {
 
   it("Not Found (no transaction yet) is pending", async () => {
     expect(await provider(statusFetch(404, { error: "not found" })).getStatus(PAYMENT_ID)).toBe("pending");
+  });
+
+  it("allows the missed-webhook fallback at most once per 20 s, never steady polling (D-128)", () => {
+    expect(provider(statusFetch(200, {})).statusFallbackMs).toBe(20_000);
+    expect((provider(statusFetch(200, {})) as PaymentProvider).statusIntervalMs).toBeUndefined();
   });
 });

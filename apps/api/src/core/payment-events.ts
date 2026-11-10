@@ -1,9 +1,9 @@
 import { config } from "@factory/config/product";
 import { paidEventKind, recordServerEvent } from "@factory/core/attribution";
-import type { SettleOutcome } from "@factory/core/billing";
+import type { CheckSource, SettleOutcome, StatusCheck } from "@factory/core/billing";
 import { emailProvider } from "@factory/core/email";
 import { receiptEmail } from "@factory/core/email/templates";
-import { paidText } from "@factory/core/notify";
+import { paidText, paymentRescuedText } from "@factory/core/notify";
 import { schema } from "@factory/db";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -78,4 +78,60 @@ export async function afterPaymentSettled(
       .send(receipt)
       .catch((err: unknown) => console.error("receipt email failed", err instanceof Error ? err.message : err));
   }
+}
+
+/**
+ * After a status check (D-128): a settled payment goes through afterPaymentSettled exactly like a
+ * webhook's, and one the webhook should have announced pings the owner to check the notify URLs
+ * (rate-limited in ownerAlert). /admin's own "Cek ulang" needs no ping: the owner is looking.
+ */
+export async function afterStatusCheck(
+  env: Bindings,
+  check: StatusCheck,
+  source: CheckSource,
+  defer: (work: Promise<unknown>) => Promise<void>,
+): Promise<void> {
+  if (check.kind !== "settled") return;
+  await afterPaymentSettled(env, check.outcome, defer);
+  if (check.outcome.kind !== "processed" || !check.outcome.entitlement || !check.missedWebhook || source === "admin")
+    return;
+  const { provider, id } = check.outcome.payment;
+  console.warn("payment_rescued", JSON.stringify({ provider, paymentId: id, via: source }));
+  await defer(
+    ownerAlert(
+      env,
+      "payment_rescued",
+      paymentRescuedText({ product: config.name, provider, paymentId: id, via: source }),
+    ),
+  );
+}
+
+/** Sends a paid payment's receipt again (/admin, D-128). False when it isn't paid or has no access row. */
+export async function resendReceipt(env: Bindings, paymentId: string): Promise<boolean> {
+  const db = drizzle(env.DB, { schema });
+  const row = await db
+    .select({
+      status: schema.payments.status,
+      planId: schema.payments.planId,
+      amountIdr: schema.payments.amountIdr,
+      email: schema.user.email,
+      expiresAt: schema.entitlements.expiresAt,
+    })
+    .from(schema.payments)
+    .innerJoin(schema.user, eq(schema.user.id, schema.payments.userId))
+    .innerJoin(schema.entitlements, eq(schema.entitlements.paymentId, schema.payments.id))
+    .where(eq(schema.payments.id, paymentId))
+    .get();
+  const plan = config.plans.find((p) => p.id === row?.planId);
+  if (!row || row.status !== "paid" || !plan) return false;
+  await emailProvider(env, config.legal.contactEmail).send(
+    receiptEmail(row.email, {
+      appName: config.name,
+      planLabel: plan.label,
+      amountIdr: row.amountIdr,
+      paymentId,
+      expiresAt: row.expiresAt,
+    }),
+  );
+  return true;
 }

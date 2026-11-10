@@ -98,8 +98,17 @@ type DokuBody = {
   transaction?: { status?: string; date?: string; original_request_id?: string };
 };
 
+/**
+ * D-128: DOKU's webhook is the main path; its Check Status API is the fallback for a notification
+ * that never arrives (a channel's notify URL left on DOKU's default). DOKU documents no rate limit,
+ * only "hit Check status after 60 seconds after payment completion": the return page waits 60 s
+ * before its first check, then asks at most once per 20 s per payment.
+ */
+export const DOKU_STATUS_FALLBACK_MS = 20_000;
+
 export class DokuProvider implements PaymentProvider {
   readonly name = "doku";
+  readonly statusFallbackMs = DOKU_STATUS_FALLBACK_MS;
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => number;
   private readonly requestId: () => string;

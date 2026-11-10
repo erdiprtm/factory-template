@@ -54,9 +54,15 @@ export interface PaymentProvider {
   /**
    * Set when the provider allows status polling (Pakasir: once per transaction every 4 s). The
    * status endpoint then asks the provider too, at most once per this many ms per payment.
-   * Unset (Duitku, DOKU): only the webhook asks, because Duitku blocks merchants that poll.
+   * Unset (Duitku, DOKU): the webhook asks; Duitku blocks merchants that poll. DOKU: statusFallbackMs.
    */
   readonly statusIntervalMs?: number;
+  /**
+   * Set when a provider whose webhook is the main path may still be asked now and then, as a
+   * fallback for a notification that never arrived (DOKU, D-128): the return page, "Saya sudah
+   * bayar" and the cron ask at most once per this many ms per payment. Unset for Duitku.
+   */
+  readonly statusFallbackMs?: number;
   /** True when the buyer picks one method in the app's own checkout first (Pakasir, D-092). */
   readonly needsMethod?: boolean;
   /** Cancels an unpaid transaction at the provider (Pakasir). True when the provider confirmed. */
