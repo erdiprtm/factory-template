@@ -1,8 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { dailySummaryText, maskEmail, paidText, refundText, sendTelegram } from "./index";
+import {
+  dailySummaryText,
+  maskEmail,
+  paidText,
+  paymentRescuedText,
+  refundText,
+  repeatCheckoutText,
+  sendTelegram,
+} from "./index";
 import { summaryDue, yesterdayWib } from "./summary";
 
 // D-112: owner alerts on Telegram. Minimal data, never in the way of a webhook.
+describe("missed-payment alerts (D-128)", () => {
+  it("a rescued payment names the provider, the way it was found and the webhook path", () => {
+    const text = paymentRescuedText({ product: "Myna Fit", provider: "doku", paymentId: "pay_1", via: "cron" });
+    expect(text).toContain("Webhook terlewat · Myna Fit");
+    expect(text).toContain("(cron)");
+    expect(text).toContain("/api/webhooks/doku");
+    expect(text).toContain("ID: pay_1");
+  });
+
+  it("a repeat checkout masks the email, or leaves it out", () => {
+    const base = { product: "P", provider: "doku", count: 2, minutes: 10, email: "budi@gmail.com", paymentId: "pay_2" };
+    expect(repeatCheckoutText({ ...base, emailMode: "masked" })).toContain(
+      "bu***@gmail.com membuka 2 checkout dalam 10 menit",
+    );
+    const omitted = repeatCheckoutText({ ...base, emailMode: "omit" });
+    expect(omitted).not.toContain("gmail");
+    expect(omitted).toContain("Satu pengguna");
+  });
+});
+
 describe("message text", () => {
   it("masks the email, or leaves it out", () => {
     expect(maskEmail("erdi@gmail.com")).toBe("er***@gmail.com");

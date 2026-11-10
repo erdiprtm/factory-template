@@ -12,11 +12,15 @@ import {
 } from "@factory/core/attribution";
 import {
   cancelPayment,
+  checkPaymentStatus,
   confirmPayment,
   currentPrice,
   handleWebhook,
   paymentCharge,
   paymentStatus,
+  recentCheckoutCount,
+  recentUnpaidPayments,
+  type StatusCheck,
   startCheckout,
 } from "@factory/core/billing";
 import {
@@ -30,7 +34,7 @@ import { capturedDevEmails } from "@factory/core/email";
 import { grantTrial, hasAccess, latestExpiry } from "@factory/core/entitlements";
 import { claimAnonymousFiles, type FileBucket, fileKey, fileRow } from "@factory/core/files";
 import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
-import { webhookRejectedText } from "@factory/core/notify";
+import { repeatCheckoutText, webhookRejectedText } from "@factory/core/notify";
 import { QUIZ_MAX_STEPS } from "@factory/core/quiz";
 import { quizResponsesFor, saveQuizResponse } from "@factory/core/quiz/store";
 import { anonKey, claimAnonymousUses, freeUsesUsed } from "@factory/core/quota";
@@ -52,7 +56,7 @@ import { eraseAccount } from "./core/erase-account";
 import { hasMarketingConsent, type MarketingEnv, marketingTrackingOn } from "./core/marketing";
 import { captureError, withMonitoring } from "./core/monitoring";
 import { type NotifyEnv, ownerAlert } from "./core/notify";
-import { afterPaymentSettled } from "./core/payment-events";
+import { afterPaymentSettled, afterStatusCheck } from "./core/payment-events";
 import { configuredProvider, fakePakasirServer, fakeProvider, type PaymentEnv } from "./core/payments";
 import { clientIp, type RateLimitEnv, rateLimit } from "./core/rate-limit";
 import { requireSession, type SessionVariables, sessionMiddleware } from "./core/session";
@@ -282,6 +286,12 @@ const checkoutBody = z.object({
 const marketingBody = z.object({ granted: z.boolean() });
 const paymentIdQuery = z.object({ paymentId: z.string().regex(/^pay_[0-9a-f]{32}$/) });
 const paymentIdBody = paymentIdQuery;
+const checkBody = z.object({
+  paymentId: z
+    .string()
+    .regex(/^pay_[0-9a-f]{32}$/)
+    .optional(),
+});
 const deleteBody = z.object({ confirm: z.literal("HAPUS") });
 
 const routes = app
@@ -444,6 +454,10 @@ const routes = app
     "/billing/checkout",
     rateLimit("CHECKOUT_LIMITER", (c) => c.get("user")?.id ?? clientIp(c)),
   )
+  .use(
+    "/billing/check",
+    rateLimit("CHECKOUT_LIMITER", (c) => c.get("user")?.id ?? clientIp(c)),
+  )
   .post("/billing/trial", async (c) => {
     if (!config.trial.enabled) return c.json({ error: "trial_disabled" as const }, 400);
     const trial = await grantTrial(db(c.env), c.get("user").id, config.trial.days);
@@ -482,6 +496,26 @@ const routes = app
     });
     if (!started) return c.json({ error: "provider_error" as const }, 502);
     const { paymentId, redirectUrl } = started;
+    // D-128: a second checkout within 10 minutes often means the first was paid but not seen.
+    // Exactly the second, so a third doesn't ping again.
+    const tg = config.notifications.telegram;
+    if (tg && (await recentCheckoutCount(db(c.env), user.id)) === 2)
+      await background(
+        c,
+        ownerAlert(
+          c.env,
+          "repeat_checkout",
+          repeatCheckoutText({
+            product: config.name,
+            provider: provider.name,
+            count: 2,
+            minutes: 10,
+            email: user.email,
+            emailMode: tg.email,
+            paymentId,
+          }),
+        ),
+      );
     // Browser context for the Meta Conversions API, kept only with marketing consent (D-034).
     if (marketingTrackingOn(c.env) && (await hasMarketingConsent(db(c.env), user.id))) {
       const cookies = readFbCookies(c.req.header("cookie") ?? "");
@@ -509,6 +543,16 @@ const routes = app
         plans: config.plans,
       });
       await afterPaymentSettled(c.env, settled, (work) => background(c, work));
+    } else if (provider?.statusFallbackMs) {
+      // D-128 (DOKU): a missed webhook must not leave a paid buyer waiting. The first poll arms a
+      // check 60 s later; then at most once per 20 s per payment, shared with "Saya sudah bayar".
+      const check = await checkPaymentStatus(db(c.env), provider, {
+        userId,
+        paymentId: query.data.paymentId,
+        source: "return",
+        plans: config.plans,
+      });
+      await afterStatusCheck(c.env, check, "return", (work) => background(c, work));
     }
     const row = await paymentStatus(db(c.env), userId, query.data.paymentId);
     if (!row) return c.json({ error: "not_found" as const }, 404);
@@ -525,6 +569,46 @@ const routes = app
       amountIdr: row.amountIdr,
       event,
       accessUntil: until ? until.toISOString() : null,
+    });
+  })
+  // "Saya sudah bayar, cek status" (D-128): asks the provider now for this payment, or for the
+  // user's newest unpaid ones of the last day, throttled per payment. Products' pending cards call
+  // it before offering a new checkout. `checked: false` = this provider is only told by webhook.
+  .post("/billing/check", async (c) => {
+    const parsed = checkBody.safeParse(await c.req.json().catch(() => ({})));
+    if (!parsed.success) return c.json({ error: "not_found" as const }, 404);
+    const userId = c.get("user").id;
+    const provider = configuredProvider(c.env);
+    if (!provider) return c.json({ error: "payments_unavailable" as const }, 503);
+    const ids = parsed.data.paymentId
+      ? [parsed.data.paymentId]
+      : (await recentUnpaidPayments(db(c.env), userId, provider.name)).map((p) => p.id);
+    const checks: { paymentId: string; check: StatusCheck }[] = [];
+    for (const paymentId of ids) {
+      const check = await checkPaymentStatus(db(c.env), provider, {
+        userId,
+        paymentId,
+        source: "manual",
+        plans: config.plans,
+      });
+      await afterStatusCheck(c.env, check, "manual", (work) => background(c, work));
+      checks.push({ paymentId, check });
+      if (check.kind === "settled" && check.outcome.kind === "processed" && check.outcome.payment.status === "paid")
+        break;
+    }
+    if (parsed.data.paymentId && checks[0]?.check.kind === "not_found")
+      return c.json({ error: "not_found" as const }, 404);
+    // The answer is the payment's status after the checks: paid wins, then the newest one.
+    const rows = await Promise.all(ids.map(async (id) => ({ id, row: await paymentStatus(db(c.env), userId, id) })));
+    const shown = rows.find((r) => r.row?.status === "paid") ?? rows[0];
+    const until = shown?.row?.status === "paid" ? await latestExpiry(db(c.env), userId) : null;
+    const waits = checks.flatMap((x) => (x.check.kind === "throttled" ? [x.check.retryAfterMs] : []));
+    return c.json({
+      paymentId: shown?.id ?? null,
+      status: shown?.row?.status ?? null,
+      checked: checks.some((x) => x.check.kind !== "not_checkable" && x.check.kind !== "not_found"),
+      accessUntil: until ? until.toISOString() : null,
+      retryAfterSec: waits.length > 0 ? Math.ceil(Math.min(...waits) / 1000) : null,
     });
   })
   // The app's own checkout screen (Pakasir, D-092): what to pay, owner only.

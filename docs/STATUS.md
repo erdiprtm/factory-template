@@ -4,6 +4,19 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-11: DOKU status fallback for a missed webhook, "Saya sudah bayar", /admin payment tools (D-128), from the Myna Fit incident
+
+- A paid QRIS whose webhook never came (notify URL left on DOKU's default) is now found:
+  - by the return page: first check 60 s after landing, then at most once per 20 s per payment;
+  - by "Saya sudah bayar, cek status": `POST /api/billing/check`, `PaymentCheckButton` in `core/billing/payment-check.tsx`;
+  - by the cron: payments 5 min–2 h old, once per run.
+- A found payment settles exactly like a webhook. Owner alerts: "🛟 Webhook terlewat" (check the notify URLs) and "🔂 Checkout berulang" (2 checkouts in 10 minutes).
+- /admin: "Cek ulang di provider" on unpaid payments (asks before doubling a manual stand-in grant: replace or stack) and "Kirim ulang struk" on paid ones. New column `payments.status_next_check_at` (expand-only migration).
+- `SETUP_HUMAN` 3b and `/launch-check` item 4: every DOKU channel's notify URL (QRIS separately: QR Payment → Edit), and one real paid transaction per channel family before enabling it.
+- Products: `/sync-template`. Myna Fit then shows the status check first on its pending card, and re-checks the incident payment from /admin with "Ganti akses manual dengan paket".
+
+---
+
 ## 2026-11-08: Link previews of "/" on one domain (D-127), from Myna Fit
 
 - WhatsApp/Instagram/Facebook previews of the bare domain were blank: crawlers ask for "/" with `Accept: */*`, so they got the app shell instead of the landing. Known link-preview and search crawlers (by User-Agent) now get the same 302 to `anonymousHome` as browsers; `vary: Cookie, Accept, User-Agent`.

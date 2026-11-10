@@ -92,7 +92,14 @@ export function Admin() {
                 sub={formatDate(p.createdAt, locale)}
                 right={`${formatIdr(p.amountIdr)} · ${t(`account.status.${p.status}` as MessageKey)}`}
               />
-              {p.status === "paid" ? <RefundButton paymentId={p.id} /> : null}
+              {p.status === "paid" ? (
+                <View className="flex-row flex-wrap justify-end gap-2">
+                  <ReceiptButton paymentId={p.id} />
+                  <RefundButton paymentId={p.id} />
+                </View>
+              ) : (
+                <RecheckButton paymentId={p.id} />
+              )}
             </View>
           ))}
         </CardContent>
@@ -277,5 +284,100 @@ function RefundButton({ paymentId }: { paymentId: string }) {
     <Button variant={armed ? "destructive" : "ghost"} onPress={refund} className="self-end">
       <Text>{t(armed ? "admin.refundConfirm" : "admin.refund")}</Text>
     </Button>
+  );
+}
+
+type Covered = { currentExpiry: string | null; adminGrantUntil: string; planLabel: string };
+
+/**
+ * D-128: "Cek ulang di provider" for an unpaid payment, settled like its webhook (access, receipt,
+ * purchase event, Telegram). If a manual grant made after the payment already gives access, the
+ * API asks first: replace that grant with the paid plan, or stack the plan on top.
+ */
+function RecheckButton({ paymentId }: { paymentId: string }) {
+  const { t, locale } = useI18n();
+  const client = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const [covered, setCovered] = useState<Covered | null>(null);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  async function recheck(grantMode?: "replace" | "stack") {
+    setBusy(true);
+    setMessage(null);
+    const res = await api.api.admin.payments.recheck.$post({ json: { paymentId, grantMode } });
+    setBusy(false);
+    if (res.status === 409) {
+      setCovered((await res.json()) as unknown as Covered);
+      return;
+    }
+    setCovered(null);
+    if (!res.ok) return setMessage({ ok: false, text: t("common.error") });
+    const body = (await res.json()) as { status: string | null; accessUntil: string | null };
+    if (body.status === "paid" && body.accessUntil) {
+      setMessage({ ok: true, text: `${t("admin.recheckPaid")} ${formatDate(body.accessUntil, locale)}` });
+      void client.invalidateQueries();
+    } else setMessage({ ok: false, text: t("admin.recheckUnchanged") });
+  }
+  return (
+    <View className="items-end gap-2">
+      {covered ? (
+        <>
+          <Text variant="small" className="text-right">
+            {t("admin.recheckCovered")
+              .replace("{until}", formatDate(covered.adminGrantUntil, locale))
+              .replace("{current}", covered.currentExpiry ? formatDate(covered.currentExpiry, locale) : "-")
+              .replace("{plan}", covered.planLabel)}
+          </Text>
+          <View className="flex-row flex-wrap justify-end gap-2">
+            <Button variant="ghost" onPress={() => setCovered(null)} disabled={busy}>
+              <Text>{t("common.cancel")}</Text>
+            </Button>
+            <Button variant="outline" onPress={() => recheck("stack")} disabled={busy} testID="admin-recheck-stack">
+              <Text>{t("admin.recheckStack")}</Text>
+            </Button>
+            <Button onPress={() => recheck("replace")} disabled={busy} testID="admin-recheck-replace">
+              <Text>{t("admin.recheckReplace")}</Text>
+            </Button>
+          </View>
+        </>
+      ) : (
+        <Button variant="ghost" onPress={() => recheck()} disabled={busy} testID="admin-recheck">
+          <Text>{t(busy ? "admin.recheckBusy" : "admin.recheck")}</Text>
+        </Button>
+      )}
+      {message ? (
+        message.ok ? (
+          <Text variant="small">{message.text}</Text>
+        ) : (
+          <ErrorText>{message.text}</ErrorText>
+        )
+      ) : null}
+    </View>
+  );
+}
+
+/** D-128: the receipt email of a paid payment again (a buyer who lost it, or a rescued payment). */
+function ReceiptButton({ paymentId }: { paymentId: string }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  async function send() {
+    setBusy(true);
+    const res = await api.api.admin.payments.receipt.$post({ json: { paymentId } });
+    setBusy(false);
+    setMessage(res.ok ? { ok: true, text: t("admin.receiptDone") } : { ok: false, text: t("common.error") });
+  }
+  return (
+    <View className="items-end">
+      <Button variant="ghost" onPress={send} disabled={busy}>
+        <Text>{t("admin.receipt")}</Text>
+      </Button>
+      {message ? (
+        message.ok ? (
+          <Text variant="small">{message.text}</Text>
+        ) : (
+          <ErrorText>{message.text}</ErrorText>
+        )
+      ) : null}
+    </View>
   );
 }

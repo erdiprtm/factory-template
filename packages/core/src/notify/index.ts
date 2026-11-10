@@ -46,6 +46,34 @@ export function webhookRejectedText(p: { product: string; provider: string }): s
   return `⚠️ Webhook ditolak · ${p.product}\nTanda tangan ${p.provider} tidak cocok. Kalau berulang, cek secret webhook-nya.`;
 }
 
+/** D-128: a payment confirmed by asking the provider, not by its webhook. */
+export function paymentRescuedText(p: { product: string; provider: string; paymentId: string; via: string }): string {
+  return [
+    `🛟 Webhook terlewat · ${p.product}`,
+    `Pembayaran ${p.provider} ini lunas, tapi baru ketahuan dari cek status (${p.via}), bukan dari webhook. Akses sudah diberikan.`,
+    `Cek notify URL setiap channel di dashboard ${p.provider}: harus /api/webhooks/${p.provider}.`,
+    `ID: ${p.paymentId}`,
+  ].join("\n");
+}
+
+/** D-128: the same user opened several checkouts in a few minutes (maybe a payment we didn't see). */
+export function repeatCheckoutText(p: {
+  product: string;
+  provider: string;
+  count: number;
+  minutes: number;
+  email?: string | null;
+  emailMode: EmailMode;
+  paymentId: string;
+}): string {
+  const who = p.emailMode === "masked" && p.email ? maskEmail(p.email) : "Satu pengguna";
+  return [
+    `🔂 Checkout berulang · ${p.product}`,
+    `${who} membuka ${p.count} checkout dalam ${p.minutes} menit. Mungkin sudah bayar tapi belum terbaca: cek di dashboard ${p.provider}.`,
+    `ID terbaru: ${p.paymentId}`,
+  ].join("\n");
+}
+
 export type DailySummary = {
   day: string;
   purchases: number;

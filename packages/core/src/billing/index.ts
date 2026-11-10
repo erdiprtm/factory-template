@@ -1,4 +1,11 @@
-export { type DokuConfig, DokuProvider, dokuInvoice, dokuSignature, sha256Base64 } from "./doku";
+export {
+  DOKU_STATUS_FALLBACK_MS,
+  type DokuConfig,
+  DokuProvider,
+  dokuInvoice,
+  dokuSignature,
+  sha256Base64,
+} from "./doku";
 export { DUITKU_MIN_AMOUNT_IDR, type DuitkuConfig, DuitkuProvider, hmacSha256Hex } from "./duitku";
 export { FakeProvider } from "./fake";
 export {
@@ -32,3 +39,16 @@ export {
   throttledStatus,
   type WebhookOutcome,
 } from "./service";
+export {
+  AUTO_WINDOW_MS,
+  type CheckSource,
+  CRON_MIN_AGE_MS,
+  checkPaymentStatus,
+  FIRST_CHECK_DELAY_MS,
+  type GrantMode,
+  MANUAL_WINDOW_MS,
+  recentCheckoutCount,
+  recentUnpaidPayments,
+  type StatusCheck,
+  statusCheckCandidates,
+} from "./status-check";

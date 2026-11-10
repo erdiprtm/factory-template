@@ -517,8 +517,10 @@ export const productSchema = z.object({
       telegram: z
         .object({
           events: z
-            .array(z.enum(["purchase", "renewal", "refund", "webhook_rejected"]))
-            .default(["purchase", "renewal", "refund"]),
+            // payment_rescued: a payment found by asking the provider, so its webhook was missed (check
+            // the notify URLs); repeat_checkout: one user opened ≥2 checkouts in 10 minutes (D-128).
+            .array(z.enum(["purchase", "renewal", "refund", "webhook_rejected", "payment_rescued", "repeat_checkout"]))
+            .default(["purchase", "renewal", "refund", "payment_rescued", "repeat_checkout"]),
           email: z.enum(["masked", "omit"]).default("masked"),
           dailySummaryHourWib: z.int().min(0).max(23).nullable().default(null),
           // Two-way bot (D-114): read-only commands (/hari_ini, /minggu, /bulan, /funnel, /sumber,

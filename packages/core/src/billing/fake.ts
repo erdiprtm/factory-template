@@ -8,6 +8,10 @@ export class FakeProvider implements PaymentProvider {
   readonly name = "fake";
   readonly checkouts: CheckoutInput[] = [];
   readonly statuses = new Map<string, ProviderStatus>();
+  /** Tests set this to act like DOKU's missed-webhook fallback (D-128); unset acts like Duitku. */
+  statusFallbackMs?: number;
+  /** How many times getStatus was called, per payment (tests check the throttle). */
+  readonly statusCalls = new Map<string, number>();
 
   constructor(private readonly secret = "fake-secret") {}
 
@@ -35,6 +39,7 @@ export class FakeProvider implements PaymentProvider {
   }
 
   async getStatus(paymentId: string): Promise<ProviderStatus> {
+    this.statusCalls.set(paymentId, (this.statusCalls.get(paymentId) ?? 0) + 1);
     return this.statuses.get(paymentId) ?? "pending";
   }
 

@@ -1,0 +1,1 @@
+ALTER TABLE `payments` ADD `status_next_check_at` integer;

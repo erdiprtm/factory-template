@@ -39,6 +39,9 @@ export const payments = sqliteTable(
     utmCampaign: text("utm_campaign"),
     utmContent: text("utm_content"),
     fbclid: text("fbclid"),
+    // D-128: the next time a missed-webhook status check may ask the provider (DOKU), so the
+    // return page, the "Saya sudah bayar" button and the cron share one throttle per payment.
+    statusNextCheckAt: timestamp("status_next_check_at"),
   },
   (t) => [
     uniqueIndex("payments_provider_ref_unique").on(t.provider, t.providerRef),
