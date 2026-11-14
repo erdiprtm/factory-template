@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-14: Quiz E2E follows D-125's options
+
+- `e2e/tests/quiz.spec.ts` now treats `anonymousEntry` as set whenever the config sets it (also with 0 free uses, like the app), and answers a `kind: "text"` step. Found by the Myna Run sync: with those options the test stalled at "Langkah 1".
+
+---
+
 ## 2026-11-11: DOKU status fallback for a missed webhook, "Saya sudah bayar", /admin payment tools (D-128), from the Myna Fit incident
 
 - A paid QRIS whose webhook never came (notify URL left on DOKU's default) is now found:

@@ -3,8 +3,9 @@ import product from "../../product.config";
 import { hasQuiz, me, signIn } from "./support";
 
 // "Pay for proof" products (D-042/D-043) ask for consent before the quiz and lead to their public
-// entry screen instead of sign-in.
-const anonymousEntry = product.funnel.anonymousFreeUses > 0 ? product.funnel.anonymousEntry : null;
+// entry screen instead of sign-in. Same rule as the app (billing/placement.ts): whenever one is set,
+// also with 0 free uses (a public story or demo screen, D-125).
+const anonymousEntry = product.funnel.anonymousEntry;
 // D-074: or one row inside the quiz (first or last question) instead of a screen before it.
 const inlineConsent = anonymousEntry !== null && product.legal.consentPlacement !== "screen";
 
@@ -35,6 +36,13 @@ test("quiz: lander CTA → steps with back → summary → sign-in → answers a
         await box.click();
         await expect(box).toHaveAttribute("aria-checked", "true");
       }
+    }
+    // A free-text step (D-125): any short answer.
+    const text = page.getByTestId("quiz-text");
+    if (await text.isVisible()) {
+      if ((await text.inputValue()) === "") await text.fill("Budi");
+      await next.click();
+      return;
     }
     const number = page.getByTestId("quiz-number");
     if (await number.isVisible()) {
