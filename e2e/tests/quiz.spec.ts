@@ -76,8 +76,12 @@ test("quiz: lander CTA → steps with back → summary → sign-in → answers a
   const progress = page.getByText(/Langkah \d+ dari \d+/);
   const start = Number(((await progress.textContent()) ?? "").match(/\d+/)?.[0] ?? "1");
   // At most 16 questions + 8 info screens (QUIZ_MAX_STEPS + QUIZ_MAX_INFO, D-129).
-  for (let step = start; step < start + 24 && !(await summary.isVisible()); step++) {
-    await expect(page.getByText(new RegExp(`Langkah ${step} dari`))).toBeVisible();
+  for (let step = start; step < start + 24; step++) {
+    // Wait for this screen or the summary: after the last screen (also an info screen, D-129) the
+    // summary takes a moment, and an instant isVisible() check would miss it.
+    const here = page.getByText(new RegExp(`Langkah ${step} dari`));
+    await expect(here.or(summary)).toBeVisible();
+    if (await summary.isVisible()) break;
     await answerStep();
     if (step === start + 1) {
       // Back keeps earlier answers: go back one screen and forward again.

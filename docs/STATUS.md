@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-15: Quiz E2E when the last screen is an info screen
+
+- `e2e/tests/quiz.spec.ts` waits for the next screen or the summary before each step, so a quiz ending on an info screen (Myna Fit: analysis → plan) reaches the summary instead of waiting for a step that isn't there. Found by Myna Fit's quiz v2 sync.
+
+---
+
 ## 2026-11-15: Info screens in the core quiz (D-129)
 
 - `kind: "info"` quiz screens (intro, analysis, proof) for Myna Fit's quiz v2: no answer, not counted as questions (max 8), counted by the progress bar, before the consent screen when they come before the first question. New `quizInfo` slot; `quiz_start` stays on the first question.
