@@ -2,7 +2,7 @@
 // how a core screen LOOKS; core keeps everything else: state, validation, consent checkboxes and the
 // accept button (UU PDP), requireAccess, prices from config and "no web prices on native".
 // A slot only gets finished, display-ready props: it can't submit, skip or unlock anything.
-import type { QuizAnswer, QuizAnswers, QuizStep } from "@factory/core/quiz";
+import type { QuizAnswer, QuizAnswers, QuizInfo, QuizStep } from "@factory/core/quiz";
 import type { ComponentType } from "react";
 import type { Locale, MessageKey } from "./i18n";
 
@@ -31,6 +31,21 @@ export type QuizStepSlotProps = {
    * persetujuan dulu, ya"; a slot may also point at it (scroll, shake, highlight).
    */
   consentMissing?: boolean;
+};
+
+/**
+ * One info screen of the quiz (D-129): an intro, an "analysis" of the answers so far, a proof
+ * screen. Display only: `next` goes on, nothing is answered or stored.
+ */
+export type QuizInfoSlotProps = {
+  step: QuizInfo<MessageKey>;
+  /** Every answer so far (D-094), read-only: e.g. "Budi, ini yang kami lihat dari jawabanmu". */
+  answers: Readonly<QuizAnswers>;
+  next: () => void;
+  back: (() => void) | undefined;
+  /** Counts info screens too, so the bar moves on them. */
+  progress: { step: number; total: number };
+  t: (key: MessageKey) => string;
 };
 
 export type HeaderSlotProps = { title: string; subtitle: string };
@@ -130,6 +145,8 @@ export type AdminPanelSlotProps = {
 export type CoreSlots = {
   /** One quiz step (question + input): e.g. a chat bubble with a stepper for numbers. */
   quizStep?: ComponentType<QuizStepSlotProps>;
+  /** An info screen between questions (D-129). Default: title, body, image and the cta button. */
+  quizInfo?: ComponentType<QuizInfoSlotProps>;
   /** "Rencana kamu siap" header. */
   quizSummaryHeader?: ComponentType<HeaderSlotProps>;
   /** The summary's plan lines and answer recap (D-058). The "next" and "back" buttons stay core's. */

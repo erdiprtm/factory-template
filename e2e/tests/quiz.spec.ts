@@ -12,25 +12,34 @@ const inlineConsent = anonymousEntry !== null && product.legal.consentPlacement 
 // Sell engine Module 4 (D-036). Product-independent: answers whatever quiz the product defines
 // (first option / lowest number), so it holds in every product repo.
 test("quiz: lander CTA → steps with back → summary → sign-in → answers attached", async ({ page, request }) => {
+  // /api/me decides whether consent is still needed: wait for it so the consent row's visibility is final.
+  const meLoaded = page.waitForResponse((r) => r.url().includes("/api/me"));
   await page.goto("/quiz");
   if (!(await hasQuiz(page))) return test.skip(true, "this product has no quiz");
+  await meLoaded;
+  const infoNext = page.getByTestId("quiz-info-next");
+  // Intro screens (D-129) come before the consent screen.
   if (anonymousEntry && !inlineConsent) {
+    while (!(await page.getByTestId("anon-consent-continue").isVisible())) {
+      await expect(infoNext.or(page.getByTestId("anon-consent-continue"))).toBeVisible();
+      if (await infoNext.isVisible()) await infoNext.click();
+    }
     await expect(page.getByTestId("anon-consent-continue")).toBeVisible();
     for (const box of await page.getByRole("checkbox").all()) await box.click();
     await page.getByTestId("anon-consent-continue").click();
   }
   const summary = page.getByRole("heading", { name: "Rencana kamu siap" });
   const next = page.getByTestId("quiz-next");
+  let consentRows = 0;
   const answerStep = async () => {
-    // The inline consent row: its step can't be answered before the box(es) are ticked.
+    // An info screen (D-129): nothing to answer.
+    await expect(infoNext.or(page.getByTestId("quiz-option").first()).or(page.locator("input")).first()).toBeVisible();
+    if (await infoNext.isVisible()) return infoNext.click();
+    // The inline consent row (under the first or last question): its step can't be answered before
+    // the box(es) are ticked.
     const row = page.getByTestId("inline-consent");
-    if (inlineConsent) {
-      // The row's step: the first question, or the last ("Langkah N dari N").
-      const [n, total] = ((await page.getByText(/Langkah \d+ dari \d+/).textContent()) ?? "").match(/\d+/g) ?? [];
-      const here = product.legal.consentPlacement === "quiz_first" ? n === "1" : n === total;
-      if (here) await expect(row).toBeVisible();
-    }
     if (inlineConsent && (await row.isVisible())) {
+      consentRows++;
       for (const box of await row.getByRole("checkbox").all()) {
         await expect(box).toHaveAttribute("aria-checked", "false");
         await box.click();
@@ -63,17 +72,23 @@ test("quiz: lander CTA → steps with back → summary → sign-in → answers a
     if (multi) await next.click();
   };
 
-  for (let step = 1; step <= 8 && !(await summary.isVisible()); step++) {
+  // Intro screens before a consent screen were passed above: continue from where the quiz is.
+  const progress = page.getByText(/Langkah \d+ dari \d+/);
+  const start = Number(((await progress.textContent()) ?? "").match(/\d+/)?.[0] ?? "1");
+  // At most 16 questions + 8 info screens (QUIZ_MAX_STEPS + QUIZ_MAX_INFO, D-129).
+  for (let step = start; step < start + 24 && !(await summary.isVisible()); step++) {
     await expect(page.getByText(new RegExp(`Langkah ${step} dari`))).toBeVisible();
     await answerStep();
-    if (step === 2) {
-      // Back keeps earlier answers: go back to step 2 and forward again.
+    if (step === start + 1) {
+      // Back keeps earlier answers: go back one screen and forward again.
       await page.getByTestId("quiz-back").click();
-      await expect(page.getByText(/Langkah 2 dari/)).toBeVisible();
+      await expect(page.getByText(new RegExp(`Langkah ${step} dari`))).toBeVisible();
       await answerStep();
     }
   }
   await expect(summary).toBeVisible();
+  // The row was under its question (the first or the last), and its boxes were ticked there.
+  if (inlineConsent) expect(consentRows).toBeGreaterThan(0);
   await page.getByTestId("quiz-done").click();
   if (anonymousEntry) {
     await expect(page).toHaveURL(new RegExp(`${anonymousEntry}$`));

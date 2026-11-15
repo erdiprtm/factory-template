@@ -11,7 +11,7 @@ import { quiz } from "../src/features/quiz";
 const all = [...(quiz ? [quiz] : []), ...Object.values(quizzes ?? {})];
 
 describe("product quiz", () => {
-  it("has 5–16 valid steps (or is turned off)", () => {
+  it("has 5–16 valid questions, at most 8 info screens (or is turned off)", () => {
     for (const q of all) expect(quizProblems(q)).toEqual([]);
   });
 
@@ -20,16 +20,20 @@ describe("product quiz", () => {
     const used = all.flatMap((q) =>
       q.steps.flatMap((s) => [
         s.title,
-        ...(s.hint ? [s.hint] : []),
-        ...(s.kind === "number"
-          ? s.unit
-            ? [s.unit]
-            : []
-          : s.kind === "text"
-            ? s.placeholder
-              ? [s.placeholder]
+        // Info screens (D-129): body and button.
+        ...(s.kind === "info" ? [...(s.body ? [s.body] : []), s.cta] : []),
+        ...(s.kind !== "info" && s.hint ? [s.hint] : []),
+        ...(s.kind === "info"
+          ? []
+          : s.kind === "number"
+            ? s.unit
+              ? [s.unit]
               : []
-            : s.options.map((o) => o.label)),
+            : s.kind === "text"
+              ? s.placeholder
+                ? [s.placeholder]
+                : []
+              : s.options.map((o) => o.label)),
       ]),
     );
     expect(used.filter((k) => !keys.has(k))).toEqual([]);

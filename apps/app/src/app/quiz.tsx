@@ -1,5 +1,6 @@
+import { questionRange } from "@factory/core/quiz";
 import { type Href, Redirect, useRouter } from "expo-router";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { AnonymousConsentGate } from "../core/auth/anonymous-consent";
 import { consentPlacement } from "../core/auth/inline-consent";
 import { useMe } from "../core/auth/use-me";
@@ -33,15 +34,18 @@ export default function QuizScreen() {
     router.push(next);
   }
   // Inline consent (D-074): a row under the first or last question instead of a screen before.
+  // Questions only: info screens (D-129) ask nothing.
+  const range = questionRange(definition);
   const consentAt = !anonymousEntry
     ? undefined
     : consentPlacement === "quiz_first"
-      ? 0
+      ? range.first
       : consentPlacement === "quiz_last"
-        ? definition.steps.length - 1
+        ? range.last
         : undefined;
   // A visitor who gets a free first use goes there next, not to sign-up (D-098): the summary says so.
   const tryFirst = Boolean(anonymousEntry) && !me.data?.user;
-  const runner = <QuizRunner quiz={definition} onDone={done} consentAt={consentAt} tryFirst={tryFirst} />;
-  return anonymousEntry ? <AnonymousConsentGate>{runner}</AnonymousConsentGate> : runner;
+  // The consent screen (D-043) comes before the first question; intro screens (D-129) come before it.
+  const gate = anonymousEntry ? (node: ReactNode) => <AnonymousConsentGate>{node}</AnonymousConsentGate> : undefined;
+  return <QuizRunner quiz={definition} onDone={done} consentAt={consentAt} tryFirst={tryFirst} gate={gate} />;
 }
