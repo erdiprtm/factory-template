@@ -3,8 +3,11 @@
 // the device first and attached to the user after signup (POST /api/quiz).
 
 // 5–8 steps is the default advice (D-036); up to 16 so a longer quiz can be tested against it (D-094).
+// Questions only: info screens (D-129) don't count.
 export const QUIZ_MIN_STEPS = 5;
 export const QUIZ_MAX_STEPS = 16;
+/** Most info screens in one quiz (D-129). */
+export const QUIZ_MAX_INFO = 8;
 
 export type QuizOption<K extends string = string> = { value: string; label: K };
 export type QuizStep<K extends string = string> =
@@ -17,6 +20,26 @@ export type QuizStep<K extends string = string> =
    */
   | { id: string; kind: "text"; title: K; hint?: K; placeholder?: K; maxLength?: number };
 
+/**
+ * A screen without a question (D-129): an intro, an "analysis" of the answers so far, a proof
+ * screen. It stores no answer, sends nothing and doesn't count as a question. Info screens before
+ * the first question come before the pre-signup consent (D-043): they ask nothing. `image` is a URL
+ * (an absolute one on native).
+ */
+export type QuizInfo<K extends string = string> = {
+  id: string;
+  kind: "info";
+  title: K;
+  body?: K;
+  cta: K;
+  image?: string;
+};
+
+/** One screen of a quiz: a question or an info screen. */
+export type QuizScreen<K extends string = string> = QuizStep<K> | QuizInfo<K>;
+
+export const isQuestion = <K extends string>(s: QuizScreen<K>): s is QuizStep<K> => s.kind !== "info";
+
 /** Longest text answer (D-125). */
 export const TEXT_MAX = 40;
 
@@ -26,7 +49,8 @@ export type QuizAnswers = Record<string, QuizAnswer>;
 export type QuizDefinition<K extends string = string> = {
   /** Stable id; change it when the questions change meaning (answers are stored under it). */
   id: string;
-  steps: QuizStep<K>[];
+  /** Questions, with info screens (D-129) anywhere between them. */
+  steps: QuizScreen<K>[];
   /** Personalized lines for the "Rencana kamu siap" summary. Default: a recap of the answers. */
   summary?: (answers: QuizAnswers) => K[];
 };
@@ -37,12 +61,16 @@ const ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
 export function quizProblems(def: QuizDefinition): string[] {
   const problems: string[] = [];
   if (!ID.test(def.id)) problems.push(`quiz id "${def.id}" must be lowercase letters, digits, - or _`);
-  if (def.steps.length < QUIZ_MIN_STEPS || def.steps.length > QUIZ_MAX_STEPS)
-    problems.push(`a quiz has ${QUIZ_MIN_STEPS}–${QUIZ_MAX_STEPS} steps (has ${def.steps.length})`);
+  const questions = def.steps.filter(isQuestion);
+  if (questions.length < QUIZ_MIN_STEPS || questions.length > QUIZ_MAX_STEPS)
+    problems.push(`a quiz has ${QUIZ_MIN_STEPS}–${QUIZ_MAX_STEPS} questions (has ${questions.length})`);
+  const infos = def.steps.length - questions.length;
+  if (infos > QUIZ_MAX_INFO) problems.push(`a quiz has at most ${QUIZ_MAX_INFO} info screens (has ${infos})`);
   const ids = def.steps.map((s) => s.id);
   if (new Set(ids).size !== ids.length) problems.push("step ids must be unique");
   for (const step of def.steps) {
     if (!ID.test(step.id)) problems.push(`step id "${step.id}" is invalid`);
+    if (step.kind === "info") continue;
     if (step.kind === "number") {
       if (!(step.min < step.max)) problems.push(`step "${step.id}": min must be below max`);
       continue;
@@ -60,7 +88,8 @@ export function quizProblems(def: QuizDefinition): string[] {
   return problems;
 }
 
-export function isValidAnswer(step: QuizStep, value: unknown): value is QuizAnswer {
+export function isValidAnswer(step: QuizScreen, value: unknown): value is QuizAnswer {
+  if (step.kind === "info") return false; // nothing to answer (D-129)
   if (step.kind === "number")
     return typeof value === "number" && Number.isFinite(value) && value >= step.min && value <= step.max;
   if (step.kind === "text")
@@ -87,7 +116,7 @@ export function isValidAnswer(step: QuizStep, value: unknown): value is QuizAnsw
 export function cleanAnswers(def: QuizDefinition, answers: unknown): QuizAnswers {
   const out: QuizAnswers = {};
   if (!answers || typeof answers !== "object") return out;
-  for (const step of def.steps) {
+  for (const step of def.steps.filter(isQuestion)) {
     const v = (answers as Record<string, unknown>)[step.id];
     if (isValidAnswer(step, v)) out[step.id] = v;
   }
@@ -100,14 +129,25 @@ export function sharedAnswers(def: QuizDefinition, answers: QuizAnswers): QuizAn
   return Object.fromEntries(Object.entries(answers).filter(([id]) => !local.has(id)));
 }
 
-/** The first unanswered step (steps.length when all are answered). */
+/**
+ * Where a returning visitor continues: the first unanswered question, or the info screens right
+ * before it (D-129: a fresh visitor sees the intro). steps.length when every question is answered.
+ */
 export function firstOpenStep(def: QuizDefinition, answers: QuizAnswers): number {
-  const i = def.steps.findIndex((s) => !(s.id in answers));
-  return i === -1 ? def.steps.length : i;
+  if (isQuizComplete(def, answers)) return def.steps.length;
+  let i = def.steps.findIndex((s) => isQuestion(s) && !(s.id in answers));
+  while (i > 0 && def.steps[i - 1]?.kind === "info") i--;
+  return i;
 }
 
 export const isQuizComplete = (def: QuizDefinition, answers: QuizAnswers) =>
-  firstOpenStep(def, answers) === def.steps.length;
+  def.steps.every((s) => !isQuestion(s) || s.id in answers);
+
+/** Index of the first and the last question (D-129: info screens may come before and after). */
+export function questionRange(def: QuizDefinition): { first: number; last: number } {
+  const at = def.steps.flatMap((s, i) => (isQuestion(s) ? [i] : []));
+  return { first: at[0] ?? -1, last: at.at(-1) ?? -1 };
+}
 
 /** Default summary: each step's title with the chosen option labels (numbers shown as given). */
 export function recapAnswers<K extends string>(
@@ -116,7 +156,7 @@ export function recapAnswers<K extends string>(
 ): { title: K; labels: K[]; value?: number; unit?: K; text?: string }[] {
   return def.steps.flatMap((step) => {
     const a = answers[step.id];
-    if (a === undefined) return [];
+    if (a === undefined || step.kind === "info") return [];
     if (step.kind === "number") return [{ title: step.title, labels: [], value: a as number, unit: step.unit }];
     if (step.kind === "text") return [{ title: step.title, labels: [], text: a as string }];
     const chosen = Array.isArray(a) ? a : [a];

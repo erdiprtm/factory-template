@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-15: Info screens in the core quiz (D-129)
+
+- `kind: "info"` quiz screens (intro, analysis, proof) for Myna Fit's quiz v2: no answer, not counted as questions (max 8), counted by the progress bar, before the consent screen when they come before the first question. New `quizInfo` slot; `quiz_start` stays on the first question.
+
+---
+
 ## 2026-11-14: Quiz E2E follows D-125's options
 
 - `e2e/tests/quiz.spec.ts` now treats `anonymousEntry` as set whenever the config sets it (also with 0 free uses, like the app), and answers a `kind: "text"` step. Found by the Myna Run sync: with those options the test stalled at "Langkah 1".

@@ -5,7 +5,9 @@ import {
   frozenAnswers,
   isQuizComplete,
   isValidAnswer,
+  QUIZ_MAX_INFO,
   type QuizDefinition,
+  questionRange,
   quizProblems,
   recapAnswers,
   sharedAnswers,
@@ -136,5 +138,50 @@ describe("text steps (D-125)", () => {
     const answers = { goal: "a", habits: ["b"], age: 30, time: "a", name: "Erdi" };
     expect(recapAnswers(withName, answers).at(-1)).toEqual({ title: "q.name", labels: [], text: "Erdi" });
     expect(sharedAnswers(withName, answers)).toEqual({ goal: "a", habits: ["b"], age: 30, time: "a" });
+  });
+});
+
+describe("info screens (D-129)", () => {
+  const info = (id: string) => ({ id, kind: "info", title: "i.title", cta: "i.cta" }) as const;
+  const [goal, habits, age, time, level] = quiz.steps as QuizDefinition["steps"];
+  const withInfo: QuizDefinition = {
+    ...quiz,
+    steps: [
+      info("hi"),
+      info("how"),
+      goal,
+      habits,
+      info("analysis"),
+      age,
+      time,
+      level,
+      info("solution"),
+    ] as QuizDefinition["steps"],
+  };
+
+  it("don't count as questions, and are capped", () => {
+    expect(quizProblems(withInfo)).toEqual([]);
+    const many = Array.from({ length: QUIZ_MAX_INFO + 1 }, (_, i) => info(`i${i}`));
+    expect(quizProblems({ ...quiz, steps: [...many, ...quiz.steps] })).toEqual([
+      `a quiz has at most ${QUIZ_MAX_INFO} info screens (has ${QUIZ_MAX_INFO + 1})`,
+    ]);
+    expect(quizProblems({ ...quiz, steps: [info("a"), ...quiz.steps.slice(0, 4)] })[0]).toMatch(/has 4\)/);
+  });
+
+  it("take no answer and are never stored, recapped or sent", () => {
+    const answers = { hi: "x", goal: "a", habits: ["b"], analysis: "y" };
+    expect(isValidAnswer(info("hi"), "x")).toBe(false);
+    expect(cleanAnswers(withInfo, answers)).toEqual({ goal: "a", habits: ["b"] });
+    expect(recapAnswers(withInfo, answers).map((r) => r.title)).toEqual(["q.goal", "q.habits"]);
+  });
+
+  it("a fresh visitor starts on the intro; a returning one at the screens before the next question", () => {
+    expect(firstOpenStep(withInfo, {})).toBe(0);
+    expect(firstOpenStep(withInfo, { goal: "a" })).toBe(3);
+    expect(firstOpenStep(withInfo, { goal: "a", habits: ["b"] })).toBe(4);
+    const all = { goal: "a", habits: ["b"], age: 30, time: "a", level: "c" };
+    expect(isQuizComplete(withInfo, all)).toBe(true);
+    expect(firstOpenStep(withInfo, all)).toBe(withInfo.steps.length);
+    expect(questionRange(withInfo)).toEqual({ first: 2, last: 7 });
   });
 });
