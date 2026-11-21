@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-21: Template tests hold in a product that sells an ebook (D-130)
+
+- `apps/site/test/legal.test.ts` (switches to Pakasir) and the config test's default check drop the product's `digitalProducts` first. Found by Myna Fit's sync; the whole unit suite was also run with an ebook-selling config.
+
+---
+
 ## 2026-11-21: Simpler ebook checkout: no checkboxes (D-130)
 
 - `/beli/<id>`: email and "Bayar" only, with "Dengan klik Bayar, kamu setuju dengan Syarat & Ketentuan dan Kebijakan Privasi" under the button (Erdi, after Ratio's checkout). Marketing consent comes from the device's ads-banner choice, never pre-assumed.
