@@ -1,13 +1,14 @@
-import { Button, Card, CardContent, Checkbox, ErrorText, Input, Loading, Screen, Text } from "@factory/ui";
+import { Button, Card, CardContent, ErrorText, Input, Loading, Screen, Text } from "@factory/ui";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, View } from "react-native";
 import { api } from "../api";
 import { currentTouch } from "../attribution";
-import { ConsentChecks } from "../auth/consent-checks";
+import { legalUrls } from "../auth/legal-links";
 import { showsWebPrices } from "../billing/web-prices";
 import { formatIdr } from "../format";
 import { useI18n } from "../i18n";
+import { fbIds, marketingChoice } from "../marketing";
 
 // One-time digital purchases (D-130), web only like every web price: screens.tsx (native) sends
 // home. The buy
@@ -25,8 +26,6 @@ export function BuyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null | undefined>(undefined);
   const [email, setEmail] = useState("");
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
-  const [marketing, setMarketing] = useState(false);
   const [state, setState] = useState<"idle" | "paying" | "error" | "badEmail">("idle");
 
   useEffect(() => {
@@ -48,7 +47,7 @@ export function BuyScreen() {
       </Screen>
     );
 
-  const ready = BUY_CONSENTS.every((c) => checked[c]) && email.trim() !== "";
+  const ready = email.trim() !== "";
   async function pay() {
     if (!product) return;
     const address = email.trim();
@@ -60,8 +59,11 @@ export function BuyScreen() {
       param: { id: product.id },
       json: {
         email: address,
-        accept: [...BUY_CONSENTS, ...(marketing ? (["marketing"] as const) : [])],
+        // "Dengan klik Bayar, kamu setuju…" under the button is the agreement (as in Ratio's
+        // checkout); marketing only when this device already said yes to the ads banner (D-034).
+        accept: [...BUY_CONSENTS, ...(marketingChoice() === "granted" ? (["marketing"] as const) : [])],
         ...(touch ? { touch } : {}),
+        ...fbIds(),
       },
     };
     const res = await api.api.products[":id"].checkout.$post(input).catch(() => null);
@@ -95,16 +97,30 @@ export function BuyScreen() {
         <Text variant="muted">{t("digital.emailHint")}</Text>
         {state === "badEmail" ? <ErrorText>{t("digital.emailInvalid")}</ErrorText> : null}
       </View>
-      <ConsentChecks needed={BUY_CONSENTS} checked={checked} onChange={setChecked} />
-      <View className="pl-1">
-        {/* Optional and never pre-checked, like the consents; it never blocks paying (D-034). */}
-        <Checkbox label={t("digital.marketing")} checked={marketing} onCheckedChange={setMarketing} />
-      </View>
       {state === "error" ? <ErrorText>{t("digital.payError")}</ErrorText> : null}
       <Button testID="buy-pay" onPress={() => void pay()} disabled={!ready || state === "paying"}>
         <Text>{state === "paying" ? t("digital.paying") : `${t("digital.pay")} ${formatIdr(product.priceIdr)}`}</Text>
       </Button>
+      <Text variant="muted" className="text-sm" testID="buy-agree">
+        {`${t("digital.agree")} `}
+        <Doc href={legalUrls.terms} label={t("consent.termsDoc")} />
+        {` ${t("digital.and")} `}
+        <Doc href={legalUrls.privacy} label={t("consent.privacyDoc")} />
+        {"."}
+      </Text>
     </Screen>
+  );
+}
+
+function Doc({ href, label }: { href: string; label: string }) {
+  return (
+    <Text
+      role="link"
+      className="text-sm text-link underline"
+      {...({ href, hrefAttrs: { target: "_blank", rel: "noopener" } } as object)}
+    >
+      {label}
+    </Text>
   );
 }
 
