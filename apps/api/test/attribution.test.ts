@@ -62,6 +62,26 @@ describe("POST /api/events", () => {
     expect(await db.select().from(funnelEvents).where(eq(funnelEvents.anonId, anonId))).toHaveLength(20);
   });
 
+  it("keeps the page path and the ad's utm_content; buy_view counts; a path with a query is refused (D-133)", async () => {
+    const anonId = anon();
+    const res = await beacon({
+      anonId,
+      utm_campaign: "c-ebook",
+      utm_content: "hook-3",
+      path: "/ebook/pria-kuat/",
+      events: [{ event: "lp_view" }, { event: "buy_view" }],
+    });
+    expect(res.status).toBe(204);
+    const rows = await db.select().from(funnelEvents).where(eq(funnelEvents.anonId, anonId));
+    expect(rows.map((r) => [r.event, r.path, r.utmContent]).sort()).toEqual([
+      ["buy_view", "/ebook/pria-kuat/", "hook-3"],
+      ["lp_view", "/ebook/pria-kuat/", "hook-3"],
+    ]);
+    expect(
+      (await beacon({ anonId: anon(), path: "/beli/x?email=a@b.c", events: [{ event: "buy_view" }] })).status,
+    ).toBe(400);
+  });
+
   it("accepts the site's site_view (D-117)", async () => {
     const anonId = anon();
     expect((await beacon({ anonId, utm_source: "instagram", events: [{ event: "site_view" }] })).status).toBe(204);

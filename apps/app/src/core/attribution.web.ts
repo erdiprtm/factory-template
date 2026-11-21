@@ -93,6 +93,8 @@ export function trackFunnel(event: string, step?: number): void {
     anonId: t.anonId,
     utm_source: t.utm_source,
     utm_campaign: t.utm_campaign,
+    utm_content: t.utm_content,
+    path: window.location.pathname.slice(0, 200), // D-133: per-page funnels; never the query
     events: [{ event: event as ClientFunnelEvent, ...(step === undefined ? {} : { step }) }],
   });
   const url = `${apiBaseUrl()}/api/events`;

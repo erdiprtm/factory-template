@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-21: Per-page and per-ad funnel data (D-133)
+
+- `funnel_events.path` and `utm_content` (expand-only migration), sent by the site and app beacons; `buy_view` from `/beli/<id>`. For Myna Fit's daily ebook funnel summary.
+
+---
+
 ## 2026-11-21: Marketing ask on chosen site pages; "Izinkan"-first style (D-132)
 
 - `marketing.consent.siteAskPaths` shows the ads banner on a first visit to those site pages (Myna Fit: `/ebook/`, `/l/`), so an ebook purchase can reach Meta. `allowStyle: "primary"` fills "Izinkan" (Erdi's call for Myna Fit, risk noted in D-132); default stays equal.

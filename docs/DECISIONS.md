@@ -2743,3 +2743,11 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **`marketing.consent.allowStyle`**: `"equal"` (default, D-107, lawyer-approved) or `"primary"`. With `"primary"`, "Izinkan" is filled in the brand colour and "Tidak" stays outlined and clearly visible. Same size, one tap each, nothing pre-selected, on the site and in the app.
   - **Erdi chose "primary" for Myna Fit, to use now without the lawyer (2026-11-21).** I told him first that visually favouring "Izinkan" can be read as nudging, against UU PDP's freely given consent, and that the risk shows in a complaint or audit. Other products stay `"equal"` unless their owner decides otherwise.
 
+## D-133: Per-page and per-ad funnel data (2026-11-21)
+
+- **Why (Myna Fit, Erdi OK via Fit CMO).** A daily Telegram summary of the ebook funnel (lander → /beli → paid) before day 2 of the Meta campaign. The product builds the summary in `features/scheduled.ts`; core lacked the data.
+- **Expand-only migration `funnel_path`.** `funnel_events.path` (the page's pathname, never the query or fragment: `POST /api/events` refuses one) and `funnel_events.utm_content` (the ad, from the device's touch). The site's beacon and the app's `trackFunnel` send both for every first-party event (page views, CTA, consent shown/granted/denied, quiz steps). Server events (purchase…) keep path null. Payments already carry utm_content.
+- **`buy_view`** is a client funnel event: `/beli/<id>` sends it once the product shows. It is first-party only (no Meta event) and not a FUNNEL_STEPS step, so /admin's standard funnel is unchanged.
+- **Retention** is unchanged (`purgeFunnelEvents`). There is no new personal data: the path is a public page address, and anonId stays random.
+- `FUNNEL_ROWS_PER_INSERT` is now 7 (13 columns, D1's 100-variable limit).
+

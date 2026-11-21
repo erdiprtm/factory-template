@@ -209,6 +209,10 @@ export const funnelEvents = sqliteTable(
     experiment: text("experiment"),
     variant: text("variant"),
     createdAt: timestamp("created_at").notNull(),
+    // D-133: the page a browser event happened on (pathname only, no query) and the ad's
+    // utm_content, for per-page and per-ad funnels (e.g. an ebook lander → /beli).
+    path: text("path"),
+    utmContent: text("utm_content"),
   },
   (t) => [
     index("funnel_events_event_created_idx").on(t.event, t.createdAt),
