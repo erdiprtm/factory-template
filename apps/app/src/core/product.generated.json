@@ -101,6 +101,7 @@
       "bonusMonths": 0
     }
   ],
+  "digitalProducts": [],
   "pricing": {
     "founderPrice": false,
     "tiers": {}

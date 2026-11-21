@@ -355,6 +355,32 @@ export const id = {
   "upgrade.anonTitle": "Hasil kamu siap disimpan",
   "upgrade.anonBody": "Masuk dengan email untuk menyimpan hasil ini dan membuka rencana lengkap.",
   "upgrade.anonCta": "Simpan hasil & lanjut",
+  // One-time digital purchases (D-130): buy page, thank-you page, new link
+  "digital.emailLabel": "Email untuk menerima file",
+  "digital.emailHint": "Link unduhan dikirim ke email ini. Tidak perlu bikin akun.",
+  "digital.emailInvalid": "Cek lagi alamat emailnya, ya.",
+  "digital.marketing": "Boleh kirimi saya info dan penawaran lewat iklan (opsional)",
+  "digital.pay": "Bayar",
+  "digital.paying": "Membuka pembayaran…",
+  "digital.payError": "Pembayaran belum bisa dibuka. Coba lagi sebentar lagi.",
+  "digital.notFound": "Produk ini tidak ditemukan.",
+  "digital.webOnly": "Pembelian ini hanya lewat situs web.",
+  "digital.thanks.title": "Terima kasih!",
+  "digital.thanks.checking": "Menunggu konfirmasi pembayaran…",
+  "digital.thanks.paid": "Pembayaran berhasil.",
+  "digital.thanks.download": "Unduh",
+  "digital.thanks.emailed": "Link unduhan juga sudah dikirim ke",
+  "digital.thanks.linkUsed": "Link di halaman ini sudah habis. Minta link baru ke email kamu di bawah.",
+  "digital.thanks.failed": "Pembayaran gagal, dibatalkan, atau kedaluwarsa. Belum ada yang dibayar.",
+  "digital.thanks.slow":
+    "Konfirmasinya agak lama. Kalau kamu sudah bayar, link akan dikirim ke email begitu pembayaran masuk.",
+  "digital.thanks.badLink": "Link halaman ini tidak lengkap. Cek email kamu untuk link unduhan.",
+  "digital.resend.title": "Minta link unduhan baru",
+  "digital.resend.body": "Masukkan email yang dipakai saat membeli. Link baru berlaku 72 jam.",
+  "digital.resend.send": "Kirim link baru",
+  "digital.resend.sent": "Kalau email itu pernah membeli, link baru sudah dikirim. Cek juga folder spam.",
+  "digital.link.gone": "Link unduhan ini sudah tidak berlaku (lewat 72 jam atau sudah dipakai 5 kali).",
+  "digital.link.invalid": "Link unduhan ini tidak dikenali.",
 };
 
 export type Messages = typeof id;

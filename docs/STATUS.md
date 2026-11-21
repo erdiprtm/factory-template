@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-21: One-time digital purchases without an account (D-130)
+
+- `digitalProducts` in config; `/beli/<id>` → DOKU/Duitku hosted page → `/beli/terima-kasih` with the download; the link (72 h, 5 downloads, HMAC-signed) streams the PDF from private R2; "kirim ulang link" by email. One download and one email per payment, even with replayed webhooks. Funnel purchase, CAPI (consent only), Telegram, /admin revenue. Export/erase by email. Human step: upload the PDF (SETUP_HUMAN §16).
+
+---
+
 ## 2026-11-15: Quiz E2E when the last screen is an info screen
 
 - `e2e/tests/quiz.spec.ts` waits for the next screen or the summary before each step, so a quiz ending on an info screen (Myna Fit: analysis → plan) reaches the summary instead of waiting for a step that isn't there. Found by Myna Fit's quiz v2 sync.

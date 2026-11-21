@@ -102,10 +102,21 @@ const UNUSED_OTP_PATHS = [
   "/forget-password/email-otp",
 ];
 
-function buildAuth(env: AuthEnv) {
+/** The Worker's signing secret (BETTER_AUTH_SECRET; a fixed dev value only locally and in tests). */
+export function appSecret(env: Pick<AuthEnv, "APP_ENV" | "BETTER_AUTH_SECRET">): string {
   const local = env.APP_ENV === "development" || env.APP_ENV === "test";
   const secret = env.BETTER_AUTH_SECRET ?? (local ? DEV_SECRET : undefined);
   if (!secret) throw new Error(`BETTER_AUTH_SECRET is not set for APP_ENV=${env.APP_ENV}`);
+  return secret;
+}
+
+/** D-130: download links and thank-you keys use their own key, derived from the app secret. */
+export const downloadSecret = (env: Pick<AuthEnv, "APP_ENV" | "BETTER_AUTH_SECRET">) =>
+  `digital-downloads:${appSecret(env)}`;
+
+function buildAuth(env: AuthEnv) {
+  const local = env.APP_ENV === "development" || env.APP_ENV === "test";
+  const secret = appSecret(env);
 
   const emailCode = product.auth.emailCode;
   return betterAuth({

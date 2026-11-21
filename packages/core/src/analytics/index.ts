@@ -86,6 +86,9 @@ export const STANDARD_EVENTS = [
   "inapp_escape_shown",
   "inapp_escape_tapped",
   "inapp_escape_stayed",
+  // One-time digital purchases (D-130): the purchase (server), and the download link used
+  "product_purchase",
+  "product_download",
 ] as const;
 
 export type StandardEvent = (typeof STANDARD_EVENTS)[number];

@@ -324,3 +324,26 @@ describe("defineProduct", () => {
     });
   });
 });
+
+describe("digital products (D-130)", () => {
+  const ebook = { id: "ebook-a", label: "Ebook A", priceIdr: 149_000, fileKey: "products/ebook-a.pdf" };
+  const plan = (base.plans as { id: string }[])[0]?.id ?? "";
+  const doku = { ...base.payments, provider: "doku" as const };
+
+  it("default to none, and take a well-formed product", () => {
+    expect(defineProduct(base).digitalProducts).toEqual([]);
+    expect(defineProduct({ ...base, payments: doku, digitalProducts: [ebook] }).digitalProducts).toEqual([ebook]);
+  });
+
+  it("refuse clashing ids, tiny prices, odd file keys and Pakasir", () => {
+    const bad =
+      (d: unknown[], payments: ProductConfigInput["payments"] = doku) =>
+      () =>
+        defineProduct({ ...base, payments, digitalProducts: d as (typeof ebook)[] });
+    expect(bad([ebook, ebook])).toThrow(/unique/);
+    expect(bad([{ ...ebook, id: plan }])).toThrow(/differ from plan ids/);
+    expect(bad([{ ...ebook, priceIdr: 5000 }])).toThrow();
+    expect(bad([{ ...ebook, fileKey: "../secret" }])).toThrow();
+    expect(bad([ebook], { ...base.payments, provider: "pakasir", methods: ["qris"] })).toThrow(/hosted-page/);
+  });
+});

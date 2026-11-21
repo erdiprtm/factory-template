@@ -2661,3 +2661,52 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Breaking for product code that reads `quiz.steps`**: an element may now be an info screen. Narrow with `isQuestion(s)` or `s.kind !== "info"` before reading `options` / `hint`.
 - **Tests.** `packages/core/src/quiz/index.test.ts` (count, cap, no answers, resume), `apps/app/test/quiz-info.test.tsx` (intro outside the gate, questions inside, bar, events, stored answers), `apps/app/test/quiz.test.ts` (product quiz keys incl. body/cta), `e2e/tests/quiz.spec.ts` (clicks through info screens, intro before the consent screen, starts counting where the quiz is).
 
+## D-130: One-time digital purchases without an account, e.g. an ebook PDF (2026-11-21)
+
+- **Ask (Myna Fit, Erdi OK 2026-11-21).** Sell an ebook for Rp149.000 on the product's own site through DOKU (QRIS included). Core's `plans` need `months > 0`, checkout needs a signed-in user, and settling always grants access months: none fits.
+- **Erdi's decisions (2026-11-21).** The buyer is recorded by **email only** (no account is created); an account made later with the same email sees the purchase. Download links last **72 hours** and allow **5 downloads**; a new link can always be emailed to the same address.
+- **Config.** `digitalProducts: [{ id, label, priceIdr ≥ 10.000, fileKey, fileName?, email?: { subject?, intro? } }]`, separate from `plans`. Ids are unique and never a plan id (a payment's `plan_id` holds either). Not with Pakasir (its own checkout screen needs a session); DOKU or Duitku.
+- **Data (expand-only migration `digital_products`).**
+  - `payments.buyer_email` and `payments.checkout_origin` (for the emailed link) are new nullable columns.
+  - A guest payment's `user_id` is a per-checkout `guest_<uuid>`. Its consents (terms, privacy, optional marketing) and ad attribution hang on it, so CAPI's consent check, attribution and the funnel work unchanged.
+  - `downloads` holds one row per paid payment (unique `payment_id`) with the product and email. `download_links` holds one row per link: `expires_at`, `uses`, `max_uses`.
+- **Flow.**
+  1. `/beli/<id>` (app, web only): email, the terms and privacy box(es), an optional marketing box.
+  2. `POST /api/products/:id/checkout` (per-IP limit) records the consents and the attribution touch, then `startCheckout` with `digital.returnPath`. The price comes from the config, never the browser.
+  3. The provider returns the buyer to `/beli/terima-kasih?paymentId&k`, where `k` is an HMAC of the payment id, because the buyer has no session.
+  4. That page polls `GET /api/products/status`. DOKU's missed-webhook fallback (D-128) runs there too, and the cron covers these payments like any other.
+- **Settle.** `settlePayment` finds no plan and a `buyer_email`, so it calls `grantDownload` (one per payment) and then moves the payment to paid with the same conditional update. Only that winner gets `download`, so `afterDigitalPurchase` runs once per purchase. It sends:
+  - the funnel `purchase` with its value, so /admin's revenue, ROAS and the campaign table count it;
+  - OpenPanel `product_purchase`;
+  - the owner's Telegram ping;
+  - Meta CAPI `purchase` with the paid amount, only with marketing consent (D-034);
+  - the email with a link.
+
+  Webhook signatures are unchanged; a forged one is 401. A replayed webhook or a racing status check grants nothing more.
+- **Links.** The token is `<link id>.<HMAC-SHA256("download:<id>")>`, keyed with a secret derived from BETTER_AUTH_SECRET (no new human step). `GET /api/downloads/:token` behaves as follows:
+  - **Accepted:** spends one use with a conditional UPDATE and streams the R2 object (`FILES`, private) as an attachment.
+  - **Bad signature:** answers 403.
+  - **Expired or used up:** answers 410.
+  - **Opened by a person (Accept: text/html):** redirects to `/beli/unduh?link=…` to ask for a new link.
+
+  The thank-you page shows the newest valid link, or creates a first one within 72 h of payment; it never creates more. `POST /api/products/resend` emails a new link per purchase of that email: at most one per 10 minutes, the same answer for any email, and limited per IP. Links a month past expiry are purged by the cron.
+- **UU PDP.**
+  - **Export:** `exportUserData` lists `purchases` made with the account's email.
+  - **Erasure:** removes the links, the guest consents and attribution, and the buyer email. The payment rows stay, de-identified, for financial records, as for accounts.
+  - **No account:** a buyer without one asks by email (legal.contactEmail); a support erase can call `forgetPurchases`.
+  - **Lawyer:** the privacy policy should mention purchases without an account (email kept for delivery and records). Check it before the first sale.
+- **/admin.** The dashboard's revenue and ROAS (funnel `purchase`), revenue per month (paid payments), the live feed and recent payments (buyer email shown) count digital purchases. The per-cohort unit economics (CAC/LTV over accounts) don't, because a guest isn't an account; add it there if ebook-only buyers become a real share.
+- **Native.** The screens are `screens.web.tsx`; native redirects home (no web prices or checkout on native).
+- **Tests.**
+  - `packages/config/src/index.test.ts`: clashing ids, price minimum, file key, Pakasir.
+  - `apps/api/test/digital-products.test.ts`:
+    - consents, the guest id and the price;
+    - a forged webhook is 401, and a replayed one gives one download and one email;
+    - the same link on the thank-you page, and the file bytes;
+    - 5 uses then 410, a bad signature 403, a person redirected;
+    - an expired link, resend only to the buyer;
+    - history, export and erasure for an account made later;
+    - the key opens only its own payment.
+  - `e2e/tests/digital-products.spec.ts`: buy page → fake hosted payment → thank-you → link → resend page. It runs in products that sell one; the template has none, and it was run locally with a temporary product.
+- **Human step.** Upload the file to `<slug>-files` (and `-preview`) with `wrangler r2 object put … --remote`. See SETUP_HUMAN §16.
+

@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import type { Bindings } from "../index";
 import { experiment, serverAnalytics } from "./analytics";
+import { afterDigitalPurchase } from "./digital";
 import { capiOptions, sendPaymentConversion } from "./marketing";
 import { ownerAlert } from "./notify";
 
@@ -29,6 +30,8 @@ export async function afterPaymentSettled(
   const db = drizzle(env.DB, { schema });
   // Source of truth for payment analytics: the browser may be gone by the time this lands.
   const { id, userId, planId, amountIdr, status, utmCampaign, utmSource, paidAt } = outcome.payment;
+  // A one-time digital purchase (D-130): its own events and the download email.
+  if (outcome.download) return afterDigitalPurchase(env, outcome, defer);
   if (!outcome.entitlement) {
     if (status !== "paid") await defer(serverAnalytics(env).track("payment_failed", { plan: planId, status }, userId));
     return;

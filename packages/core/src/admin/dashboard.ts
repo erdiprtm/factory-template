@@ -168,6 +168,8 @@ export async function loadFeed(db: Db, limit = 20): Promise<FeedItem[]> {
       amountIdr: payments.amountIdr,
       at: payments.createdAt,
       email: user.email,
+      // A purchase without an account (D-130) keeps its email on the payment.
+      buyerEmail: payments.buyerEmail,
     })
     .from(payments)
     .leftJoin(user, eq(user.id, payments.userId))
@@ -185,7 +187,7 @@ export async function loadFeed(db: Db, limit = 20): Promise<FeedItem[]> {
       status: p.status,
       planId: p.planId,
       amountIdr: p.amountIdr,
-      who: p.email ? maskEmail(p.email) : "—",
+      who: p.email ? maskEmail(p.email) : p.buyerEmail ? maskEmail(p.buyerEmail) : "—",
     })),
     ...signups.map((s) => ({ kind: "signup" as const, at: s.at.toISOString(), who: maskEmail(s.email) })),
   ];
