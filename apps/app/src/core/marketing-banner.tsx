@@ -121,12 +121,17 @@ function Banner() {
         </Pressable>
       </View>
       <Text variant="muted">{copy.body}</Text>
-      {/* Equal weight: same variant and size, so neither answer is pushed. */}
+      {/* Same size, one tap each (D-107); allowStyle "primary" (D-132) fills "Izinkan". */}
       <View className="flex-row gap-3">
         <Button variant="outline" className="flex-1" testID="consent-deny" onPress={() => choose("denied")}>
           <Text>{copy.deny}</Text>
         </Button>
-        <Button variant="outline" className="flex-1" testID="consent-allow" onPress={() => choose("granted")}>
+        <Button
+          variant={consent.allowStyle === "primary" ? "default" : "outline"}
+          className="flex-1"
+          testID="consent-allow"
+          onPress={() => choose("granted")}
+        >
           <Text>{copy.allow}</Text>
         </Button>
       </View>

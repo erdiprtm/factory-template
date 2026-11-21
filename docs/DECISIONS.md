@@ -2733,3 +2733,13 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Scrolling (fix, 2026-11-21, found by Myna Fit on iPhone Safari).** The web export locks `body { overflow: hidden }` (expo-reset), and the slots were rendered without core's `Screen`. A long slot page therefore couldn't scroll on iPhone Safari; desktop Chromium scrolls anyway, which is why E2E passed. Core now wraps both slots in its own ScrollView (testID `digital-scroll`, checked by `digital-slots-render.test.tsx`), so slots need no ScrollView of their own.
 - Without the slots, the pages look as before (D-130).
 
+## D-132: The marketing ask on chosen site pages, and an "Izinkan"-first button style (2026-11-21)
+
+- **Why (Myna Fit, via Fit CMO).** The ebook's Purchase never reached Meta. Myna Fit asks for the ads consent `after_first_result`, so the site never shows the banner, and the path lander → `/beli` has no other place to ask. `/beli` sends "marketing" only if the device already chose "Izinkan".
+- **`marketing.consent.siteAskPaths`** (default `[]`). Site pages whose path starts with an entry (e.g. `/ebook/`, `/l/`) show the banner on a first visit, even when `askAt` isn't `first_visit`. The app keeps its `askAt`.
+  - The choice is stored under the same `MARKETING_KEY`, so on one domain `/beli` reads it, and a granted choice records "marketing" with the purchase (CAPI).
+  - Never without a Pixel. The helper is `siteAsksConsent` (`apps/site/src/lib/site.ts`), tested in `apps/site/test/consent-ask.test.ts`.
+- **Banner on landers.** It is the same bottom sheet. It has no ✕ on the site (it stays until a choice is made; no choice = no). It now sits at `z-[60]`, above a product's sticky bar.
+- **`marketing.consent.allowStyle`**: `"equal"` (default, D-107, lawyer-approved) or `"primary"`. With `"primary"`, "Izinkan" is filled in the brand colour and "Tidak" stays outlined and clearly visible. Same size, one tap each, nothing pre-selected, on the site and in the app.
+  - **Erdi chose "primary" for Myna Fit, to use now without the lawyer (2026-11-21).** I told him first that visually favouring "Izinkan" can be read as nudging, against UU PDP's freely given consent, and that the risk shows in a complaint or audit. Other products stay `"equal"` unless their owner decides otherwise.
+

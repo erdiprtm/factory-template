@@ -696,6 +696,13 @@ export const productSchema = z.object({
       // "after_first_result" (the app, right after the product's first real result; the site and
       // landers don't ask), "after_signup" (the app, once signed in; the site doesn't ask).
       // copy: the product's own words per language, else core's.
+      // siteAskPaths (D-132): site pages whose path starts with one of these ("/ebook/", "/l/") show
+      // the banner on a first visit even when askAt isn't "first_visit" (a lander leading straight
+      // to a purchase, e.g. /beli, has no other place to ask). The app keeps its askAt.
+      // allowStyle (D-132): "equal" (D-107, lawyer-approved: two identical buttons) or "primary"
+      // ("Izinkan" in the brand colour, "Tidak" outlined; same size, one tap each, nothing
+      // pre-selected). "primary" is Erdi's call for Myna Fit (2026-11-21), knowing it may be read as
+      // nudging under UU PDP's freely-given consent.
       consent: z
         .object({
           askAt: z.enum(["first_visit", "after_first_result", "after_signup"]).default("first_visit"),
@@ -710,10 +717,18 @@ export const productSchema = z.object({
               }),
             )
             .default({}),
+          siteAskPaths: z
+            .array(z.string().regex(/^\/[a-z0-9/_-]*$/, "a site path like /ebook/"))
+            .max(20)
+            .default([]),
+          allowStyle: z.enum(["equal", "primary"]).default("equal"),
         })
-        .default({ askAt: "first_visit", copy: {} }),
+        .default({ askAt: "first_visit", copy: {}, siteAskPaths: [], allowStyle: "equal" }),
     })
-    .default({ metaPixelId: null, consent: { askAt: "first_visit", copy: {} } }),
+    .default({
+      metaPixelId: null,
+      consent: { askAt: "first_visit", copy: {}, siteAskPaths: [], allowStyle: "equal" },
+    }),
 });
 
 export type ProductConfigInput = z.input<typeof productSchema>;

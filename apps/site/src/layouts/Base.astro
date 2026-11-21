@@ -3,7 +3,7 @@ import "../styles/global.css";
 import { colorSchemeHead } from "../lib/color-scheme.mjs";
 import { pathToFileURL } from "node:url";
 import { logoSize } from "../lib/logo.mjs";
-import { analyticsClientId, appUrl, homeUrl, metaPixelId, product } from "../lib/site";
+import { analyticsClientId, appUrl, homeUrl, metaPixelId, product, siteAsksConsent } from "../lib/site";
 
 interface Props {
   title: string;
@@ -24,8 +24,10 @@ const fullTitle = title === product.name ? title : `${title} | ${product.name}`;
 const year = new Date().getFullYear();
 const scheme = colorSchemeHead(product.brand.darkMode);
 // The marketing ask (D-107): only on a first visit to the site, in the product's words if it has
-// them. With askAt "after_first_result" or "after_signup" the app asks later, so the site never does.
-const consentAsk = metaPixelId && product.marketing.consent.askAt === "first_visit";
+// them. With askAt "after_first_result" or "after_signup" the app asks later, so the site asks only
+// on the pages under consent.siteAskPaths (D-132).
+const consentAsk = siteAsksConsent(Astro.url.pathname, { metaPixelId, consent: product.marketing.consent });
+const allowPrimary = product.marketing.consent.allowStyle === "primary";
 const consentCopy = {
   title: "Privasi & iklan",
   body: "Kami memakai analitik anonim untuk memperbaiki layanan. Dengan izinmu, kami juga memakai Meta Pixel untuk mengukur iklan kami di Facebook dan Instagram. Pilihan ini bisa diubah kapan saja.",
@@ -106,16 +108,16 @@ const logo = show === "name" ? null : logoSize(pathToFileURL(`${process.cwd()}/p
     </footer>
     {
       consentAsk && (
-        <div id="consent-banner" hidden role="region" aria-label={consentCopy.title} class="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card p-4 shadow-lg">
+        <div id="consent-banner" hidden role="region" aria-label={consentCopy.title} class="fixed inset-x-0 bottom-0 z-[60] border-t border-border bg-card p-4 shadow-lg">
           <div class="mx-auto flex max-w-5xl flex-col gap-3 text-sm">
             <p class="font-semibold">{consentCopy.title}</p>
             <p class="text-muted-foreground">
               {consentCopy.body} <a href="/privasi/" class="underline">Kebijakan Privasi</a>
             </p>
-            {/* Two equal buttons (D-107): same size and weight, one tap each, nothing pre-selected. */}
+            {/* Same size, one tap each, nothing pre-selected (D-107). allowStyle "primary" (D-132) fills "Izinkan". */}
             <div class="flex gap-3">
               <button id="consent-deny" type="button" class="min-h-11 flex-1 rounded-lg border border-input px-4 font-semibold hover:bg-accent">{consentCopy.deny}</button>
-              <button id="consent-allow" type="button" class="min-h-11 flex-1 rounded-lg border border-input px-4 font-semibold hover:bg-accent">{consentCopy.allow}</button>
+              <button id="consent-allow" type="button" class:list={["min-h-11 flex-1 rounded-lg border px-4 font-semibold", allowPrimary ? "border-primary bg-primary text-primary-foreground hover:opacity-90" : "border-input hover:bg-accent"]}>{consentCopy.allow}</button>
             </div>
           </div>
         </div>

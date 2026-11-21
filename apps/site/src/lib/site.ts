@@ -6,6 +6,20 @@ import { appUrlFor } from "./urls.mjs";
 
 export { product };
 
+/**
+ * Whether this site page asks for the marketing consent on a first visit (D-107, D-132): every page
+ * when the product asks at first visit, else only pages under consent.siteAskPaths (e.g. a lander
+ * that leads straight to a purchase). Never without a Pixel.
+ */
+export function siteAsksConsent(
+  pathname: string,
+  marketing: { metaPixelId: string | null | undefined; consent: { askAt: string; siteAskPaths: string[] } },
+): boolean {
+  if (!marketing.metaPixelId) return false;
+  if (marketing.consent.askAt === "first_visit") return true;
+  return marketing.consent.siteAskPaths.some((p) => pathname.startsWith(p));
+}
+
 const idr = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 export const formatIdr = idr;
 

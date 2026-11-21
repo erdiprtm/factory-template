@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-21: Marketing ask on chosen site pages; "Izinkan"-first style (D-132)
+
+- `marketing.consent.siteAskPaths` shows the ads banner on a first visit to those site pages (Myna Fit: `/ebook/`, `/l/`), so an ebook purchase can reach Meta. `allowStyle: "primary"` fills "Izinkan" (Erdi's call for Myna Fit, risk noted in D-132); default stays equal.
+
+---
+
 ## 2026-11-21: Ebook pages scroll on iPhone Safari (D-131 fix)
 
 - The `digitalBuy` / `digitalThanks` slots render inside core's ScrollView; the web export locks body scrolling, so a long slot page couldn't scroll on iPhone Safari. Found by Myna Fit.
