@@ -188,6 +188,13 @@ export type CoreSlots = {
   digitalBuy?: ComponentType<DigitalBuySlotProps>;
   /** /beli/terima-kasih (D-131): the page around core's download and resend pieces. */
   digitalThanks?: ComponentType<DigitalThanksSlotProps>;
+  /**
+   * The buy page's "Bayar" button look (D-131), e.g. the lander's raised, shining, pressable CTA:
+   * classes merged onto core's button and its label (`active:` for the pressed state). The button,
+   * its price and its action stay core's.
+   */
+  digitalPayClassName?: string;
+  digitalPayTextClassName?: string;
   /** "Rencana kamu siap" header. */
   quizSummaryHeader?: ComponentType<HeaderSlotProps>;
   /** The summary's plan lines and answer recap (D-058). The "next" and "back" buttons stay core's. */

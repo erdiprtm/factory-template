@@ -2729,5 +2729,6 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
     The product adds its own blocks ("Mulai Hari 1", the app offer).
 - **What core keeps:** the email check, checkout, the consents it records, attribution, the redirect, polling and the links' rules. Pieces passed as nodes, not separate components, so a slot can arrange them but never rebuild them.
 - **Guard:** `apps/app/test/digital-slots-contract.test.tsx` renders both pages with the product's real `features/slots` and fails unless the email field, "Bayar <config price>", the consent line with both links, the download and the resend form are all shown. It runs in every product. `digital-slots-render.test.tsx` checks the props with a custom slot.
+- **The Bayar button's look** (Erdi: like the lander's raised, shining, pressable CTA): `digitalPayClassName` and `digitalPayTextClassName` are classes merged onto core's button and label, with `active:` for the pressed state. Same pattern as `tabBarClassName`. A product can restyle the button but never replace it.
 - Without the slots, the pages look as before (D-130).
 

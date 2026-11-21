@@ -10,6 +10,8 @@ const got = vi.hoisted(() => ({
 }));
 vi.mock("../src/features/slots", () => ({
   slots: {
+    digitalPayClassName: "shine-cta",
+    digitalPayTextClassName: "cta-label",
     digitalBuy: (p: { product: object; emailField: ReactNode; payButton: ReactNode; agree: ReactNode }) => {
       got.buy = p as Record<string, unknown>;
       return (
@@ -34,6 +36,22 @@ vi.mock("../src/features/slots", () => ({
   },
 }));
 const params = vi.hoisted(() => ({ value: {} as Record<string, string> }));
+// Core's Button and Text, recording the classes they get (NativeWind turns classes into styles in tests).
+const classes = vi.hoisted(() => ({ button: [] as (string | undefined)[], text: [] as (string | undefined)[] }));
+vi.mock("@factory/ui", async (orig) => {
+  const ui = (await orig()) as typeof import("@factory/ui");
+  return {
+    ...ui,
+    Button: (p: Parameters<typeof ui.Button>[0]) => {
+      if (p.testID === "buy-pay") classes.button.push(p.className);
+      return <ui.Button {...p} />;
+    },
+    Text: (p: Parameters<typeof ui.Text>[0]) => {
+      if (p.className === "cta-label") classes.text.push(p.className);
+      return <ui.Text {...p} />;
+    },
+  };
+});
 vi.mock("expo-router", () => ({
   Redirect: () => null,
   useLocalSearchParams: () => params.value,
@@ -80,6 +98,9 @@ describe("digital purchase slots (D-131)", () => {
     expect(await screen.findByTestId("product-buy")).toBeTruthy();
     expect(got.buy).toMatchObject({ product: { id: "e", priceIdr: 149_000, priceText: "Rp149.000" }, state: "idle" });
     for (const id of ["buy-email", "buy-pay", "buy-agree"]) expect(screen.getByTestId(id)).toBeTruthy();
+    // The product's CTA look lands on core's button and label (D-131).
+    expect(classes.button).toContain("shine-cta");
+    expect(classes.text).toContain("cta-label");
   });
 
   it("the thanks slot gets the status and core's pieces; a used-up link says so", async () => {

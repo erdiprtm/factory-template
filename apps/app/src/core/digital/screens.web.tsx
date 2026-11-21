@@ -101,8 +101,15 @@ export function BuyScreen() {
   const payButton = (
     <View className="gap-2">
       {state === "error" ? <ErrorText>{t("digital.payError")}</ErrorText> : null}
-      <Button testID="buy-pay" onPress={() => void pay()} disabled={!ready || state === "paying"}>
-        <Text>{state === "paying" ? t("digital.paying") : `${t("digital.pay")} ${priceText}`}</Text>
+      <Button
+        testID="buy-pay"
+        className={slots.digitalPayClassName}
+        onPress={() => void pay()}
+        disabled={!ready || state === "paying"}
+      >
+        <Text className={slots.digitalPayTextClassName}>
+          {state === "paying" ? t("digital.paying") : `${t("digital.pay")} ${priceText}`}
+        </Text>
       </Button>
     </View>
   );
