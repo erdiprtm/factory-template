@@ -190,6 +190,12 @@ const eventsBody = z.object({
   anonId: z.string().regex(/^[A-Za-z0-9_-]{16,64}$/),
   utm_source: z.string().max(100).optional(),
   utm_campaign: z.string().max(200).optional(),
+  utm_content: z.string().max(200).optional(),
+  // D-133: the page's pathname only; a query or fragment is refused rather than stored.
+  path: z
+    .string()
+    .regex(/^\/[^?#\s]{0,199}$/)
+    .optional(),
   events: z
     .array(z.object({ event: z.enum(CLIENT_FUNNEL_EVENTS), step: z.int().min(0).max(50).optional() }))
     .min(1)
@@ -202,8 +208,14 @@ app.post("/api/events", rateLimit("EVENTS_LIMITER", clientIp), async (c) => {
   } catch {}
   const parsed = eventsBody.safeParse(body);
   if (!parsed.success) return c.json({ error: "invalid_body" as const }, 400);
-  const { anonId, utm_source, utm_campaign, events } = parsed.data;
-  await recordClientEvents(db(c.env), { anonId, attribution: { utm_source, utm_campaign }, events, experiment });
+  const { anonId, utm_source, utm_campaign, utm_content, path, events } = parsed.data;
+  await recordClientEvents(db(c.env), {
+    anonId,
+    attribution: { utm_source, utm_campaign, utm_content },
+    path,
+    events,
+    experiment,
+  });
   return c.body(null, 204);
 });
 

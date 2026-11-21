@@ -61,7 +61,9 @@ export async function recordClientEvents(
   db: Db,
   input: {
     anonId: string;
-    attribution: Pick<Attribution, "utm_source" | "utm_campaign">;
+    attribution: Pick<Attribution, "utm_source" | "utm_campaign" | "utm_content">;
+    /** The page's pathname (D-133), already cleaned by the API. */
+    path?: string;
     events: { event: ClientFunnelEvent; step?: number }[];
     experiment?: Experiment | null;
   },
@@ -81,15 +83,17 @@ export async function recordClientEvents(
     experiment: tag?.experiment ?? null,
     variant: tag?.variant ?? null,
     createdAt: now,
+    path: input.path ?? null,
+    utmContent: input.attribution.utm_content ?? null,
   }));
-  // D1 binds at most 100 variables per query: 11 columns → 9 rows a statement (D-113). A batch of
+  // D1 binds at most 100 variables per query: 13 columns → 7 rows a statement (D-113, D-133). A batch of
   // up to 20 events used to fail with "too many SQL variables".
   for (let i = 0; i < rows.length; i += FUNNEL_ROWS_PER_INSERT)
     await db.insert(funnelEvents).values(rows.slice(i, i + FUNNEL_ROWS_PER_INSERT));
 }
 
-/** funnel_events has 11 columns; D1 allows 100 bound variables per statement. */
-export const FUNNEL_ROWS_PER_INSERT = 9;
+/** funnel_events has 13 columns (D-133); D1 allows 100 bound variables per statement. */
+export const FUNNEL_ROWS_PER_INSERT = 7;
 
 /**
  * Server funnel events (purchase, renewal, refund) for a user, joined to their device's anonId,

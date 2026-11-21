@@ -209,6 +209,8 @@ const logo = show === "name" ? null : logoSize(pathToFileURL(`${process.cwd()}/p
           anonId: touch.anonId,
           utm_source: touch.utm_source,
           utm_campaign: touch.utm_campaign,
+          utm_content: touch.utm_content,
+          path: location.pathname.slice(0, 200), // D-133: per-page funnels; never the query
           events: [{ event }],
         });
         try {

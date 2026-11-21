@@ -18,6 +18,8 @@ export const FUNNEL_EVENTS = [
   "first_result",
   "paywall_view",
   "checkout_start",
+  // A one-time digital purchase's buy page was shown (D-133, /beli/<id>). First-party only.
+  "buy_view",
   "purchase",
   "renewal",
   "refund",
@@ -40,6 +42,7 @@ export const CLIENT_FUNNEL_EVENTS = [
   "first_result",
   "paywall_view",
   "checkout_start",
+  "buy_view",
   "consent_shown",
   "consent_granted",
   "consent_denied",

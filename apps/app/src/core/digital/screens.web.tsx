@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Platform, ScrollView, View } from "react-native";
 import { slots } from "../../features/slots";
 import { api } from "../api";
-import { currentTouch } from "../attribution";
+import { currentTouch, trackFunnel } from "../attribution";
 import { legalUrls } from "../auth/legal-links";
 import { showsWebPrices } from "../billing/web-prices";
 import { formatIdr } from "../format";
@@ -38,7 +38,12 @@ export function BuyScreen() {
     void api.api.products
       .$get()
       .then((r) => r.json())
-      .then((r) => setProduct(r.products.find((p) => p.id === id) ?? null))
+      .then((r) => {
+        const found = r.products.find((p) => p.id === id) ?? null;
+        setProduct(found);
+        // D-133: the buy page was shown, first-party with its path, for a lander → /beli funnel.
+        if (found) trackFunnel("buy_view");
+      })
       .catch(() => setProduct(null));
   }, [id]);
 
