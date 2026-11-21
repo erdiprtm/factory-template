@@ -2671,7 +2671,7 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - A guest payment's `user_id` is a per-checkout `guest_<uuid>`. Its consents (terms, privacy, optional marketing) and ad attribution hang on it, so CAPI's consent check, attribution and the funnel work unchanged.
   - `downloads` holds one row per paid payment (unique `payment_id`) with the product and email. `download_links` holds one row per link: `expires_at`, `uses`, `max_uses`.
 - **Flow.**
-  1. `/beli/<id>` (app, web only): email, the terms and privacy box(es), an optional marketing box.
+  1. `/beli/<id>` (app, web only): the email and "Bayar". No checkboxes (Erdi, 2026-11-21, after Ratio's checkout: "it's just an ebook, keep it simple"). The line under the button says "Dengan klik Bayar, kamu setuju dengan Syarat & Ketentuan dan Kebijakan Privasi", and clicking records terms and privacy. Delivering the file to that email is part of the sale. Marketing (CAPI) is recorded only if this device already chose "Izinkan" on the ads banner; there is no separate ask here.
   2. `POST /api/products/:id/checkout` (per-IP limit) records the consents and the attribution touch, then `startCheckout` with `digital.returnPath`. The price comes from the config, never the browser.
   3. The provider returns the buyer to `/beli/terima-kasih?paymentId&k`, where `k` is an HMAC of the payment id, because the buyer has no session.
   4. That page polls `GET /api/products/status`. DOKU's missed-webhook fallback (D-128) runs there too, and the cron covers these payments like any other.

@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-21: Simpler ebook checkout: no checkboxes (D-130)
+
+- `/beli/<id>`: email and "Bayar" only, with "Dengan klik Bayar, kamu setuju dengan Syarat & Ketentuan dan Kebijakan Privasi" under the button (Erdi, after Ratio's checkout). Marketing consent comes from the device's ads-banner choice, never pre-assumed.
+
+---
+
 ## 2026-11-21: One-time digital purchases without an account (D-130)
 
 - `digitalProducts` in config; `/beli/<id>` → DOKU/Duitku hosted page → `/beli/terima-kasih` with the download; the link (72 h, 5 downloads, HMAC-signed) streams the PDF from private R2; "kirim ulang link" by email. One download and one email per payment, even with replayed webhooks. Funnel purchase, CAPI (consent only), Telegram, /admin revenue. Export/erase by email. Human step: upload the PDF (SETUP_HUMAN §16).

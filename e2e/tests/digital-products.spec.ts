@@ -13,12 +13,10 @@ test("digital purchase: email + consent → pay → thank-you → download", asy
   await page.goto(`/beli/${item.id}`);
   await expect(page.getByRole("heading", { name: item.label })).toBeVisible();
   const pay = page.getByTestId("buy-pay");
-  await page.getByTestId("buy-email").fill(email);
+  // No boxes to tick (Erdi, 2026-11-21, like Ratio's checkout): the line under "Bayar" is the agreement.
   await expect(pay).toBeDisabled();
-  for (const box of await page.getByRole("checkbox").all()) {
-    if ((await box.textContent())?.includes("opsional")) continue;
-    await box.click();
-  }
+  await expect(page.getByTestId("buy-agree")).toContainText("Dengan klik Bayar");
+  await page.getByTestId("buy-email").fill(email);
   await pay.click();
   await expect(page).toHaveURL(/\/beli\/terima-kasih\?paymentId=pay_[0-9a-f]{32}&k=/);
   await expect(page.getByTestId("download-emailed")).toContainText(email);
