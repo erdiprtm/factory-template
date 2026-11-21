@@ -2,6 +2,7 @@ import { Button, Card, CardContent, ErrorText, Input, Loading, Screen, Text } fr
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform, View } from "react-native";
+import { slots } from "../../features/slots";
 import { api } from "../api";
 import { currentTouch } from "../attribution";
 import { legalUrls } from "../auth/legal-links";
@@ -9,11 +10,16 @@ import { showsWebPrices } from "../billing/web-prices";
 import { formatIdr } from "../format";
 import { useI18n } from "../i18n";
 import { fbIds, marketingChoice } from "../marketing";
+import type { DigitalBuyState } from "../slots";
 
 // One-time digital purchases (D-130), web only like every web price: screens.tsx (native) sends
-// home. The buy
-// page takes an email and the terms + privacy consent, then hands over to the provider's hosted
-// page; the provider returns to the thank-you page, which polls until paid and shows the download.
+// home. The buy page takes an email, then hands over to the provider's hosted page; the provider
+// returns to the thank-you page, which polls until paid and shows the download.
+//
+// Slots (D-131): a product draws both pages (digitalBuy, digitalThanks) around core's own pieces:
+// the email field, the "Bayar <price>" button and the "Dengan klik Bayar, kamu setuju…" line on the
+// buy page; the download and the resend form on the thank-you page. Core keeps the logic, and a
+// test in every product checks its slot still shows those pieces.
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BUY_CONSENTS = ["terms", "privacy"] as const;
@@ -26,7 +32,7 @@ export function BuyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null | undefined>(undefined);
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "paying" | "error" | "badEmail">("idle");
+  const [state, setState] = useState<DigitalBuyState>("idle");
 
   useEffect(() => {
     void api.api.products
@@ -72,42 +78,66 @@ export function BuyScreen() {
     window.location.assign(body.redirectUrl);
   }
 
+  const priceText = formatIdr(product.priceIdr);
+  const emailField = (
+    <View className="gap-2">
+      <Text className="font-medium text-foreground">{t("digital.emailLabel")}</Text>
+      <Input
+        testID="buy-email"
+        accessibilityLabel={t("digital.emailLabel")}
+        inputMode="email"
+        autoCapitalize="none"
+        autoComplete="email"
+        value={email}
+        onChangeText={(v) => {
+          setEmail(v);
+          if (state === "badEmail") setState("idle");
+        }}
+      />
+      <Text variant="muted">{t("digital.emailHint")}</Text>
+      {state === "badEmail" ? <ErrorText>{t("digital.emailInvalid")}</ErrorText> : null}
+    </View>
+  );
+  const payButton = (
+    <View className="gap-2">
+      {state === "error" ? <ErrorText>{t("digital.payError")}</ErrorText> : null}
+      <Button testID="buy-pay" onPress={() => void pay()} disabled={!ready || state === "paying"}>
+        <Text>{state === "paying" ? t("digital.paying") : `${t("digital.pay")} ${priceText}`}</Text>
+      </Button>
+    </View>
+  );
+  const agree = (
+    <Text variant="muted" className="text-sm" testID="buy-agree">
+      {`${t("digital.agree")} `}
+      <Doc href={legalUrls.terms} label={t("consent.termsDoc")} />
+      {` ${t("digital.and")} `}
+      <Doc href={legalUrls.privacy} label={t("consent.privacyDoc")} />
+      {"."}
+    </Text>
+  );
+  const Slot = slots.digitalBuy;
+  if (Slot)
+    return (
+      <Slot
+        product={{ id: product.id, label: product.label, priceIdr: product.priceIdr, priceText }}
+        state={state}
+        emailField={emailField}
+        payButton={payButton}
+        agree={agree}
+        t={t}
+      />
+    );
   return (
     <Screen className="max-w-xl">
       <View className="gap-1">
         <Text variant="h2" role="heading">
           {product.label}
         </Text>
-        <Text variant="lead">{formatIdr(product.priceIdr)}</Text>
+        <Text variant="lead">{priceText}</Text>
       </View>
-      <View className="gap-2">
-        <Text className="font-medium text-foreground">{t("digital.emailLabel")}</Text>
-        <Input
-          testID="buy-email"
-          accessibilityLabel={t("digital.emailLabel")}
-          inputMode="email"
-          autoCapitalize="none"
-          autoComplete="email"
-          value={email}
-          onChangeText={(v) => {
-            setEmail(v);
-            if (state === "badEmail") setState("idle");
-          }}
-        />
-        <Text variant="muted">{t("digital.emailHint")}</Text>
-        {state === "badEmail" ? <ErrorText>{t("digital.emailInvalid")}</ErrorText> : null}
-      </View>
-      {state === "error" ? <ErrorText>{t("digital.payError")}</ErrorText> : null}
-      <Button testID="buy-pay" onPress={() => void pay()} disabled={!ready || state === "paying"}>
-        <Text>{state === "paying" ? t("digital.paying") : `${t("digital.pay")} ${formatIdr(product.priceIdr)}`}</Text>
-      </Button>
-      <Text variant="muted" className="text-sm" testID="buy-agree">
-        {`${t("digital.agree")} `}
-        <Doc href={legalUrls.terms} label={t("consent.termsDoc")} />
-        {` ${t("digital.and")} `}
-        <Doc href={legalUrls.privacy} label={t("consent.privacyDoc")} />
-        {"."}
-      </Text>
+      {emailField}
+      {payButton}
+      {agree}
     </Screen>
   );
 }
@@ -173,6 +203,19 @@ export function ThankYouScreen() {
       </Screen>
     );
 
+  const Slot = slots.digitalThanks;
+  if (Slot && data)
+    return (
+      <Slot
+        status={data.status}
+        slow={slow}
+        product={data.product}
+        email={data.email}
+        download={data.status === "paid" ? <DownloadBlock data={data} /> : null}
+        resend={data.status === "paid" ? <ResendForm /> : null}
+        t={t}
+      />
+    );
   return (
     <Screen className="max-w-xl">
       <Text variant="h1" role="heading">
@@ -190,14 +233,7 @@ export function ThankYouScreen() {
         <Card>
           <CardContent className="gap-3">
             <Text className="font-medium text-foreground">{`${t("digital.thanks.paid")} ${data.product.label}`}</Text>
-            {data.downloadUrl ? (
-              <Button testID="download" onPress={() => window.location.assign(data.downloadUrl ?? "")}>
-                <Text>{t("digital.thanks.download")}</Text>
-              </Button>
-            ) : (
-              <Text variant="muted">{t("digital.thanks.linkUsed")}</Text>
-            )}
-            <Text variant="muted" testID="download-emailed">{`${t("digital.thanks.emailed")} ${data.email}`}</Text>
+            <DownloadBlock data={data} />
           </CardContent>
         </Card>
       ) : (
@@ -205,6 +241,23 @@ export function ThankYouScreen() {
       )}
       {data?.status === "paid" ? <ResendForm /> : null}
     </Screen>
+  );
+}
+
+/** Core's download piece: the button (or "link used up") and "also sent to <email>". */
+function DownloadBlock({ data }: { data: Status }) {
+  const { t } = useI18n();
+  return (
+    <View className="gap-3">
+      {data.downloadUrl ? (
+        <Button testID="download" onPress={() => window.location.assign(data.downloadUrl ?? "")}>
+          <Text>{t("digital.thanks.download")}</Text>
+        </Button>
+      ) : (
+        <Text variant="muted">{t("digital.thanks.linkUsed")}</Text>
+      )}
+      <Text variant="muted" testID="download-emailed">{`${t("digital.thanks.emailed")} ${data.email}`}</Text>
+    </View>
   );
 }
 

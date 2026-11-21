@@ -3,7 +3,7 @@
 // accept button (UU PDP), requireAccess, prices from config and "no web prices on native".
 // A slot only gets finished, display-ready props: it can't submit, skip or unlock anything.
 import type { QuizAnswer, QuizAnswers, QuizInfo, QuizStep } from "@factory/core/quiz";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type { Locale, MessageKey } from "./i18n";
 
 export type QuizStepSlotProps = {
@@ -45,6 +45,43 @@ export type QuizInfoSlotProps = {
   back: (() => void) | undefined;
   /** Counts info screens too, so the bar moves on them. */
   progress: { step: number; total: number };
+  t: (key: MessageKey) => string;
+};
+
+export type DigitalBuyState = "idle" | "badEmail" | "paying" | "error";
+
+/**
+ * The buy page of a one-time digital purchase, /beli/<id> (D-131, web only). The slot draws the
+ * page (hero, cover, what's inside, FAQ) and places core's three pieces where it likes: they must
+ * all be shown (a test in every product renders the slot and looks for them). Core keeps the email
+ * check, the checkout, the consents it records and the redirect.
+ */
+export type DigitalBuySlotProps = {
+  /** priceText: the config's price, formatted ("Rp149.000"); never type a price in the slot. */
+  product: { id: string; label: string; priceIdr: number; priceText: string };
+  state: DigitalBuyState;
+  /** The labelled email input with its hint and error (testID buy-email). */
+  emailField: ReactNode;
+  /** "Bayar <price>" with the payment error above it (testID buy-pay). */
+  payButton: ReactNode;
+  /** "Dengan klik Bayar, kamu setuju dengan Syarat & Ketentuan dan Kebijakan Privasi" (testID buy-agree). */
+  agree: ReactNode;
+  t: (key: MessageKey) => string;
+};
+
+/**
+ * The thank-you page after paying (D-131, web only), once the status is known. `download` (paid:
+ * the button and "also sent to <email>") and `resend` are core's and must be shown when given.
+ * The product adds its own: "Mulai Hari 1", the app offer.
+ */
+export type DigitalThanksSlotProps = {
+  status: "pending" | "paid" | "failed" | "expired";
+  /** Still pending after a few minutes: "the link will be emailed once the payment arrives". */
+  slow: boolean;
+  product: { id: string; label: string };
+  email: string;
+  download: ReactNode | null;
+  resend: ReactNode | null;
   t: (key: MessageKey) => string;
 };
 
@@ -147,6 +184,10 @@ export type CoreSlots = {
   quizStep?: ComponentType<QuizStepSlotProps>;
   /** An info screen between questions (D-129). Default: title, body, image and the cta button. */
   quizInfo?: ComponentType<QuizInfoSlotProps>;
+  /** /beli/<id>, a one-time digital purchase (D-131): the page around core's email, Bayar and consent line. */
+  digitalBuy?: ComponentType<DigitalBuySlotProps>;
+  /** /beli/terima-kasih (D-131): the page around core's download and resend pieces. */
+  digitalThanks?: ComponentType<DigitalThanksSlotProps>;
   /** "Rencana kamu siap" header. */
   quizSummaryHeader?: ComponentType<HeaderSlotProps>;
   /** The summary's plan lines and answer recap (D-058). The "next" and "back" buttons stay core's. */

@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-21: Slots for the ebook buy and thank-you pages (D-131)
+
+- `digitalBuy` / `digitalThanks`: the product draws `/beli/<id>` and `/beli/terima-kasih` around core's email field, "Bayar <price>", consent line, download and resend form. A contract test in every product checks the pieces are still shown.
+
+---
+
 ## 2026-11-21: Template tests hold in a product that sells an ebook (D-130)
 
 - `apps/site/test/legal.test.ts` (switches to Pakasir) and the config test's default check drop the product's `digitalProducts` first. Found by Myna Fit's sync; the whole unit suite was also run with an ebook-selling config.
