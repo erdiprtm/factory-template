@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-21: Ebook pages scroll on iPhone Safari (D-131 fix)
+
+- The `digitalBuy` / `digitalThanks` slots render inside core's ScrollView; the web export locks body scrolling, so a long slot page couldn't scroll on iPhone Safari. Found by Myna Fit.
+
+---
+
 ## 2026-11-21: Slots for the ebook buy and thank-you pages (D-131)
 
 - `digitalBuy` / `digitalThanks`: the product draws `/beli/<id>` and `/beli/terima-kasih` around core's email field, "Bayar <price>", consent line, download and resend form. A contract test in every product checks the pieces are still shown.

@@ -1,7 +1,7 @@
 import { Button, Card, CardContent, ErrorText, Input, Loading, Screen, Text } from "@factory/ui";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Platform, View } from "react-native";
+import { Platform, ScrollView, View } from "react-native";
 import { slots } from "../../features/slots";
 import { api } from "../api";
 import { currentTouch } from "../attribution";
@@ -125,14 +125,16 @@ export function BuyScreen() {
   const Slot = slots.digitalBuy;
   if (Slot)
     return (
-      <Slot
-        product={{ id: product.id, label: product.label, priceIdr: product.priceIdr, priceText }}
-        state={state}
-        emailField={emailField}
-        payButton={payButton}
-        agree={agree}
-        t={t}
-      />
+      <SlotScroll>
+        <Slot
+          product={{ id: product.id, label: product.label, priceIdr: product.priceIdr, priceText }}
+          state={state}
+          emailField={emailField}
+          payButton={payButton}
+          agree={agree}
+          t={t}
+        />
+      </SlotScroll>
     );
   return (
     <Screen className="max-w-xl">
@@ -146,6 +148,19 @@ export function BuyScreen() {
       {payButton}
       {agree}
     </Screen>
+  );
+}
+
+/**
+ * The page's scroll container around a product's slot (D-131). The web export locks
+ * `body { overflow: hidden }` (expo-reset), so without it a long page can't scroll on iPhone Safari
+ * (desktop Chromium scrolls anyway, which is how it slipped past E2E). Slots need no ScrollView of their own.
+ */
+function SlotScroll({ children }: { children: React.ReactNode }) {
+  return (
+    <ScrollView testID="digital-scroll" className="flex-1 bg-background" contentContainerClassName="grow">
+      {children}
+    </ScrollView>
   );
 }
 
@@ -213,15 +228,17 @@ export function ThankYouScreen() {
   const Slot = slots.digitalThanks;
   if (Slot && data)
     return (
-      <Slot
-        status={data.status}
-        slow={slow}
-        product={data.product}
-        email={data.email}
-        download={data.status === "paid" ? <DownloadBlock data={data} /> : null}
-        resend={data.status === "paid" ? <ResendForm /> : null}
-        t={t}
-      />
+      <SlotScroll>
+        <Slot
+          status={data.status}
+          slow={slow}
+          product={data.product}
+          email={data.email}
+          download={data.status === "paid" ? <DownloadBlock data={data} /> : null}
+          resend={data.status === "paid" ? <ResendForm /> : null}
+          t={t}
+        />
+      </SlotScroll>
     );
   return (
     <Screen className="max-w-xl">

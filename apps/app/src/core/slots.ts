@@ -56,6 +56,8 @@ export type DigitalBuyState = "idle" | "badEmail" | "paying" | "error";
  * all be shown (a test in every product renders the slot and looks for them). Core keeps the email
  * check, the checkout, the consents it records and the redirect.
  */
+// Both digital slots render inside core's ScrollView (the web export locks body scrolling): a slot
+// brings no ScrollView of its own (D-131).
 export type DigitalBuySlotProps = {
   /** priceText: the config's price, formatted ("Rp149.000"); never type a price in the slot. */
   product: { id: string; label: string; priceIdr: number; priceText: string };
