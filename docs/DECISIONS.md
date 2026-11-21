@@ -2710,3 +2710,25 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - `e2e/tests/digital-products.spec.ts`: buy page → fake hosted payment → thank-you → link → resend page. It runs in products that sell one; the template has none, and it was run locally with a temporary product.
 - **Human step.** Upload the file to `<slug>-files` (and `-preview`) with `wrangler r2 object put … --remote`. See SETUP_HUMAN §16.
 
+## D-131: Product slots for the digital buy and thank-you pages (2026-11-21)
+
+- **Ask (Myna Fit, Erdi):** the ebook buy page should be as attractive as the lander, because it decides the conversion. `/beli/<id>` was plain and had no slot.
+- **Decision.** Two web-only slots that draw the whole page around core's own pieces, passed as ready-made nodes the slot places where it likes:
+  - **`digitalBuy`** gets:
+    - `product` (`priceText` is the config's price, formatted, so the slot never types a price);
+    - `state`;
+    - `emailField` (testID `buy-email`);
+    - `payButton`, "Bayar <price>" (`buy-pay`);
+    - `agree`, "Dengan klik Bayar, kamu setuju…" with both document links (`buy-agree`);
+    - `t`.
+  - **`digitalThanks`** gets:
+    - `status`, `slow`, `product`, `email`, `t`;
+    - `download`: the button or "link used up", plus "also sent to <email>" (`download`, `download-emailed`);
+    - `resend`: the new-link form.
+
+    The product adds its own blocks ("Mulai Hari 1", the app offer).
+- **What core keeps:** the email check, checkout, the consents it records, attribution, the redirect, polling and the links' rules. Pieces passed as nodes, not separate components, so a slot can arrange them but never rebuild them.
+- **Guard:** `apps/app/test/digital-slots-contract.test.tsx` renders both pages with the product's real `features/slots` and fails unless the email field, "Bayar <config price>", the consent line with both links, the download and the resend form are all shown. It runs in every product. `digital-slots-render.test.tsx` checks the props with a custom slot.
+- **The Bayar button's look** (Erdi: like the lander's raised, shining, pressable CTA): `digitalPayClassName` and `digitalPayTextClassName` are classes merged onto core's button and label, with `active:` for the pressed state. Same pattern as `tabBarClassName`. A product can restyle the button but never replace it.
+- Without the slots, the pages look as before (D-130).
+
