@@ -89,3 +89,48 @@ export function reminderEmail(
     text: `${lead}\n\nPerpanjang sekarang (sisa hari tidak hangus):\n${data.renewUrl}\n\nKalau sudah memperpanjang, abaikan email ini.`,
   };
 }
+
+/**
+ * A digital purchase's download link (D-130): after payment, and again on "Kirim ulang link".
+ * `copy` overrides the wording per product (ProductConfig digital email copy); the link and the
+ * limits are always core's.
+ */
+export function downloadEmail(
+  to: string,
+  data: {
+    appName: string;
+    productLabel: string;
+    url: string;
+    hours: number;
+    maxUses: number;
+    /** Set after the payment (a receipt); unset when only a new link is sent. */
+    paid?: { amountIdr: number; paymentId: string };
+    copy?: { subject?: string; intro?: string };
+  },
+): Email {
+  const subject = data.copy?.subject ?? `${data.productLabel}: link unduhan kamu`;
+  const intro =
+    data.copy?.intro ??
+    (data.paid ? "Terima kasih! Pembayaran kamu sudah kami terima." : "Ini link unduhan baru yang kamu minta.");
+  const rules = `Link ini berlaku ${data.hours} jam dan bisa dipakai ${data.maxUses} kali. Kalau sudah tidak berlaku, minta link baru di halaman unduhan dengan email ini.`;
+  return {
+    to,
+    subject,
+    text: [
+      intro,
+      ``,
+      `${data.productLabel}:`,
+      data.url,
+      ``,
+      rules,
+      ...(data.paid
+        ? [
+            ``,
+            `Jumlah: ${idr(data.paid.amountIdr)}`,
+            `Nomor pembayaran: ${data.paid.paymentId}`,
+            `Penjual: ${data.appName}`,
+          ]
+        : []),
+    ].join("\n"),
+  };
+}

@@ -5,6 +5,8 @@ export type CheckoutInput = {
   paymentId: string;
   amountIdr: number;
   planId: string;
+  /** The line item's name for a digital purchase (D-130); plans say "Langganan <planId>". */
+  itemName?: string;
   customer: { name: string; email: string };
   methods: string[];
   successUrl: string;

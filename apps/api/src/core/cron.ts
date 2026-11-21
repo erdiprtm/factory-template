@@ -23,6 +23,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { runProductScheduled } from "../features/scheduled";
 import type { Bindings } from "../index";
 import { serverAnalytics } from "./analytics";
+import { purgeDownloadLinks } from "./digital";
 import { captureError } from "./monitoring";
 import { ownerTelegram } from "./notify";
 import { afterPaymentSettled, afterStatusCheck } from "./payment-events";
@@ -78,6 +79,8 @@ export async function runScheduled(env: Bindings, now = new Date()) {
   const expired = await expirePendingPayments(db, now);
   const purged = await purgeFunnelEvents(db, now);
   await purgeCheckoutContexts(db, now);
+  // D-130: download links a month past their expiry (the purchases themselves stay).
+  await purgeDownloadLinks(env, now);
   await purgeIpUsage(db, now);
   await purgeAnonymousConsents(db, now);
   await purgeAnonymousAiUsage(db, now);

@@ -34,6 +34,27 @@ const planSchema = z
     path: ["founder", "priceIdr"],
   });
 
+/**
+ * A one-time digital purchase (D-130), e.g. an ebook PDF: bought without an account (an email is
+ * enough), delivered as a time-limited download link. `fileKey` is the object's key in the
+ * product's R2 bucket (FILES), uploaded by a human, never in the repo. `fileName`: the download's name.
+ */
+const digitalProductSchema = z.object({
+  id: z.string().regex(/^[a-z0-9-]+$/),
+  label: z.string().min(1).max(80),
+  // Payment providers refuse tiny amounts (Duitku: Rp10.000 minimum).
+  priceIdr: z.int().min(10_000),
+  fileKey: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9/._-]{0,199}$/),
+  fileName: z
+    .string()
+    .regex(/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,99}$/)
+    .optional(),
+  /** The product's own words for the download email (Bahasa Indonesia); the link and limits stay core's. */
+  email: z
+    .object({ subject: z.string().min(3).max(120).optional(), intro: z.string().min(3).max(400).optional() })
+    .optional(),
+});
+
 // A CSS length for radii: "12px", "0.75rem", "0", or "9999px" for a pill.
 const cssLength = z.string().regex(/^(0|\d+(\.\d+)?(px|rem))$/, "a CSS length like 12px or 0.75rem");
 
@@ -350,6 +371,8 @@ export const productSchema = z.object({
       if (plans.filter((p) => p.highlight).length > 1)
         ctx.addIssue({ code: "custom", message: "at most one plan can be highlighted" });
     }),
+  // One-time digital purchases (D-130), separate from plans: no access period, a download instead.
+  digitalProducts: z.array(digitalProductSchema).default([]),
   // Pricing extras (D-116). founderPrice: plans with `founder` charge the founder price until its
   // limit of paid buyers is reached (off by default: every plan charges priceIdr). tiers: the
   // heading shown above each group of plans with that `tier`, in this order; every tier a plan
@@ -696,6 +719,7 @@ export const productSchema = z.object({
 export type ProductConfigInput = z.input<typeof productSchema>;
 export type ProductConfig = Omit<z.output<typeof productSchema>, "ai"> & { ai: AiConfig | null };
 export type Plan = ProductConfig["plans"][number];
+export type DigitalProduct = ProductConfig["digitalProducts"][number];
 
 /** Validates product.config.ts at load time, so a bad config fails the build. */
 export function defineProduct(config: ProductConfigInput): ProductConfig {
@@ -712,5 +736,16 @@ export function defineProduct(config: ProductConfigInput): ProductConfig {
     );
   if (unlabelled.length > 0)
     throw new Error(`Invalid product.config.ts:\nplan tier ${unlabelled.join(", ")} has no label in pricing.tiers`);
+  // D-130: a payment's plan_id holds either a plan or a digital product, so their ids never meet.
+  const productIds = c.digitalProducts.map((d) => d.id);
+  const clash = productIds.filter((id, i) => productIds.indexOf(id) !== i || c.plans.some((p) => p.id === id));
+  if (clash.length > 0)
+    throw new Error(
+      `Invalid product.config.ts:\ndigitalProducts ids must be unique and differ from plan ids: ${[...new Set(clash)].join(", ")}`,
+    );
+  if (c.digitalProducts.length > 0 && c.payments.provider === "pakasir")
+    throw new Error(
+      "Invalid product.config.ts:\ndigitalProducts need a hosted-page provider (duitku or doku), not pakasir",
+    );
   return { ...c, ai: c.ai ? resolveAi(c.ai, c.legal) : null };
 }

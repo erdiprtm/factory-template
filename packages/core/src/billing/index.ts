@@ -1,4 +1,22 @@
 export {
+  checkPurchaseKey,
+  createDownloadLink,
+  DOWNLOAD_HOURS,
+  DOWNLOAD_MAX_USES,
+  type Download,
+  downloadForPayment,
+  downloadLinkToken,
+  downloadsForEmail,
+  exportPurchases,
+  forgetPurchases,
+  grantDownload,
+  guestId,
+  isGuestId,
+  type LinkUse,
+  purchaseKey,
+  useDownloadLink,
+} from "./digital";
+export {
   DOKU_STATUS_FALLBACK_MS,
   type DokuConfig,
   DokuProvider,

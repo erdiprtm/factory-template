@@ -59,6 +59,7 @@ export async function recentPayments(db: Db, limit = 20) {
     .select({
       id: payments.id,
       email: user.email,
+      buyerEmail: payments.buyerEmail,
       planId: payments.planId,
       amountIdr: payments.amountIdr,
       status: payments.status,
@@ -72,7 +73,8 @@ export async function recentPayments(db: Db, limit = 20) {
     .limit(limit);
   return rows.map((r) => ({
     ...r,
-    email: r.email ?? "(akun dihapus)",
+    // D-130: a purchase without an account shows its buyer's email.
+    email: r.email ?? r.buyerEmail ?? "(akun dihapus)",
     createdAt: r.createdAt.toISOString(),
     paidAt: r.paidAt?.toISOString() ?? null,
   }));

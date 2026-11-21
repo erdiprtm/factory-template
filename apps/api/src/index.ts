@@ -39,7 +39,7 @@ import { QUIZ_MAX_STEPS } from "@factory/core/quiz";
 import { quizResponsesFor, saveQuizResponse } from "@factory/core/quiz/store";
 import { anonKey, claimAnonymousUses, freeUsesUsed } from "@factory/core/quota";
 import { payments, schema } from "@factory/db";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
@@ -52,6 +52,7 @@ import { type AnalyticsEnv, experiment } from "./core/analytics";
 import { anonymousHomeRedirect } from "./core/anonymous-home";
 import { type AuthEnv, getAuth } from "./core/auth";
 import { runScheduled } from "./core/cron";
+import { digitalRoutes } from "./core/digital";
 import { eraseAccount } from "./core/erase-account";
 import { hasMarketingConsent, type MarketingEnv, marketingTrackingOn } from "./core/marketing";
 import { captureError, withMonitoring } from "./core/monitoring";
@@ -221,6 +222,9 @@ app.get("/api/dev/fake-pay", async (c) => {
   const paymentId = c.req.query("paymentId") ?? "";
   const hook = fakeProvider().pay(paymentId);
   await app.request(new URL("/api/webhooks/fake", c.req.url), hook, c.env, c.executionCtx);
+  // Back where the checkout said, like a real provider (a digital purchase's thank-you page, D-130).
+  const back = fakeProvider().checkouts.find((x) => x.paymentId === paymentId)?.successUrl;
+  if (back) return c.redirect(`${new URL(back).pathname}${new URL(back).search}`);
   return c.redirect(`/billing/return?paymentId=${encodeURIComponent(paymentId)}`);
 });
 
@@ -648,7 +652,8 @@ const routes = app
         paidAt: payments.paidAt,
       })
       .from(payments)
-      .where(eq(payments.userId, c.get("user").id))
+      // D-130: purchases made with this email before (or without) signing in belong here too.
+      .where(or(eq(payments.userId, c.get("user").id), eq(payments.buyerEmail, c.get("user").email.toLowerCase())))
       .orderBy(desc(payments.createdAt))
       .limit(50);
     return c.json({
@@ -691,6 +696,8 @@ const routes = app
     return c.json({ ok: true as const });
   })
   .route("/admin", adminRoutes)
+  // One-time digital purchases without an account (D-130): checkout, thank-you status, downloads.
+  .route("/", digitalRoutes)
   // PRODUCT-OWNED features mount below. The example shows the requireAccess pattern.
   .route("/example", exampleFeature);
 

@@ -65,11 +65,13 @@ export class DuitkuProvider implements PaymentProvider {
     const body = {
       paymentAmount: input.amountIdr,
       merchantOrderId: input.paymentId,
-      productDetails: `Langganan ${input.planId}`,
+      productDetails: input.itemName ?? `Langganan ${input.planId}`,
       email: input.customer.email,
       customerVaName: input.customer.name.slice(0, 20),
       // One item equal to the total: Duitku requires item prices to sum to paymentAmount.
-      itemDetails: [{ name: `Langganan ${input.planId}`.slice(0, 50), price: input.amountIdr, quantity: 1 }],
+      itemDetails: [
+        { name: (input.itemName ?? `Langganan ${input.planId}`).slice(0, 50), price: input.amountIdr, quantity: 1 },
+      ],
       customerDetail: { firstName: input.customer.name.slice(0, 50), email: input.customer.email },
       callbackUrl: input.callbackUrl,
       returnUrl: input.successUrl,

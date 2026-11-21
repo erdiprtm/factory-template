@@ -1,6 +1,7 @@
 import { paymentCharges, payments, webhookEvents } from "@factory/db";
 import { and, count, eq, isNull, lt, lte, ne, or } from "drizzle-orm";
 import { type Db, type Entitlement, grantFromPayment } from "../entitlements";
+import { type Download, grantDownload } from "./digital";
 import type { PaymentProvider, ProviderStatus } from "./provider";
 
 export type Plan = {
@@ -71,6 +72,11 @@ export async function startCheckout(
     attribution?: Partial<Pick<Payment, "utmSource" | "utmMedium" | "utmCampaign" | "utmContent" | "fbclid">>;
     /** product.config.ts pricing.founderPrice (D-116): charge plan.founder.priceIdr while slots are left. */
     founderPrice?: boolean;
+    /**
+     * A one-time digital purchase without an account (D-130): `plan` is then the product (months 0),
+     * `user.id` a guest id, and the provider returns the buyer to `returnPath(paymentId)`.
+     */
+    digital?: { returnPath: (paymentId: string) => Promise<string> };
     now?: Date;
   },
 ): Promise<{ paymentId: string; redirectUrl: string; amountIdr: number }> {
@@ -90,17 +96,21 @@ export async function startCheckout(
     expiresAt: new Date(now.getTime() + PENDING_MINUTES * 60_000),
     paidAt: null,
     rawPayload: null,
+    buyerEmail: input.digital ? input.user.email.toLowerCase() : null,
+    checkoutOrigin: input.digital ? input.origin : null,
     ...input.attribution,
   });
+  const back = `${input.origin}${input.digital ? await input.digital.returnPath(paymentId) : `/billing/return?paymentId=${paymentId}`}`;
   try {
     const { redirectUrl, providerRef, charge } = await provider.createCheckout({
       paymentId,
       amountIdr,
       planId: input.plan.id,
+      itemName: input.digital ? input.plan.label : undefined,
       customer: { name: input.user.name || input.user.email, email: input.user.email },
       methods: input.methods,
-      successUrl: `${input.origin}/billing/return?paymentId=${paymentId}`,
-      failureUrl: `${input.origin}/billing/return?paymentId=${paymentId}`,
+      successUrl: back,
+      failureUrl: back,
       callbackUrl: `${input.origin}/api/webhooks/${provider.name}`,
       expiresInMinutes: PENDING_MINUTES,
       method: input.method,
@@ -139,8 +149,11 @@ export type WebhookOutcome =
   /** The webhook said paid but the provider doesn't confirm yet: answer non-2xx so it retries. */
   | { kind: "retry" }
   | { kind: "ignored"; reason: string }
-  /** `entitlement` is set only for the one caller that moved the payment to paid (D-092). */
-  | { kind: "processed"; payment: Payment; entitlement: Entitlement | null };
+  /**
+   * `entitlement` (a plan) or `download` (a digital purchase, D-130) is set only for the one caller
+   * that moved the payment to paid (D-092), so the purchase events and the email go out once.
+   */
+  | { kind: "processed"; payment: Payment; entitlement: Entitlement | null; download?: Download | null };
 
 export type SettleOutcome = Extract<WebhookOutcome, { kind: "ignored" | "processed" }>;
 
@@ -242,6 +255,23 @@ export async function settlePayment(
     return { kind: "processed", payment: { ...payment, status: confirmed, rawPayload: opts.raw }, entitlement: null };
   }
   const plan = opts.plans.find((p) => p.id === payment.planId);
+  if (!plan && payment.buyerEmail) {
+    // A digital purchase (D-130): its download instead of an access period, same race rules.
+    const { download } = await grantDownload(db, { ...payment, buyerEmail: payment.buyerEmail }, now);
+    const providerRef = opts.providerRef ?? payment.providerRef;
+    const won = await db
+      .update(payments)
+      .set({ status: "paid", paidAt: now, providerRef, rawPayload: opts.raw })
+      .where(and(eq(payments.id, payment.id), ne(payments.status, "paid")))
+      .returning({ id: payments.id });
+    if (won.length === 0) return { kind: "ignored", reason: "already_paid" };
+    return {
+      kind: "processed",
+      payment: { ...payment, status: "paid", paidAt: now, providerRef, rawPayload: opts.raw },
+      entitlement: null,
+      download,
+    };
+  }
   if (!plan) return { kind: "ignored", reason: `unknown_plan ${payment.planId}` };
   const entitlement = await grantFromPayment(
     db,

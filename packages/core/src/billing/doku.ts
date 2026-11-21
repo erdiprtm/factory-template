@@ -148,7 +148,7 @@ export class DokuProvider implements PaymentProvider {
     if (!Number.isInteger(input.amountIdr) || input.amountIdr <= 0) {
       throw new Error("DOKU needs a positive integer IDR amount");
     }
-    const name = `Langganan ${input.planId}`;
+    const name = input.itemName ?? `Langganan ${input.planId}`;
     const body = JSON.stringify({
       order: {
         amount: input.amountIdr,

@@ -710,3 +710,25 @@ Selama kedua secret itu belum ada, webhook-nya mati (404) dan tidak ada yang ber
 
 Langkah berikutnya (project EAS, kunci Play untuk `eas submit`, App Store Connect API key, client ID Google untuk app, Sign in with Apple) akan ditambahkan di sini saat bagiannya dibuat.
 
+## 16. Produk digital sekali bayar, misalnya ebook PDF (per produk, opsional, D-130)
+
+Pembeli bayar tanpa akun (cukup email), lalu dapat link unduhan yang berlaku 72 jam untuk 5 kali unduh. Link baru bisa diminta kapan saja ke email yang sama di `/beli/unduh`. File-nya disimpan di bucket R2 produk yang **privat**, tidak pernah di repo.
+
+1. Agent menambahkan produknya di `product.config.ts` (`digitalProducts`: id, nama, harga, `fileKey`, misalnya `products/ebook.pdf`). Provider pembayaran harus DOKU atau Duitku.
+2. Unggah file PDF-nya ke bucket produksi. Ganti `<slug>` dengan slug produk, `<fileKey>` dengan `fileKey` di config, dan path file di laptopmu:
+
+   ```bash
+   pnpm --filter @factory/api exec wrangler r2 object put <slug>-files/<fileKey> --file ~/Downloads/ebook.pdf --content-type application/pdf --remote
+   ```
+
+3. Untuk mencoba di preview PR, unggah juga ke bucket preview:
+
+   ```bash
+   pnpm --filter @factory/api exec wrangler r2 object put <slug>-files-preview/<fileKey> --file ~/Downloads/ebook.pdf --content-type application/pdf --remote
+   ```
+
+4. Halaman belinya: `https://<domain app>/beli/<id produk>`. Lander iklan mengarah ke halaman ini.
+5. Coba satu pembelian sungguhan (sandbox dulu): bayar, terima email berisi link, unduh file-nya. Kalau email tidak datang, cek URL notifikasi DOKU (bagian 3b).
+
+Mengganti file: unggah ulang dengan `fileKey` yang sama. Pembeli lama otomatis mengunduh versi baru.
+

@@ -14,6 +14,7 @@ import {
 import { desc, eq, inArray } from "drizzle-orm";
 import { deleteAiUsage, exportAiUsage } from "../ai/usage";
 import { deleteAttribution, exportAttribution } from "../attribution";
+import { exportPurchases, forgetPurchases } from "../billing/digital";
 import type { Db } from "../entitlements";
 import { exportFiles } from "../files";
 import { deleteQuizResponses, quizResponsesFor } from "../quiz/store";
@@ -111,6 +112,8 @@ export async function exportUserData(db: Db, userId: string) {
     files: await exportFiles(db, userId),
     ...(await exportAttribution(db, userId)),
     quizResponses: await quizResponsesFor(db, userId),
+    // One-time digital purchases made with this email, also before the account existed (D-130).
+    purchases: profile ? await exportPurchases(db, profile.email) : [],
   };
 }
 
@@ -153,5 +156,7 @@ export async function deleteUserData(db: Db, userId: string): Promise<void> {
   await db.delete(session).where(eq(session.userId, userId));
   await db.delete(account).where(eq(account.userId, userId));
   if (email) await db.delete(verification).where(eq(verification.identifier, email));
+  // Digital purchases with this email (D-130): links and email go, payment rows stay de-identified.
+  if (email) await forgetPurchases(db, email);
   await db.delete(user).where(eq(user.id, userId));
 }

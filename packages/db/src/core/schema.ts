@@ -42,6 +42,11 @@ export const payments = sqliteTable(
     // D-128: the next time a missed-webhook status check may ask the provider (DOKU), so the
     // return page, the "Saya sudah bayar" button and the cron share one throttle per payment.
     statusNextCheckAt: timestamp("status_next_check_at"),
+    // D-130: a one-time digital purchase made without an account. plan_id then holds the
+    // product's id and user_id a per-checkout "guest_…" id (its consents and attribution).
+    buyerEmail: text("buyer_email"),
+    // Where the purchase started (its origin), for the emailed download link (D-130).
+    checkoutOrigin: text("checkout_origin"),
   },
   (t) => [
     uniqueIndex("payments_provider_ref_unique").on(t.provider, t.providerRef),
@@ -75,6 +80,43 @@ export const entitlements = sqliteTable(
     // A trial is granted at most once per user, even under concurrent requests.
     uniqueIndex("entitlements_one_trial_per_user").on(t.userId).where(sql`source = 'trial'`),
   ],
+);
+
+/**
+ * A paid digital purchase (D-130): what the buyer may download. One per payment, so a replayed
+ * webhook or a racing status check can't grant (or email) twice.
+ */
+export const downloads = sqliteTable(
+  "downloads",
+  {
+    id: id(),
+    paymentId: text("payment_id")
+      .notNull()
+      .references(() => payments.id),
+    productId: text("product_id").notNull(),
+    email: text("email").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (t) => [uniqueIndex("downloads_payment_unique").on(t.paymentId), index("downloads_email_idx").on(t.email)],
+);
+
+/**
+ * One emailed or shown download link (D-130): valid until expires_at for at most `max_uses`
+ * downloads. The link's token is its id plus an HMAC, so a guessed or edited token is refused.
+ */
+export const downloadLinks = sqliteTable(
+  "download_links",
+  {
+    id: id(),
+    downloadId: text("download_id")
+      .notNull()
+      .references(() => downloads.id),
+    expiresAt: timestamp("expires_at").notNull(),
+    uses: integer("uses").notNull().default(0),
+    maxUses: integer("max_uses").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (t) => [index("download_links_download_idx").on(t.downloadId)],
 );
 
 /** Webhook idempotency: the provider's event key is processed once. */
