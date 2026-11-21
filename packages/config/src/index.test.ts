@@ -90,7 +90,12 @@ describe("defineProduct", () => {
 
   it("marketing consent: today's ask by default; product words checked (D-107)", () => {
     const marketing = { metaPixelId: null };
-    expect(defineProduct({ ...base, marketing }).marketing.consent).toEqual({ askAt: "first_visit", copy: {} });
+    expect(defineProduct({ ...base, marketing }).marketing.consent).toEqual({
+      askAt: "first_visit",
+      copy: {},
+      siteAskPaths: [],
+      allowStyle: "equal",
+    });
     const copy = {
       id: {
         title: "Bantu iklan kami?",
@@ -102,7 +107,7 @@ describe("defineProduct", () => {
     expect(
       defineProduct({ ...base, marketing: { ...marketing, consent: { askAt: "after_first_result", copy } } }).marketing
         .consent,
-    ).toEqual({ askAt: "after_first_result", copy });
+    ).toEqual({ askAt: "after_first_result", copy, siteAskPaths: [], allowStyle: "equal" });
     expect(() =>
       defineProduct({ ...base, marketing: { ...marketing, consent: { askAt: "never" as never } } }),
     ).toThrow();

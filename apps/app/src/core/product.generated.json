@@ -205,7 +205,9 @@
     "metaPixelId": "1134506435670666",
     "consent": {
       "askAt": "first_visit",
-      "copy": {}
+      "copy": {},
+      "siteAskPaths": [],
+      "allowStyle": "equal"
     }
   }
 }
