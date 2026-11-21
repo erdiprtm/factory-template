@@ -67,7 +67,8 @@ describe("privacy policy AI processor", () => {
 // The privacy policy and terms name the payment processor from payments.provider (D-092).
 describe("legal payment processor", () => {
   const withProvider = (provider: string, methods: string[]) =>
-    defineProduct({ ...base, payments: { provider, methods } } as ProductConfigInput).payments;
+    // No digital products here (D-130): a product selling one can't switch to Pakasir.
+    defineProduct({ ...base, digitalProducts: [], payments: { provider, methods } } as ProductConfigInput).payments;
 
   it("names Pakasir, Duitku or DOKU from the config", () => {
     expect(paymentProcessorLine(withProvider("pakasir", ["qris", "bri_va"]))).toMatch(

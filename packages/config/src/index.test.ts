@@ -331,7 +331,8 @@ describe("digital products (D-130)", () => {
   const doku = { ...base.payments, provider: "doku" as const };
 
   it("default to none, and take a well-formed product", () => {
-    expect(defineProduct(base).digitalProducts).toEqual([]);
+    // Holds in a product that sells one too (D-028): the default is checked without its list.
+    expect(defineProduct({ ...base, digitalProducts: undefined }).digitalProducts).toEqual([]);
     expect(defineProduct({ ...base, payments: doku, digitalProducts: [ebook] }).digitalProducts).toEqual([ebook]);
   });
 
