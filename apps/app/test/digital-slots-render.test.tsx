@@ -96,6 +96,8 @@ describe("digital purchase slots (D-131)", () => {
       </I18nProvider>,
     );
     expect(await screen.findByTestId("product-buy")).toBeTruthy();
+    // Inside core's scroll container: the web export locks body scrolling (iPhone Safari).
+    expect(screen.getByTestId("digital-scroll").contains(screen.getByTestId("product-buy"))).toBe(true);
     expect(got.buy).toMatchObject({ product: { id: "e", priceIdr: 149_000, priceText: "Rp149.000" }, state: "idle" });
     for (const id of ["buy-email", "buy-pay", "buy-agree"]) expect(screen.getByTestId(id)).toBeTruthy();
     // The product's CTA look lands on core's button and label (D-131).
@@ -111,6 +113,7 @@ describe("digital purchase slots (D-131)", () => {
       </I18nProvider>,
     );
     expect(await screen.findByTestId("product-thanks")).toBeTruthy();
+    expect(screen.getByTestId("digital-scroll").contains(screen.getByTestId("product-thanks"))).toBe(true);
     expect(got.thanks).toMatchObject({ status: "paid", email: "b@example.com", slow: false });
     expect(screen.getByText(t("digital.thanks.linkUsed"))).toBeTruthy();
     expect(screen.getByTestId("resend-send")).toBeTruthy();
