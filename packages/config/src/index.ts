@@ -722,12 +722,16 @@ export const productSchema = z.object({
             .max(20)
             .default([]),
           allowStyle: z.enum(["equal", "primary"]).default("equal"),
+          // siteAskMode (D-134): "bar" (default) can be ignored while reading; "sheet" is a bottom
+          // sheet over a dimmed page that must be answered first (no ✕, no tap-outside). "Tolak"
+          // stays one tap and the page works fully after it, so the choice stays free.
+          siteAskMode: z.enum(["bar", "sheet"]).default("bar"),
         })
-        .default({ askAt: "first_visit", copy: {}, siteAskPaths: [], allowStyle: "equal" }),
+        .default({ askAt: "first_visit", copy: {}, siteAskPaths: [], allowStyle: "equal", siteAskMode: "bar" }),
     })
     .default({
       metaPixelId: null,
-      consent: { askAt: "first_visit", copy: {}, siteAskPaths: [], allowStyle: "equal" },
+      consent: { askAt: "first_visit", copy: {}, siteAskPaths: [], allowStyle: "equal", siteAskMode: "bar" },
     }),
 });
 

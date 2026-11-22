@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-22: Consent sheet that must be answered (D-134)
+
+- `marketing.consent.siteAskMode: "sheet"`: on the asking site pages, a bottom sheet over a dimmed, locked page until "Izinkan" or "Tolak" (one tap each); unlocked at once after. Default stays "bar". For Myna Fit's ebook lander (91% ignored the bar).
+
+---
+
 ## 2026-11-21: Per-page and per-ad funnel data (D-133)
 
 - `funnel_events.path` and `utm_content` (expand-only migration), sent by the site and app beacons; `buy_view` from `/beli/<id>`. For Myna Fit's daily ebook funnel summary.

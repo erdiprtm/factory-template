@@ -2751,3 +2751,22 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Retention** is unchanged (`purgeFunnelEvents`). There is no new personal data: the path is a public page address, and anonId stays random.
 - `FUNNEL_ROWS_PER_INSERT` is now 7 (13 columns, D1's 100-variable limit).
 
+## D-134: A consent sheet that must be answered, on chosen site pages (2026-11-22)
+
+- **Why (Myna Fit, Erdi OK via Fit CMO).** On 21 Nov only 5 of 56 ebook-lander visitors chose (3 Izinkan, 2 Tolak). The D-132 bar can be ignored while the page still works, so Meta saw almost nothing and CPM rose from Rp20rb to Rp70–110rb.
+- **`marketing.consent.siteAskMode`**: `"bar"` (default, unchanged) or `"sheet"`, on the pages where the site asks (`askAt` first_visit, or `siteAskPaths`). The sheet:
+  - is a bottom sheet of about 25% of the screen height over a light dim (`bg-black/30`), so the hook and headline above stay readable;
+  - blocks the page until a choice is made: no clicks, no scrolling, no ✕, no tap-outside;
+  - is `role="dialog"` with `aria-modal`, and focus goes to the buttons;
+  - keeps `allowStyle` as set.
+- **After a choice** the sheet and the dim go and the lock is undone at once. The lock is just `overflow: hidden` on `<html>`/`<body>` plus a `touchmove` guard on the dim, all removed on the tap (iOS WebKit and Instagram's browser).
+  - The choice uses the same MARKETING_KEY, so `/beli` reads it.
+  - "Tolak" means no Pixel.
+  - consent_shown, consent_granted and consent_denied are sent as before.
+- **UU PDP / D-034.** This is a forced choice, not a consent wall: refusing is one tap, the same size as "Izinkan", and the page then works fully. Nothing is conditional on accepting and nothing is pre-selected. Combined with `allowStyle: "primary"` (Erdi's D-132 call), the nudging risk noted there still applies.
+- **Checked** in a phone-sized Chromium on a production build in sheet mode:
+  - while open, `html`/`body` overflow is `hidden`, the dim shows, and a click on a page link and a scroll both did nothing;
+  - after "Tolak", the lock is removed, the page scrolled (scrollY 600), and the sheet is hidden.
+
+  Real iPhone / Instagram-browser checks are Myna Fit's after release.
+

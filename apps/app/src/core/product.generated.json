@@ -207,7 +207,8 @@
       "askAt": "first_visit",
       "copy": {},
       "siteAskPaths": [],
-      "allowStyle": "equal"
+      "allowStyle": "equal",
+      "siteAskMode": "bar"
     }
   }
 }
