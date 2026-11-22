@@ -89,6 +89,34 @@ describe("digital product checkout (D-130)", () => {
   });
 });
 
+describe("a time-limited sale (D-136)", () => {
+  type Sale = { priceIdr: number; until: string; label?: string };
+  const withSale = (sale: Sale | undefined) => {
+    (EBOOK as typeof EBOOK & { sale?: Sale }).sale = sale;
+  };
+
+  it("the catalog and checkout charge the sale price until it ends, then the normal price", async () => {
+    withSale({ priceIdr: 89_000, until: new Date(Date.now() + 3_600_000).toISOString(), label: "Diskon akhir tahun" });
+    const catalog = await (await get("/api/products", null)).json<{ products: Record<string, unknown>[] }>();
+    expect(catalog.products.find((p) => p.id === EBOOK.id)).toMatchObject({
+      priceIdr: 89_000,
+      listPriceIdr: EBOOK.priceIdr,
+      saleLabel: "Diskon akhir tahun",
+    });
+    const onSale = await buy(uniqueEmail("sale"));
+    expect((await db.select().from(payments).where(eq(payments.id, onSale.body.paymentId)).get())?.amountIdr).toBe(
+      89_000,
+    );
+
+    withSale({ priceIdr: 89_000, until: new Date(Date.now() - 1000).toISOString() });
+    const after = await buy(uniqueEmail("after"));
+    expect((await db.select().from(payments).where(eq(payments.id, after.body.paymentId)).get())?.amountIdr).toBe(
+      EBOOK.priceIdr,
+    );
+    withSale(undefined);
+  });
+});
+
 describe("paid: one download, one email, the file (D-130)", () => {
   it("settles once on a replayed webhook, emails one link, and the thank-you page shows the same link", async () => {
     const email = uniqueEmail("buyer");

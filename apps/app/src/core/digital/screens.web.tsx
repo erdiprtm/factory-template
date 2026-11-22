@@ -24,7 +24,14 @@ import type { DigitalBuyState } from "../slots";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BUY_CONSENTS = ["terms", "privacy"] as const;
 
-type Product = { id: string; label: string; priceIdr: number };
+type Product = {
+  id: string;
+  label: string;
+  priceIdr: number;
+  listPriceIdr: number | null;
+  saleUntil: string | null;
+  saleLabel: string | null;
+};
 
 /** /beli/<id>: the product, the buyer's email, the consents, and "Bayar". */
 export function BuyScreen() {
@@ -84,6 +91,7 @@ export function BuyScreen() {
   }
 
   const priceText = formatIdr(product.priceIdr);
+  const listPriceText = product.listPriceIdr ? formatIdr(product.listPriceIdr) : null;
   const emailField = (
     <View className="gap-2">
       <Text className="font-medium text-foreground">{t("digital.emailLabel")}</Text>
@@ -132,7 +140,14 @@ export function BuyScreen() {
     return (
       <SlotScroll>
         <Slot
-          product={{ id: product.id, label: product.label, priceIdr: product.priceIdr, priceText }}
+          product={{
+            id: product.id,
+            label: product.label,
+            priceIdr: product.priceIdr,
+            priceText,
+            listPriceText,
+            saleLabel: product.saleLabel,
+          }}
           state={state}
           emailField={emailField}
           payButton={payButton}
@@ -147,7 +162,15 @@ export function BuyScreen() {
         <Text variant="h2" role="heading">
           {product.label}
         </Text>
-        <Text variant="lead">{priceText}</Text>
+        <View className="flex-row flex-wrap items-baseline gap-x-2">
+          {listPriceText ? (
+            <Text variant="muted" className="line-through" testID="buy-list-price">
+              {listPriceText}
+            </Text>
+          ) : null}
+          <Text variant="lead">{priceText}</Text>
+        </View>
+        {product.saleLabel ? <Text className="text-sm font-medium text-link">{product.saleLabel}</Text> : null}
       </View>
       {emailField}
       {payButton}

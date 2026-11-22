@@ -1,6 +1,8 @@
 export {
   checkPurchaseKey,
   createDownloadLink,
+  currentDigitalPrice,
+  type DigitalPrice,
   DOWNLOAD_HOURS,
   DOWNLOAD_MAX_USES,
   type Download,

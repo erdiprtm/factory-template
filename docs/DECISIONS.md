@@ -2782,3 +2782,17 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
   - after "Tolak": the padding is removed and the sheet is hidden.
 - `"sheet"` (D-134) stays available. Myna Fit switches to `"sticky"`.
 
+## D-136: A time-limited sale price for digital products (2026-11-22)
+
+- **Ask (Myna Fit, Erdi via Fit CMO).** The ebook at Rp89.000, "Diskon akhir tahun · sampai 31 Des", back to Rp149.000 automatically after 31 Dec 2026 23:59 WIB. Ebook ads are paused until it's live.
+- **Config.** `digitalProducts[].sale?: { priceIdr ≥ 10.000 and < priceIdr, until: ISO datetime with offset (e.g. "2026-12-31T23:59:59+07:00"), label?: ≤ 60 }`.
+- **One function, server clock.** `currentDigitalPrice(product, now)` (`@factory/core/billing`) returns `{ priceIdr, listPriceIdr | null, saleUntil | null, saleLabel | null }`. The sale runs while now ≤ `until`. Callers:
+  - **checkout** charges `priceIdr` at checkout time, never a price from the browser; a payment keeps the amount it started with;
+  - **`GET /api/products`** returns the four fields (no-store);
+  - **the buy page's default look** shows the normal price struck through plus the label;
+  - **the `digitalBuy` slot** gets `listPriceText` and `saleLabel` (null when there's no sale), and "Bayar <priceText>" shows the price now.
+
+  CAPI, Telegram, the receipt and reports already use the payment's `amountIdr`.
+- **Honest pricing.** The struck-through price must be the real normal price, and the sale must really end (UU Perlindungan Konsumen, Meta's ad rules). The config forces a lower sale price and a real end time. The product's static lander switches its own display at the same moment.
+- **Tests.** `packages/core/src/billing/digital.test.ts`: before and right after the end, WIB midnight. The config test checks a sale not cheaper, a bad `until` and a missing offset. `apps/api/test/digital-products.test.ts`: the catalog and the checkout amount during the sale, then the normal price once it has ended.
+

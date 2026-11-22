@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-22: Time-limited sale price for digital products (D-136)
+
+- `digitalProducts[].sale { priceIdr, until, label? }`: the server charges the sale price until `until`, then the normal price; the catalog and buy page show the normal price struck through. For Myna Fit's ebook (Rp89.000 until 31 Dec 2026 23:59 WIB).
+
+---
+
 ## 2026-11-22: Sticky consent sheet that never locks the page (D-135)
 
 - `marketing.consent.siteAskMode: "sticky"`: the sheet stays at the bottom until "Izinkan"/"Tolak", but the page scrolls and taps normally behind it, with bottom padding as tall as the sheet. For Myna Fit's ebook lander (the D-134 lock lost cold visitors).
