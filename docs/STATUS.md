@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-22: Slot contract test waits for lazy slots
+
+- `digital-slots-contract.test.tsx` waits up to 10 s for a product's lazy `digitalBuy` / `digitalThanks` slot (the 1 s default failed under a full verify in Myna Fit).
+
+---
+
 ## 2026-11-22: Consent sheet that must be answered (D-134)
 
 - `marketing.consent.siteAskMode: "sheet"`: on the asking site pages, a bottom sheet over a dimmed, locked page until "Izinkan" or "Tolak" (one tap each); unlocked at once after. Default stays "bar". For Myna Fit's ebook lander (91% ignored the bar).
