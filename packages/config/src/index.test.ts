@@ -95,6 +95,7 @@ describe("defineProduct", () => {
       copy: {},
       siteAskPaths: [],
       allowStyle: "equal",
+      siteAskMode: "bar",
     });
     const copy = {
       id: {
@@ -107,7 +108,7 @@ describe("defineProduct", () => {
     expect(
       defineProduct({ ...base, marketing: { ...marketing, consent: { askAt: "after_first_result", copy } } }).marketing
         .consent,
-    ).toEqual({ askAt: "after_first_result", copy, siteAskPaths: [], allowStyle: "equal" });
+    ).toEqual({ askAt: "after_first_result", copy, siteAskPaths: [], allowStyle: "equal", siteAskMode: "bar" });
     expect(() =>
       defineProduct({ ...base, marketing: { ...marketing, consent: { askAt: "never" as never } } }),
     ).toThrow();
