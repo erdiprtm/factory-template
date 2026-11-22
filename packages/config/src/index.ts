@@ -725,7 +725,9 @@ export const productSchema = z.object({
           // siteAskMode (D-134): "bar" (default) can be ignored while reading; "sheet" is a bottom
           // sheet over a dimmed page that must be answered first (no ✕, no tap-outside). "Tolak"
           // stays one tap and the page works fully after it, so the choice stays free.
-          siteAskMode: z.enum(["bar", "sheet"]).default("bar"),
+          // "sticky" (D-135): the same sheet, but the page stays scrollable and tappable (no lock, no
+          // dim); it stays until a choice is made, and the page gets bottom padding its height.
+          siteAskMode: z.enum(["bar", "sheet", "sticky"]).default("bar"),
         })
         .default({ askAt: "first_visit", copy: {}, siteAskPaths: [], allowStyle: "equal", siteAskMode: "bar" }),
     })
