@@ -2770,3 +2770,15 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 
   Real iPhone / Instagram-browser checks are Myna Fit's after release.
 
+## D-135: A sticky consent sheet that never locks the page (2026-11-22)
+
+- **Why (Myna Fit, Erdi OK via Fit CMO).** Under the D-134 sheet the lander couldn't be scrolled before choosing. In the video ad's first hour that meant 10 clicks and 0 ViewContent: cold visitors left at once.
+- **`siteAskMode: "sticky"`** (alongside `"bar"` and `"sheet"`). It looks like the sheet: rounded, larger text, same copy, `allowStyle` kept, "Tolak" as easy as "Izinkan". It stays at the bottom until a choice is made (no ✕, it doesn't go on tap-outside or on scroll).
+  - It never locks: no html/body overflow, no dim, no touchmove guard. The page scrolls and taps normally behind it.
+  - While it's open, `body` gets `padding-bottom` equal to the sheet's measured height (re-measured with ResizeObserver), so the last content and CTAs stay reachable. The padding is restored after the choice.
+  - Above the product's sticky bar (`z-[60]`), as before.
+- **Checked** in a phone-sized Chromium on a production build in sticky mode:
+  - while open: no overflow lock and no dim; `padding-bottom` 259px equals the sheet's height; the page scrolled (scrollY 400) and a link navigated;
+  - after "Tolak": the padding is removed and the sheet is hidden.
+- `"sheet"` (D-134) stays available. Myna Fit switches to `"sticky"`.
+

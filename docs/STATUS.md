@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-22: Sticky consent sheet that never locks the page (D-135)
+
+- `marketing.consent.siteAskMode: "sticky"`: the sheet stays at the bottom until "Izinkan"/"Tolak", but the page scrolls and taps normally behind it, with bottom padding as tall as the sheet. For Myna Fit's ebook lander (the D-134 lock lost cold visitors).
+
+---
+
 ## 2026-11-22: Slot contract test waits for lazy slots
 
 - `digital-slots-contract.test.tsx` waits up to 10 s for a product's lazy `digitalBuy` / `digitalThanks` slot (the 1 s default failed under a full verify in Myna Fit).
