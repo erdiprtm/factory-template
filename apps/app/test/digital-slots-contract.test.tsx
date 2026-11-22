@@ -41,12 +41,15 @@ const { I18nProvider, t } = await import("../src/core/i18n");
 const { formatIdr } = await import("../src/core/format");
 const { legalUrls } = await import("../src/core/auth/legal-links");
 const wrap = (node: React.ReactNode) => render(<I18nProvider>{node}</I18nProvider>);
+// A product's slots may be lazySlot()s (D-101): their import can take seconds on a busy laptop
+// during a full verify (Myna Fit, 2026-11-22), longer than findBy's 1 s default (tests may take 20 s).
+const SLOT_WAIT = { timeout: 10_000 };
 
 describe("digital purchase slots keep core's pieces (D-131)", () => {
   it("buy page: email field, Bayar with the config's price, the consent line with both links", async () => {
     params.value = { id: PRODUCT.id };
     wrap(<BuyScreen />);
-    expect(await screen.findByTestId("buy-email")).toBeTruthy();
+    expect(await screen.findByTestId("buy-email", {}, SLOT_WAIT)).toBeTruthy();
     expect(screen.getByTestId("buy-pay").textContent).toContain(`${t("digital.pay")} ${formatIdr(PRODUCT.priceIdr)}`);
     const agree = screen.getByTestId("buy-agree");
     expect(agree.textContent).toContain(t("digital.agree"));
@@ -57,7 +60,7 @@ describe("digital purchase slots keep core's pieces (D-131)", () => {
   it("paid thank-you page: the download, 'also sent to', and the resend form", async () => {
     params.value = { paymentId: `pay_${"a".repeat(32)}`, k: "key" };
     wrap(<ThankYouScreen />);
-    expect(await screen.findByTestId("download")).toBeTruthy();
+    expect(await screen.findByTestId("download", {}, SLOT_WAIT)).toBeTruthy();
     expect(screen.getByTestId("download-emailed").textContent).toContain("a@example.com");
     expect(screen.getByTestId("resend-send")).toBeTruthy();
   });
