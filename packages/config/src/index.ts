@@ -39,21 +39,38 @@ const planSchema = z
  * enough), delivered as a time-limited download link. `fileKey` is the object's key in the
  * product's R2 bucket (FILES), uploaded by a human, never in the repo. `fileName`: the download's name.
  */
-const digitalProductSchema = z.object({
-  id: z.string().regex(/^[a-z0-9-]+$/),
-  label: z.string().min(1).max(80),
-  // Payment providers refuse tiny amounts (Duitku: Rp10.000 minimum).
-  priceIdr: z.int().min(10_000),
-  fileKey: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9/._-]{0,199}$/),
-  fileName: z
-    .string()
-    .regex(/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,99}$/)
-    .optional(),
-  /** The product's own words for the download email (Bahasa Indonesia); the link and limits stay core's. */
-  email: z
-    .object({ subject: z.string().min(3).max(120).optional(), intro: z.string().min(3).max(400).optional() })
-    .optional(),
-});
+const digitalProductSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9-]+$/),
+    label: z.string().min(1).max(80),
+    // Payment providers refuse tiny amounts (Duitku: Rp10.000 minimum).
+    priceIdr: z.int().min(10_000),
+    fileKey: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9/._-]{0,199}$/),
+    fileName: z
+      .string()
+      .regex(/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,99}$/)
+      .optional(),
+    /** The product's own words for the download email (Bahasa Indonesia); the link and limits stay core's. */
+    email: z
+      .object({ subject: z.string().min(3).max(120).optional(), intro: z.string().min(3).max(400).optional() })
+      .optional(),
+    /**
+     * A time-limited sale (D-136): `priceIdr` is charged until `until` (ISO with offset, e.g.
+     * "2026-12-31T23:59:59+07:00"), then the normal price again, decided on the server. `label`
+     * is shown next to the struck-through normal price ("Diskon akhir tahun · sampai 31 Des").
+     */
+    sale: z
+      .object({
+        priceIdr: z.int().min(10_000),
+        until: z.iso.datetime({ offset: true }),
+        label: z.string().min(1).max(60).optional(),
+      })
+      .optional(),
+  })
+  .refine((p) => !p.sale || p.sale.priceIdr < p.priceIdr, {
+    message: "sale.priceIdr must be lower than priceIdr",
+    path: ["sale", "priceIdr"],
+  });
 
 // A CSS length for radii: "12px", "0.75rem", "0", or "9999px" for a pill.
 const cssLength = z.string().regex(/^(0|\d+(\.\d+)?(px|rem))$/, "a CSS length like 12px or 0.75rem");

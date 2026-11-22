@@ -352,5 +352,13 @@ describe("digital products (D-130)", () => {
     expect(bad([{ ...ebook, priceIdr: 5000 }])).toThrow();
     expect(bad([{ ...ebook, fileKey: "../secret" }])).toThrow();
     expect(bad([ebook], { ...base.payments, provider: "pakasir", methods: ["qris"] })).toThrow(/hosted-page/);
+    // D-136: a sale is cheaper than the price and ends at a real time with an offset.
+    const sale = { priceIdr: 89_000, until: "2026-12-31T23:59:59+07:00" };
+    expect(
+      defineProduct({ ...base, payments: doku, digitalProducts: [{ ...ebook, sale }] }).digitalProducts[0]?.sale,
+    ).toEqual(sale);
+    expect(bad([{ ...ebook, sale: { ...sale, priceIdr: 149_000 } }])).toThrow(/lower than priceIdr/);
+    expect(bad([{ ...ebook, sale: { ...sale, until: "31 Des" } }])).toThrow();
+    expect(bad([{ ...ebook, sale: { ...sale, until: "2026-12-31T23:59:59" } }])).toThrow();
   });
 });

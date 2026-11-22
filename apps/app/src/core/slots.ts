@@ -60,7 +60,16 @@ export type DigitalBuyState = "idle" | "badEmail" | "paying" | "error";
 // brings no ScrollView of its own (D-131).
 export type DigitalBuySlotProps = {
   /** priceText: the config's price, formatted ("Rp149.000"); never type a price in the slot. */
-  product: { id: string; label: string; priceIdr: number; priceText: string };
+  product: {
+    id: string;
+    label: string;
+    priceIdr: number;
+    priceText: string;
+    /** D-136: the normal price to strike through while a sale runs ("Rp149.000"), else null. */
+    listPriceText: string | null;
+    /** The sale's label ("Diskon akhir tahun · sampai 31 Des"), else null. */
+    saleLabel: string | null;
+  };
   state: DigitalBuyState;
   /** The labelled email input with its hint and error (testID buy-email). */
   emailField: ReactNode;

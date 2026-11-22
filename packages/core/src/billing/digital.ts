@@ -10,6 +10,34 @@ import type { Db } from "../entitlements";
 export const DOWNLOAD_HOURS = 72;
 export const DOWNLOAD_MAX_USES = 5;
 
+export type DigitalPrice = {
+  /** What is charged now. */
+  priceIdr: number;
+  /** The normal price while a sale runs (to strike through), else null. */
+  listPriceIdr: number | null;
+  saleUntil: string | null;
+  saleLabel: string | null;
+};
+
+/**
+ * A digital product's price right now (D-136): the sale price until `sale.until`, then the normal
+ * price. The one place checkout, the catalog and the buy page take it from; never the browser.
+ */
+export function currentDigitalPrice(
+  product: { priceIdr: number; sale?: { priceIdr: number; until: string; label?: string } },
+  now = new Date(),
+): DigitalPrice {
+  const sale = product.sale;
+  if (sale && now.getTime() <= Date.parse(sale.until))
+    return {
+      priceIdr: sale.priceIdr,
+      listPriceIdr: product.priceIdr,
+      saleUntil: sale.until,
+      saleLabel: sale.label ?? null,
+    };
+  return { priceIdr: product.priceIdr, listPriceIdr: null, saleUntil: null, saleLabel: null };
+}
+
 /** The payment's user_id for a purchase without an account: its consents and attribution hang on it. */
 export const guestId = () => `guest_${crypto.randomUUID().replaceAll("-", "")}`;
 export const isGuestId = (userId: string) => userId.startsWith("guest_");

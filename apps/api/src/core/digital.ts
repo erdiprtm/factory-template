@@ -4,6 +4,7 @@ import {
   checkPaymentStatus,
   checkPurchaseKey,
   createDownloadLink,
+  currentDigitalPrice,
   DOWNLOAD_HOURS,
   DOWNLOAD_MAX_USES,
   type Download,
@@ -181,7 +182,12 @@ const resendBody = z.object({ email: z.email().max(254) });
 export const digitalRoutes = new Hono<{ Bindings: Bindings }>()
   // The public catalog: what the buy page shows. Web only in the app (native shows no web prices).
   .get("/products", (c) =>
-    c.json({ products: config.digitalProducts.map((p) => ({ id: p.id, label: p.label, priceIdr: p.priceIdr })) }),
+    // The price now (D-136): a running sale's price, with the normal one to strike through.
+    c.json(
+      { products: config.digitalProducts.map((p) => ({ id: p.id, label: p.label, ...currentDigitalPrice(p) })) },
+      200,
+      { "cache-control": "no-store" },
+    ),
   )
   .use("/products/:id/checkout", rateLimit("CHECKOUT_LIMITER", clientIp))
   .post("/products/:id/checkout", async (c) => {
@@ -209,7 +215,8 @@ export const digitalRoutes = new Hono<{ Bindings: Bindings }>()
     const secret = downloadSecret(c.env);
     const started = await startCheckout(d, provider, {
       user: { id: buyer, name: "", email },
-      plan: { id: product.id, label: product.label, months: 0, priceIdr: product.priceIdr },
+      // The amount is decided here, at checkout time (D-136): a sale's price until it ends.
+      plan: { id: product.id, label: product.label, months: 0, priceIdr: currentDigitalPrice(product).priceIdr },
       methods: config.payments.methods,
       origin,
       attribution,
