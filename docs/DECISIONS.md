@@ -2843,3 +2843,19 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Not done (yet).** Cloudflare's other fix is to keep the previous release's hashed files in the new one, so skew finds them. It's more work and makes each release bigger. Revisit if misses during rollouts still show up. A visitor who already cached a broken 404 needs one hard reload; that stops with this change.
 - **Tests:** `packages/core/src/hashed-asset.test.ts`; `apps/api/test/security.test.ts` (a real bundle file is immutable, the SPA fallback is an uncached 404).
 
+## D-139: A one-row "compact" consent mode for phones (2026-11-23)
+
+- **Why (Fit CMO, Erdi: "Gas, kecilin").** Clarity on the ebook lander, 23 Nov 12:58–14:22: 68 Meta visitors on phones, 63% never scrolled past 10%, and only 5% reached the middle. Recordings show visitors sitting on the hero with the sticky sheet (D-135) covering half of it, some dead-clicking its title as if they had to answer first.
+- **`siteAskMode: "compact"`.** It behaves exactly like `"sticky"` and adds no new consent logic:
+  - it stays until answered, never locks or dims the page, and the body gets bottom padding equal to its measured height;
+  - no Pixel without "Izinkan", Clarity cookieless until granted (D-137), and consent_shown, consent_granted and consent_denied unchanged.
+
+  The layout is one row centred in `max-w-5xl`:
+  - left: the short line plus a "Kebijakan" link to `/privasi/`;
+  - right: "Tolak" and "Izinkan" side by side, each at least 44px tall and one tap, nothing pre-selected, "Izinkan" filled with `allowStyle: "primary"`.
+- **Words.** The new optional `copy.<locale>.short` is used only here, falling back to the title. "Tolak" uses the product's `deny` when it fits (≤ 10 characters), else "Tolak". The full explanation stays one tap away on `/privasi/`, a layered notice.
+- **Checked** on a production build with Myna Fit's short line ("Izinkan cookie Meta & Clarity buat ukur iklan?"):
+  - the row is 61px tall at 390px and 1280px wide, and 75px at 360px (the text wraps to two lines); the sticky sheet was about 259px;
+  - both buttons are 44px tall, the padding equals the row's height, there's no lock, and the page scrolls.
+
+
