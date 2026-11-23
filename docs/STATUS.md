@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-23: Hashed build files cached only when they exist (D-138)
+
+- `/_astro/*` (site Worker script) and `/_expo/static/*` (API Worker) are immutable only for a real file; a 404 or the SPA fallback is an uncached 404, so a miss during a release rollout (version skew) no longer breaks a page for a year. Found by Fit CMO on Myna Fit.
+
+---
+
 ## 2026-11-23: Clarity cookieless for every visitor, opt-in (D-137 update)
 
 - `analytics.clarityCookieless: true` runs Clarity for every visitor with consent denied until "Izinkan". Only with cookies OFF in the Clarity project; re-tested clean (no cookies, no Bing call before consent or after Tolak). Default stays consent-only.

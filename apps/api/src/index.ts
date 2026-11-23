@@ -33,6 +33,7 @@ import {
 import { capturedDevEmails } from "@factory/core/email";
 import { grantTrial, hasAccess, latestExpiry } from "@factory/core/entitlements";
 import { claimAnonymousFiles, type FileBucket, fileKey, fileRow } from "@factory/core/files";
+import { hashedAssetResponse } from "@factory/core/hashed-asset";
 import { cleanFbId, readFbCookies, saveCheckoutContext } from "@factory/core/meta";
 import { repeatCheckoutText, webhookRejectedText } from "@factory/core/notify";
 import { QUIZ_MAX_STEPS } from "@factory/core/quiz";
@@ -97,6 +98,10 @@ const db = (env: Bindings) => drizzle(env.DB, { schema });
 // visitor without a session goes to the landing page instead of sign-in (D-068). Otherwise, and
 // in every product without domain.anonymousHome, it's the app's index.html as before.
 app.get("/", (c) => anonymousHomeRedirect(c.req.raw, config.domain) ?? c.env.ASSETS.fetch(c.req.raw));
+
+// The app's hashed bundle files (D-138): a year and immutable only for a real file. A miss (the SPA
+// fallback's index.html, e.g. during a deploy's rollout) is an uncached 404, so it heals on reload.
+app.get("/_expo/static/*", async (c) => hashedAssetResponse(await c.env.ASSETS.fetch(c.req.raw)));
 
 /** Work that must not delay the response (analytics). Tests have no execution context: just finish it. */
 async function background(c: Context, work: Promise<unknown>): Promise<void> {
