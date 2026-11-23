@@ -3,7 +3,7 @@ import "../styles/global.css";
 import { colorSchemeHead } from "../lib/color-scheme.mjs";
 import { pathToFileURL } from "node:url";
 import { logoSize } from "../lib/logo.mjs";
-import { analyticsClientId, appUrl, homeUrl, metaPixelId, product, siteAsksConsent } from "../lib/site";
+import { analyticsClientId, appUrl, clarityProjectId, homeUrl, metaPixelId, product, siteAsksConsent } from "../lib/site";
 
 interface Props {
   title: string;
@@ -35,7 +35,10 @@ const consentSheet = consentMode === "sheet";
 const consentSheetLook = consentMode === "sheet" || consentMode === "sticky";
 const consentCopy = {
   title: "Privasi & iklan",
-  body: "Kami memakai analitik anonim untuk memperbaiki layanan. Dengan izinmu, kami juga memakai Meta Pixel untuk mengukur iklan kami di Facebook dan Instagram. Pilihan ini bisa diubah kapan saja.",
+  // D-137: with Clarity, the default words also say what "Izinkan" turns on there.
+  body: product.analytics.clarityProjectId
+    ? "Kami memakai analitik anonim untuk memperbaiki layanan. Dengan izinmu, kami juga memakai Meta Pixel untuk mengukur iklan kami di Facebook dan Instagram, dan cookie Microsoft Clarity untuk memahami cara halaman dipakai. Pilihan ini bisa diubah kapan saja."
+    : "Kami memakai analitik anonim untuk memperbaiki layanan. Dengan izinmu, kami juga memakai Meta Pixel untuk mengukur iklan kami di Facebook dan Instagram. Pilihan ini bisa diubah kapan saja.",
   allow: "Izinkan",
   deny: "Tidak, terima kasih",
   ...product.marketing.consent.copy[product.locale.default],
@@ -77,7 +80,7 @@ const logo = show === "name" ? null : logoSize(pathToFileURL(`${process.cwd()}/p
     <!-- Apply dark mode before paint (follows the device; no flash). Light-only products skip it (D-076). -->
     {scheme.themeScript && <script is:inline src="/theme.js"></script>}
   </head>
-  <body class="flex min-h-screen flex-col" data-page-event={event} data-op-client={analyticsClientId} data-app-url={appUrl} data-meta-pixel={metaPixelId}>
+  <body class="flex min-h-screen flex-col" data-page-event={event} data-op-client={analyticsClientId} data-app-url={appUrl} data-meta-pixel={metaPixelId} data-clarity={clarityProjectId}>
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded-md focus:bg-background focus:p-2">Langsung ke konten</a>
     <header class="border-b border-border">
       <nav class="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4" aria-label="Utama">
@@ -155,6 +158,7 @@ const logo = show === "name" ? null : logoSize(pathToFileURL(`${process.cwd()}/p
         openPanelProvider,
         type StandardEvent,
       } from "@factory/core/analytics";
+      import { loadClarity, setClarityConsent } from "@factory/core/analytics/clarity";
       import { parseTouch, resolveTouch, withTouch } from "@factory/core/attribution/touch";
       import {
         choiceToParam,
@@ -167,7 +171,7 @@ const logo = show === "name" ? null : logoSize(pathToFileURL(`${process.cwd()}/p
       } from "@factory/core/meta/events";
       import { OpenPanel } from "@openpanel/web";
 
-      const { opClient: clientId, appUrl = "", metaPixel } = document.body.dataset;
+      const { opClient: clientId, appUrl = "", metaPixel, clarity: clarityId } = document.body.dataset;
       const analytics = createAnalytics(
         clientId ? openPanelProvider(new OpenPanel({ clientId, trackOutgoingLinks: true })) : noopAnalytics,
       );
@@ -201,6 +205,12 @@ const logo = show === "name" ? null : logoSize(pathToFileURL(`${process.cwd()}/p
       };
       decorateLinks();
       if (metaPixel && choice === "granted") loadPixel(metaPixel);
+      // Microsoft Clarity (D-137): loaded only after "Izinkan", like the Pixel. Loading it with
+      // consent denied still set Microsoft cookies (CLID from the tag, MUID via a Bing sync).
+      const startClarity = () => {
+        if (clarityId && loadClarity(clarityId, window as never)) setClarityConsent(true, window as never);
+      };
+      if (choice === "granted") startClarity();
       // The banner exists only when the product asks on a first visit (D-107).
       const banner = document.getElementById("consent-banner");
       const asking = Boolean(metaPixel && banner && !choice);
@@ -253,6 +263,7 @@ const logo = show === "name" ? null : logoSize(pathToFileURL(`${process.cwd()}/p
           banner.hidden = true;
           decorateLinks();
           funnel(picked === "granted" ? "consent_granted" : "consent_denied");
+          if (picked === "granted") startClarity();
           if (picked === "granted" && metaPixel) {
             loadPixel(metaPixel);
             pixelTrack(document.body.dataset.pageEvent ?? "");

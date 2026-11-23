@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-23: Microsoft Clarity on the site, only after "Izinkan" (D-137)
+
+- `analytics.clarityProjectId`: Clarity on production site builds, loaded only after the consent banner's "Izinkan" (with consent denied it still set Microsoft cookies, incl. MUID, in testing). Privacy policy line, banner wording, CSP hosts only when set.
+
+---
+
 ## 2026-11-22: Time-limited sale price for digital products (D-136)
 
 - `digitalProducts[].sale { priceIdr, until, label? }`: the server charges the sale price until `until`, then the normal price; the catalog and buy page show the normal price struck through. For Myna Fit's ebook (Rp89.000 until 31 Dec 2026 23:59 WIB).

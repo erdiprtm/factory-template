@@ -37,7 +37,14 @@ export default defineConfig({
         "form-action 'self'",
       ],
       // The Meta Pixel (D-034): loaded only with marketing consent, on products with a Pixel ID.
-      scriptDirective: { resources: ["'self'", "https://connect.facebook.net"] },
+      // Microsoft Clarity's tag and script hosts (D-137), only for products that set a project id.
+      scriptDirective: {
+        resources: [
+          "'self'",
+          "https://connect.facebook.net",
+          ...(product.analytics.clarityProjectId ? ["https://www.clarity.ms", "https://scripts.clarity.ms"] : []),
+        ],
+      },
     },
   },
   // Ad landers (/l/…) are noindex: only reachable from ads, so they stay out of the sitemap too.
