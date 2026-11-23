@@ -12,6 +12,3 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Cross-Origin-Opener-Policy: same-origin
-
-/_expo/static/*
-  Cache-Control: public, max-age=31536000, immutable

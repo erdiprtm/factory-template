@@ -8,5 +8,4 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains
 
-/_astro/*
-  Cache-Control: public, max-age=31536000, immutable
+# /_astro/* is cached by src/worker.ts (D-138): immutable only for a real file, never for a 404.

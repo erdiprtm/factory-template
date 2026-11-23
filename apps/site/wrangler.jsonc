@@ -1,13 +1,17 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  // Assets-only Worker (no script): the static Astro build. Top level = PRODUCTION,
-  // env.preview = per-PR previews. Production changes only through CI.
+  // The static Astro build, plus a tiny script only for /_astro/* (D-138: immutable only for a real
+  // file, never for a 404 during a deploy). Top level = PRODUCTION, env.preview = per-PR previews.
+  // Production changes only through CI.
   "name": "factory-template-site",
+  "main": "./src/worker.ts",
   "compatibility_date": "2026-09-25",
   "workers_dev": true,
   "preview_urls": true,
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/_astro/*"],
     "not_found_handling": "404-page",
     "html_handling": "auto-trailing-slash"
   },

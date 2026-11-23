@@ -92,3 +92,27 @@ describe("rate limits", () => {
     expect(res.headers.get("retry-after")).toBe("60");
   });
 });
+
+// D-138: the app's hashed bundle files are cached for a year only when they really exist.
+describe("/_expo/static/* cache rule", () => {
+  const assets = (status: number, type: string) => ({
+    ...env,
+    ASSETS: {
+      fetch: async () => new Response(status === 200 ? "x" : "nope", { status, headers: { "content-type": type } }),
+    },
+  });
+  it("a real bundle file is immutable; the SPA fallback for a missing one is an uncached 404", async () => {
+    const real = await app.request(
+      "http://localhost/_expo/static/js/web/entry-abc.js",
+      undefined,
+      assets(200, "application/javascript"),
+    );
+    expect([real.status, real.headers.get("cache-control")]).toEqual([200, "public, max-age=31536000, immutable"]);
+    const missing = await app.request(
+      "http://localhost/_expo/static/js/web/gone-abc.js",
+      undefined,
+      assets(200, "text/html"),
+    );
+    expect([missing.status, missing.headers.get("cache-control")]).toEqual([404, "no-store"]);
+  });
+});

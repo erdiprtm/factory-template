@@ -365,9 +365,8 @@ export function renderAppHeaders(product) {
     "  Strict-Transport-Security: max-age=31536000; includeSubDomains",
     "  Cross-Origin-Opener-Policy: same-origin",
     "",
-    "/_expo/static/*",
-    "  Cache-Control: public, max-age=31536000, immutable",
-    "",
+    // /_expo/static/* is cached by the Worker (D-138): immutable only for a real file, never for the
+    // SPA fallback or a miss during a deploy, which _headers can't tell apart.
     // Apple reads the file only as JSON, and it has no extension (D-120).
     ...(renderAppLinks(product).ios ? [`/${APP_LINK_FILES.ios}`, "  Content-Type: application/json", ""] : []),
   ].join("\n");
