@@ -2819,4 +2819,12 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Tests.**
   - `packages/core/src/analytics/clarity.test.ts`: denied queued first, one tag load, a bad id refused, "Izinkan" grants analytics only.
   - `apps/site/test/build.test.ts`: no `data-clarity` on a non-production build.
+- **Update (2026-11-23): `analytics.clarityCookieless`** (default false). Fit CMO needs the visitors who never answer: consent-only covered about 5%. Erdi turned **cookies OFF in the Clarity project** (`zhvz11sfu9`, Settings → Setup), and the same check was re-run (tag loaded with consentv2 denied queued first):
+  - no choice: tag, script and `collect` only; no Set-Cookie, no `c.gif`, no `c.bing.com`, no cookies;
+  - after "Tolak": the same;
+  - after "Izinkan": only Clarity's first-party `_clck`/`_clsk`; still no MUID and no Bing call.
+
+  With `clarityCookieless: true`, Clarity runs for every visitor, cookieless until "Izinkan", and "Tolak" keeps it denied. The privacy line says so.
+  - **Only valid while the project's cookie setting stays OFF.** Turning it back on brings back Microsoft's cookies before consent. Re-test after any change there.
+  - Default stays consent-only, for products that haven't done this.
 

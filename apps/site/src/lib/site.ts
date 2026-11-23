@@ -76,7 +76,7 @@ export function fillPlaceholders(text: string): string {
     refundPolicy: product.legal.refundPolicy,
     productDataDescription: product.legal.productDataDescription,
     aiProcessor: aiProcessorLine(product.ai),
-    analyticsProcessor: clarityProcessorLine(product.analytics.clarityProjectId),
+    analyticsProcessor: clarityProcessorLine(product.analytics.clarityProjectId, product.analytics.clarityCookieless),
     paymentProcessor: paymentProcessorLine(product.payments),
     storeProcessor: storeProcessorLine(product.native),
     paymentProcessorName: paymentProcessorName(product.payments),

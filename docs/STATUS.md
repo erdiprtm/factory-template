@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-23: Clarity cookieless for every visitor, opt-in (D-137 update)
+
+- `analytics.clarityCookieless: true` runs Clarity for every visitor with consent denied until "Izinkan". Only with cookies OFF in the Clarity project; re-tested clean (no cookies, no Bing call before consent or after Tolak). Default stays consent-only.
+
+---
+
 ## 2026-11-23: Microsoft Clarity on the site, only after "Izinkan" (D-137)
 
 - `analytics.clarityProjectId`: Clarity on production site builds, loaded only after the consent banner's "Izinkan" (with consent denied it still set Microsoft cookies, incl. MUID, in testing). Privacy policy line, banner wording, CSP hosts only when set.

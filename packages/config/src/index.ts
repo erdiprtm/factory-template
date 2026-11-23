@@ -458,8 +458,13 @@ export const productSchema = z.object({
         .regex(/^[a-z0-9]{6,20}$/, "a Clarity project id like zhvz11sfu9")
         .nullable()
         .default(null),
+      // clarityCookieless (D-137 update): run Clarity for every visitor, consent denied (no cookies)
+      // until "Izinkan". ONLY with cookies turned OFF in the Clarity project (Settings → Setup):
+      // with them on, the tag set Microsoft cookies (incl. the ad ID MUID) before consent. Re-test
+      // after any change there. false (default): Clarity loads only after "Izinkan".
+      clarityCookieless: z.boolean().default(false),
     })
-    .default({ openpanelClientId: null, clarityProjectId: null }),
+    .default({ openpanelClientId: null, clarityProjectId: null, clarityCookieless: false }),
   // Sentry DSN (public: browsers carry it; it can only submit events). Unset = monitoring off.
   // Errors are reported from production and preview only, with PII scrubbed (@factory/core/monitoring).
   monitoring: z.object({ sentryDsn: z.url().nullable().default(null) }).default({ sentryDsn: null }),

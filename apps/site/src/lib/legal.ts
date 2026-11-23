@@ -7,8 +7,10 @@ import type { ProductConfig } from "@factory/config";
  * Microsoft Clarity in the privacy policy (D-137), only for products that set a project id.
  * Reviewed by a lawyer with the rest of the template before launch.
  */
-export function clarityProcessorLine(clarityProjectId: string | null): string {
+export function clarityProcessorLine(clarityProjectId: string | null, cookieless = false): string {
   if (!clarityProjectId) return "";
+  if (cookieless)
+    return '- **Microsoft Clarity:** cara halaman situs dipakai (klik, gulir, bagian yang dilihat) untuk memperbaiki halaman kami. Tanpa izin, Clarity tidak memakai cookie dan setiap kunjungan halaman dicatat terpisah. Dengan izinmu (pilihan "iklan"), Clarity memakai cookie miliknya untuk menyambungkan kunjunganmu. Data ini tidak dipakai untuk iklan.';
   return '- **Microsoft Clarity, hanya jika kamu mengizinkan (pilihan "iklan"):** cara halaman situs dipakai (klik, gulir, bagian yang dilihat) untuk memperbaiki halaman kami, dengan cookie Clarity dan Microsoft. Kami tidak memakai data ini untuk iklan. Tanpa izin, Clarity tidak dimuat.';
 }
 
