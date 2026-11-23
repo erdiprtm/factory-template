@@ -164,8 +164,9 @@ describe("built site", () => {
     expect(headers).toContain("X-Content-Type-Options: nosniff");
   });
 
-  it("non-production builds never send analytics (no OpenPanel client ID in the HTML)", () => {
+  it("non-production builds never send analytics (no OpenPanel client ID, no Clarity, D-137)", () => {
     expect(page("index.html")).not.toContain("data-op-client");
+    expect(page("index.html")).not.toContain("data-clarity");
   });
 
   it("ad landers: hook as the headline, one way forward to the quiz, noindex, not in the sitemap", () => {

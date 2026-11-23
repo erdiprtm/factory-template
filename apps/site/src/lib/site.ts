@@ -1,7 +1,14 @@
 import { methodChips } from "@factory/core/pricing";
 import registry from "../../../../factory.json";
 import product from "../../../../product.config";
-import { aiProcessorLine, fillTemplate, paymentProcessorLine, paymentProcessorName, storeProcessorLine } from "./legal";
+import {
+  aiProcessorLine,
+  clarityProcessorLine,
+  fillTemplate,
+  paymentProcessorLine,
+  paymentProcessorName,
+  storeProcessorLine,
+} from "./legal";
 import { appUrlFor } from "./urls.mjs";
 
 export { product };
@@ -49,6 +56,9 @@ export const homeUrl: string =
 /** OpenPanel client ID, only on production builds: previews and dev send nothing. */
 export const analyticsClientId = (isProduction && product.analytics.openpanelClientId) || undefined;
 
+/** Microsoft Clarity project id, only on production builds: previews and dev send nothing (D-137). */
+export const clarityProjectId = (isProduction && product.analytics.clarityProjectId) || undefined;
+
 /** Meta Pixel ID, only on production builds; the consent banner and Pixel exist only with it (D-034). */
 export const metaPixelId = (isProduction && product.marketing.metaPixelId) || undefined;
 
@@ -66,6 +76,7 @@ export function fillPlaceholders(text: string): string {
     refundPolicy: product.legal.refundPolicy,
     productDataDescription: product.legal.productDataDescription,
     aiProcessor: aiProcessorLine(product.ai),
+    analyticsProcessor: clarityProcessorLine(product.analytics.clarityProjectId),
     paymentProcessor: paymentProcessorLine(product.payments),
     storeProcessor: storeProcessorLine(product.native),
     paymentProcessorName: paymentProcessorName(product.payments),

@@ -3,6 +3,15 @@ import type { ProductConfig } from "@factory/config";
 // The privacy policy's AI processor line (D-083, D-084), from product.config.ts `ai`, so the
 // policy names whoever actually receives users' text and photos. Empty when the product has no AI.
 // Reviewed by a lawyer with the rest of the template before launch.
+/**
+ * Microsoft Clarity in the privacy policy (D-137), only for products that set a project id.
+ * Reviewed by a lawyer with the rest of the template before launch.
+ */
+export function clarityProcessorLine(clarityProjectId: string | null): string {
+  if (!clarityProjectId) return "";
+  return '- **Microsoft Clarity, hanya jika kamu mengizinkan (pilihan "iklan"):** cara halaman situs dipakai (klik, gulir, bagian yang dilihat) untuk memperbaiki halaman kami, dengan cookie Clarity dan Microsoft. Kami tidak memakai data ini untuk iklan. Tanpa izin, Clarity tidak dimuat.';
+}
+
 export function aiProcessorLine(ai: ProductConfig["ai"]): string {
   if (!ai) return "";
   // With a fallback provider (D-091), both receive data, so both are named.

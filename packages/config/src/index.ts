@@ -448,7 +448,18 @@ export const productSchema = z.object({
   admin: z.object({ emails: z.array(z.email()) }),
   // OpenPanel (FACTORY_BLUEPRINT.md Section 9). The client ID is public (it ships to browsers);
   // its secret never goes here. Unset = analytics off. Events are sent from production only.
-  analytics: z.object({ openpanelClientId: z.uuid().nullable().default(null) }).default({ openpanelClientId: null }),
+  // clarityProjectId (D-137): Microsoft Clarity on the site's production builds (scroll depth,
+  // heatmaps). Cookieless until "Izinkan" on the consent banner; never an ad tag.
+  analytics: z
+    .object({
+      openpanelClientId: z.uuid().nullable().default(null),
+      clarityProjectId: z
+        .string()
+        .regex(/^[a-z0-9]{6,20}$/, "a Clarity project id like zhvz11sfu9")
+        .nullable()
+        .default(null),
+    })
+    .default({ openpanelClientId: null, clarityProjectId: null }),
   // Sentry DSN (public: browsers carry it; it can only submit events). Unset = monitoring off.
   // Errors are reported from production and preview only, with PII scrubbed (@factory/core/monitoring).
   monitoring: z.object({ sentryDsn: z.url().nullable().default(null) }).default({ sentryDsn: null }),

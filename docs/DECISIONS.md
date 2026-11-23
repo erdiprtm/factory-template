@@ -2796,3 +2796,27 @@ Myna Fit's `pnpm verify` failed twice for reasons that weren't bugs, on a laptop
 - **Honest pricing.** The struck-through price must be the real normal price, and the sale must really end (UU Perlindungan Konsumen, Meta's ad rules). The config forces a lower sale price and a real end time. The product's static lander switches its own display at the same moment.
 - **Tests.** `packages/core/src/billing/digital.test.ts`: before and right after the end, WIB midnight. The config test checks a sale not cheaper, a bad `until` and a missing offset. `apps/api/test/digital-products.test.ts`: the catalog and the checkout amount during the sale, then the normal price once it has ended.
 
+## D-137: Microsoft Clarity on the site, loaded only after "Izinkan" (2026-11-23)
+
+- **Ask (Fit CMO, Erdi approved).** Scroll depth and heatmaps for the ebook lander: on 22 Nov, 241 visitors and only 9 reached /beli (4%). OpenPanel's trial has ended, and the site has no scroll data.
+- **Config.** `analytics.clarityProjectId` (optional; Myna Fit: `zhvz11sfu9`, set at sync). Only production builds of `apps/site` carry it (`data-clarity`); previews, dev and the app send nothing. The loader is bundled (`@factory/core/analytics/clarity`; CSP `script-src 'self'`). `www.clarity.ms` and `scripts.clarity.ms` join `script-src` only when the id is set; img and connect already allow https.
+- **What the docs say vs. what happened.** The Consent API v2 docs (read 2026-11-23) say that with `analytics_Storage: "denied"` Clarity assigns a unique ID per page view and sets "no first-party and third-party cookies". Tested in Chromium on a production build, with consentv2 denied queued before the tag:
+  - Clarity's own `_clck`/`_clsk` stayed off;
+  - but the tag request set `CLID`, and `c.clarity.ms/c.gif` → `c.bing.com/c.gif` set `MUID` (Microsoft's ad identifier), `SM`, `MR`, `ANONCHK`.
+
+  That is not cookieless, and MUID is an ad cookie.
+- **Decision: load Clarity only after "Izinkan"** on the consent banner, like the Pixel (D-034). Once loaded, consentv2 grants `analytics_Storage` and keeps `ad_Storage` denied. Re-tested:
+  - before a choice: 0 Clarity/Microsoft requests;
+  - after "Tolak": none;
+  - after "Izinkan": Clarity records.
+
+  Clarity is product analytics, never an ad tag, and its data isn't used for ads.
+- **Consequence.** Clarity sees only the visitors who chose "Izinkan", not the ones who never answer. Recording visitors without consent would need Microsoft to stop those cookies, for example with the project's cookie setting turned off in the Clarity dashboard (Settings → Setup). Re-test with this same check before changing the decision.
+- **Legal.**
+  - The privacy template gets `{{analyticsProcessor}}`, a Microsoft Clarity line shown only with an id: only with consent, Clarity and Microsoft cookies, not used for ads.
+  - With Clarity on, the default banner text says "Izinkan" also turns on Clarity's cookies.
+  - A product with its own banner copy must say so itself. Myna Fit has its own copy.
+- **Tests.**
+  - `packages/core/src/analytics/clarity.test.ts`: denied queued first, one tag load, a bad id refused, "Izinkan" grants analytics only.
+  - `apps/site/test/build.test.ts`: no `data-clarity` on a non-production build.
+
