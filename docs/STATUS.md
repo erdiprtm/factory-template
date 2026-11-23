@@ -4,6 +4,12 @@ Progress log, newest entry on top.
 
 ---
 
+## 2026-11-23: One-row "compact" consent mode for phones (D-139)
+
+- `marketing.consent.siteAskMode: "compact"`: sticky's behaviour in one row (a short line + "Kebijakan", Tolak and Izinkan side by side, 44px buttons), about 61px tall on a 390px phone instead of the sticky sheet's ~259px. Optional `copy.<locale>.short`. For Myna Fit's ebook lander (visitors stalled on the sheet).
+
+---
+
 ## 2026-11-23: Hashed build files cached only when they exist (D-138)
 
 - `/_astro/*` (site Worker script) and `/_expo/static/*` (API Worker) are immutable only for a real file; a 404 or the SPA fallback is an uncached 404, so a miss during a release rollout (version skew) no longer breaks a page for a year. Found by Fit CMO on Myna Fit.

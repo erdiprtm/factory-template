@@ -747,6 +747,8 @@ export const productSchema = z.object({
                 body: z.string().min(20).max(400),
                 allow: z.string().min(2).max(30),
                 deny: z.string().min(2).max(30),
+                // D-139: the one line of siteAskMode "compact" (else the title).
+                short: z.string().min(3).max(70).optional(),
               }),
             )
             .default({}),
@@ -760,7 +762,9 @@ export const productSchema = z.object({
           // stays one tap and the page works fully after it, so the choice stays free.
           // "sticky" (D-135): the same sheet, but the page stays scrollable and tappable (no lock, no
           // dim); it stays until a choice is made, and the page gets bottom padding its height.
-          siteAskMode: z.enum(["bar", "sheet", "sticky"]).default("bar"),
+          // "compact" (D-139): sticky's behaviour in one short row (a line, a Kebijakan link, Tolak and
+          // Izinkan side by side), so it covers little of the hero on a phone.
+          siteAskMode: z.enum(["bar", "sheet", "sticky", "compact"]).default("bar"),
         })
         .default({ askAt: "first_visit", copy: {}, siteAskPaths: [], allowStyle: "equal", siteAskMode: "bar" }),
     })
